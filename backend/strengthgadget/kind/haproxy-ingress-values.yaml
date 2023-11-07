@@ -1,0 +1,4 @@
+# Ref: https://haproxy-ingress.github.io/docs/getting-started/
+# https://artifacthub.io/packages/helm/haproxy-ingress/haproxy-ingress
+controller:
+  hostNetwork: true

@@ -1,0 +1,12 @@
+**/node_modules
+**/.terraform
+**/.angular
+**/.idea
+**/.git
+
+**/environment-configs
+
+infrastructure/cicd/agents
+infrastructure/cicd/buildserver_pgdata
+infrastructure/cicd/data_dir
+infrastructure/cicd/teamcity-server-logs

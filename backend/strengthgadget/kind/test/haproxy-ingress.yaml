@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: haproxy
+  creationTimestamp: "2023-05-13T21:36:36Z"
+  generation: 6
+  name: echoserver
+  namespace: default
+  resourceVersion: "16162"
+  uid: a70e040a-bc06-44fd-89a5-a0009a1dc912
+spec:
+  rules:
+    - host: test.frii.day
+      http:
+        paths:
+          - backend:
+              service:
+                name: nginx-service
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix
+status:
+  loadBalancer:
+    ingress:
+      - {}

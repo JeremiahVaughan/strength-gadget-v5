@@ -1,0 +1,8 @@
+regions:
+  - global
+
+account-blocklist:
+  - "690871126652" # production
+
+accounts:
+  "742884841662": {} # staging

@@ -1,0 +1,23 @@
+version: "3"
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  pihole:
+    image: pihole/pihole:latest
+    environment:
+      TZ: 'America/new_york'
+      WEBPASSWORD: ${WEBPASSWORD}
+    # Volumes store your data between container upgrades
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "80:80/tcp"
+#    volumes:
+#      - '/mnt/etc-pihole:/etc/pihole'
+#      - '/mnt/etc-dnsmasq.d:/etc/dnsmasq.d'
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    cap_add:
+      - NET_ADMIN # Recommended but not required (DHCP needs NET_ADMIN)
+
+#Example deploy
+# WEBPASSWORD=something docker stack deploy --compose-file docker-compose.yml aws-params

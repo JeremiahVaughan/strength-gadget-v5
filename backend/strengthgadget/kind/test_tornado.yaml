@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: test-tornado
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+        - name: test-tornado
+          image: localhost:5000/test-tornado:0.0.1
+          env:
+            - name: NOTIFICATION_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: configuration-secrets
+                  key: notificationEndpoint
+      restartPolicy: Never
+

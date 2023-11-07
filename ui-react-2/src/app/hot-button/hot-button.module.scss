@@ -1,0 +1,91 @@
+// Variables
+$fireColor1: #ff5000;
+$fireColor2: rgba(255, 80, 0, 0);
+$fireDuration: 1s;
+$blur: 0.1rem;
+$fireSize: 4rem;
+
+
+.fire-container {
+  font-size: 1.7rem;
+  filter: blur($blur);
+  -webkit-filter: blur($blur);
+  position: relative;
+  width: 3.5em;
+  height: 4em;
+
+  .particle {
+    animation: rise $fireDuration ease-in infinite;
+    background-image: radial-gradient($fireColor1 30%, $fireColor2 70%);
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    opacity: 0;
+    position: absolute;
+    bottom: 0;
+    width: $fireSize;
+    height: $fireSize;
+  }
+}
+
+.button {
+  margin: .7rem;
+  position: absolute;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 5rem;
+  bottom: 0;
+  font-weight: 900;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  font-family: system-ui;
+  -webkit-box-shadow: 0 1rem 1.7rem -.5rem rgba(255, 255, 255, 0.2);
+  box-shadow: 0 1rem 1.7rem -.5rem rgba(255, 255, 255, 0.2);
+}
+
+.fire {
+  background-color: #fd6408;
+  color: #313131;
+  transition: all 0.8s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0);
+    box-shadow: none;
+    color: #fd6408;
+  }
+}
+
+.button-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-3em) scale(0);
+  }
+}
+
+@keyframes fly-away {
+  0% {
+    opacity: 1;
+    filter: blur(.1rem);
+  }
+  100% {
+    transform: scale(0.3);
+    opacity: 0;
+    filter: blur(1.2rem);
+    border-radius: 50%;
+  }
+}
+

@@ -1,0 +1,48 @@
+
+.snowy-button {
+  position: relative;
+  background-color: #3498db;
+  color: white;
+  padding: .7rem 1.3rem;
+  border: none;
+  border-radius: 5rem;
+  font-size: 2rem;
+  cursor: pointer;
+  overflow: hidden;
+  height: 3.5rem;
+  margin-left: 1rem;
+
+  &::before, &::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 1.5rem;
+    left: 0;
+    z-index: 1;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), transparent);
+    pointer-events: none;
+  }
+
+  &::before {
+    top: 0;
+  }
+
+  &::after {
+    bottom: 0;
+    transform: scaleY(-1);
+  }
+
+  animation: pulsate 2s infinite;
+}
+
+@keyframes pulsate {
+  0% {
+    box-shadow: 0 0 1rem #ffffff;
+  }
+  50% {
+    box-shadow: 0 0 1.3rem #ffffff, 0 0 2.2rem #3498db;
+  }
+  100% {
+    box-shadow: 0 0 1rem #ffffff;
+  }
+}

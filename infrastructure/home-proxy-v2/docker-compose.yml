@@ -1,0 +1,42 @@
+version: '3'
+services:
+  haproxy:
+    image: haproxy
+    network_mode: host
+    restart: always
+    volumes:
+      - ./certbot/conf/:/etc/letsencrypt/:ro
+      - ./haproxy_conf:/usr/local/etc/haproxy
+  watcher:
+    image: localhost:5000/watcher:0.0.1
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile-watcher
+    volumes:
+      - /var/shared/:/etc/letsencrypt/:rw
+      - /var/run/docker.sock:/var/run/docker.sock
+  certbot-new:
+    image: certbot/dns-cloudflare:latest
+    command: certonly --dns-cloudflare --email jeremiah.t.vaughan@gmail.com --agree-tos -d "*.frii.day" --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - /var/shared:/etc/letsencrypt/:rw
+  certbot-new-staging:
+    image: certbot/dns-cloudflare:latest
+    command: certonly --dns-cloudflare --email jeremiah.t.vaughan@gmail.com --agree-tos -d "*.frii.day" --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini --staging
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - /var/shared/:/etc/letsencrypt/:rw
+  certbot-renew:
+    image: certbot/dns-cloudflare:latest
+    command: renew
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - /var/shared/:/etc/letsencrypt/:rw
+  certbot-renew-staging:
+    image: certbot/dns-cloudflare:latest
+    command: renew --force-renewal
+    volumes:
+      - ./certbot/www/:/var/www/certbot/:rw
+      - /var/shared/:/etc/letsencrypt/:rw

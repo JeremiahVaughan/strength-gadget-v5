@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: strengthgadget-deployment
+  labels:
+    app: strengthgadget
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: strengthgadget
+  template:
+    metadata:
+      labels:
+        app: strengthgadget
+    spec:
+      containers:
+        - name: strengthgadget
+          image: localhost:5000/strengthgadget:0.0.1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: REGISTRATION_EMAIL_FROM
+              value: "strengthgadget@gmail.com"
+            - name: REGISTRATION_EMAIL_FROM_PASSWORD
+              value: "not_a_real_password_do_not_use_in_production"
+            - name: DATABASE_CONNECTION_STRING
+              value: "postgresql://strengthgadget:not_a_real_password_do_not_use_in_production@cockroachdb-public:26257/auth?sslmode=verify-full"
+            - name: VERSION
+              value: 0.0.1
+            - name: DATABASE_ROOT_CA
+              valueFrom:
+                secretKeyRef:
+                  name: cockroachdb-node
+                  key: ca.crt
+            - name: EMAIL_ROOT_CA
+              value: "bm90X2FfcmVhbF9wYXNzd29yZF9kb19ub3RfdXNlX2luX3Byb2R1Y3Rpb24="
+            - name: LOCAL_DEVELOPMENT
+              value: "true"
+            - name: TRUSTED_UI_ORIGIN
+              value: "http://localhost:4200,http://192.168.1.117:4200"
+            - name: REDIS_CONNECTION_STRING
+              value: "redis:6379"
+            - name: REDIS_PASSWORD
+              value: "not_a_real_password_do_not_use_in_production"
+            - name: VERIFICATION_EXCESSIVE_RETRY_ATTEMPT_LOCKOUT_DURATION_IN_SECONDS
+              value: "5"
+            - name: ALLOWED_VERIFICATION_ATTEMPTS_WITH_THE_EXCESSIVE_RETRY_LOCKOUT_WINDOW
+              value: "5"
+            - name: VERIFICATION_CODE_VALIDITY_WINDOW_IN_MIN
+              value: "5"
+            - name: WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_VERIFICATION_EMAILS_BEFORE_LOCKOUT
+              value: "5"
+            - name: WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_LOGIN_ATTEMPTS_BEFORE_LOCKOUT
+              value: "5"
+            - name: ALLOWED_LOGIN_ATTEMPTS_BEFORE_TRIGGERING_LOCKOUT
+              value: "7"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: strengthgadget
+  labels:
+    app: strengthgadget
+spec:
+  type: NodePort
+  selector:
+    app: strengthgadget
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30005

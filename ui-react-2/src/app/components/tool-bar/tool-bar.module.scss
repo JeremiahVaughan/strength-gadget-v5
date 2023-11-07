@@ -1,0 +1,14 @@
+.container {
+  display: flex;
+  background-color: black;
+  justify-content: end;
+  align-items: center;
+  height: 3rem;
+}
+
+.authenticate-button {
+  color: white;
+  font-weight: bold;
+  padding-right: 1rem;
+  cursor: pointer;
+}

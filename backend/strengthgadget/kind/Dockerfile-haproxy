@@ -1,0 +1,8 @@
+FROM haproxy:lts-alpine3.18
+USER root
+WORKDIR /usr/local/etc/haproxy
+COPY haproxy.cfg haproxy.cfg
+COPY localhost.pem localhost.crt
+COPY localhost-key.pem localhost.key
+RUN cat localhost.crt localhost.key > localhost.pem
+

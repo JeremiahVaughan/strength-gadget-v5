@@ -1,0 +1,36 @@
+FROM ubuntu
+
+RUN apt-get update && apt-get install wget lsb-core unzip zip git -y
+
+### Install Golang ###
+# Get hashes from https://go.dev/dl/
+ENV EXPECTED_SHAW="4eaea32f59cde4dc635fbc42161031d13e1c780b87097f4b4234cfce671f1768"
+ENV GOLANG_VERSION="1.20.2"
+ENV FILE_NAME="go${GOLANG_VERSION}.linux-amd64.tar.gz"
+RUN wget "https://go.dev/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz"
+RUN echo "$EXPECTED_SHAW $FILE_NAME" | sha256sum --check
+RUN rm -rf /usr/local/go && tar -C /usr/local -xzf "go${GOLANG_VERSION}.linux-amd64.tar.gz"
+ENV PATH=$PATH:/usr/local/go/bin
+RUN go version
+
+### Install Docker ###
+RUN apt-get install ca-certificates curl gnupg lsb-release -y
+RUN mkdir -m 0755 -p /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+RUN apt-get update
+RUN apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+# can't print the docker version here because docker needs to be mounted to the /var/run/docker.sock:/var/run/docker.sock directory first
+
+WORKDIR /workspace
+
+COPY go.mod .
+COPY go.sum .
+RUN go mod download && go mod verify
+
+COPY . .
+
+RUN go test ./...
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app .
+
+ENTRYPOINT ["/app"]

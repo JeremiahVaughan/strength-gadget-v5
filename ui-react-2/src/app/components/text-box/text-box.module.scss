@@ -1,0 +1,29 @@
+.field {
+  border: .15rem #c0c0c0 solid;
+  padding: .9rem;
+  border-radius: .4rem;
+  background-color: #7f7f7f;
+  color: white;
+  font-weight: bold;
+  font-size: 1.3rem;
+
+  &:focus {
+    border-color: #0556a6;
+    outline: #002b88;
+  }
+
+  &.failed-validation {
+    border-color: red;
+  }
+}
+
+input::placeholder {
+  color: #c0c0c0;
+}
+
+
+
+.spacer {
+  height: .7rem;
+  width: .4rem;
+}

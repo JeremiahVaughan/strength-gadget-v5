@@ -1,0 +1,73 @@
+.idea
+.run
+scratch_pad.txt
+tmp
+
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# compiled output
+/dist
+/tmp
+/out-tsc
+
+# dependencies
+node_modules
+
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+
+# System Files
+.DS_Store
+Thumbs.db
+
+.angular
+dist
+
+certbot
+nginx
+
+# Terraform
+
+strength-gadget-terraform-live.iml
+
+
+#  Local .terraform directories
+**/.terraform/*
+.terragrunt-cache
+generated*
+
+	# Ignore any .tfvars files that are generated automatically for each Terraform run. Most
+	# .tfvars files are managed as part of configuration and so should be included in
+	# version control.
+	#
+	# example.tfvars
+
+# Configs
+current_config.yaml
+dev.yaml
+staging.yaml
+production.yaml
+
+current_config.yml
+dev.yml
+staging.yml
+production.yml
+
+strength-gadget-terraform-modules.iml
+.terraform
+
+.aws-sam
+secrets.json
+secrets.yaml
+secrets.yml
+
+localhost.pem
+localhost-key.pem

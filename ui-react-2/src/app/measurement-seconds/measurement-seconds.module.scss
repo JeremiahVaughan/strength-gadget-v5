@@ -1,0 +1,7 @@
+.container {
+  cursor: pointer;
+  &:active {
+    scale: 1.1;
+    opacity: 70%;
+  }
+}

@@ -1,0 +1,10 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: foo-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: strengthgadget
+  ports:
+    - port: 8080
