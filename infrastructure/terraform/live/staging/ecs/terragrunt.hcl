@@ -12,12 +12,12 @@ include "env" {
   path = "${get_terragrunt_dir()}/../../_env/ecs.hcl"
 }
 
-dependency "artifacts" {
-  config_path = "../../artifacts"
-}
+#dependency "artifacts" {
+#  config_path = "../../artifacts"
+#}
 
 inputs = {
   env = local.env_name
   pub_ssh_key_path = get_env("PUB_SSH_KEY_PATH")
-  ecr_url = dependency.artifacts.outputs.ecr_url
+#  ecr_url = dependency.artifacts.outputs.ecr_url
 }
