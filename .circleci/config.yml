@@ -29,7 +29,8 @@ jobs:
       - run:
           command: |
             cd ./ui && ./deploy.sh 
-            cd ../infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
+            cd ~
+            cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
 
 
 
