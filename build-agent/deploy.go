@@ -215,7 +215,7 @@ func deployToEnvironment(deployment Deployment, masterRepoRoot string, ecrUrl st
 	}
 
 	cmd := exec.Command("npm", "i")
-	uiDir := fmt.Sprintf("%s/ui-react-2", repoRoot)
+	uiDir := fmt.Sprintf("%s/ui", repoRoot)
 	cmd.Dir = uiDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {

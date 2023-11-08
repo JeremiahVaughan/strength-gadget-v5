@@ -18,14 +18,18 @@ jobs:
       - setup_remote_docker:
           version: 20.10.14
       - run:
-          command: cd ./infrastructure/terraform/live/staging/ecs && ./deploy.sh
-#  frontend-build:
-#    docker:
-#      - image: cimg/node
-#    steps:
-#      - checkout
-#      - run:
-#          command: ./deploy.sh
+          command: cd ./infrastructure/terraform/live/staging/ecs && ../deploy.sh
+  frontend-build:
+    docker:
+      - image: alpine/terragrunt
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          command:
+            - cd ./ui && ./deploy.sh
+            - cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
 
 
 
@@ -40,8 +44,8 @@ workflows:
           context:
             - strengthgadget-staging
             - docker-hub-creds
-#      - frontend-build:
-#          context: strengthgadget-staging
+      - frontend-build:
+          context: strengthgadget-staging
 
 
 
