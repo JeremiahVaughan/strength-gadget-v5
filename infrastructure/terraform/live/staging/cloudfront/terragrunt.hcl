@@ -15,5 +15,5 @@ include "env" {
 inputs = {
   env = local.env_name
   aws_region = local.aws_region
-  workspace_dir = get_env("WORKSPACE")
+  workspace_dir = get_env("CIRCLE_WORKING_DIRECTORY")
 }
