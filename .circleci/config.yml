@@ -28,8 +28,8 @@ jobs:
           version: 20.10.14
       - run:
           command: |
-            cd ./ui && ./deploy.sh 
-            cd ~
+            cd ./ui && ./deploy.sh &&
+            cd ~ &&
             cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
 
 
