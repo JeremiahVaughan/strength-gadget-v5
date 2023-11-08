@@ -28,21 +28,22 @@ jobs:
           version: 20.10.14
       - run:
           command: |
-            cd ./infrastructure/terraform/live/staging/cloudfront && ./deploy.sh
+            cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
+#            cd ./ui && ./deploy.sh &&
 
 
 
 workflows:
   deploy:
     jobs:
-      - backend-build:
-          context:
-            - strengthgadget-staging
-            - docker-hub-creds
-      - infra:
-          context:
-            - strengthgadget-staging
-            - docker-hub-creds
+#      - backend-build:
+#          context:
+#            - strengthgadget-staging
+#            - docker-hub-creds
+#      - infra:
+#          context:
+#            - strengthgadget-staging
+#            - docker-hub-creds
       - frontend-build:
           context: strengthgadget-staging
 
