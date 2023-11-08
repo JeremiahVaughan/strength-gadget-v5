@@ -1,7 +1,8 @@
 locals {
+#   todo move this ip address to 1password
   home_ip_cidr_block = "108.167.115.198/32"
   api_domain_name    = "api.${var.domain_name}"
-  app_version        = "0.0.${var.build_number}"
+  app_version        = var.circle_workflow_id
   nodeSizeMemorySizeInMB = 400 // keep this in sync with the node size. 80% memory capacity
 }
 

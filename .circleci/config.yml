@@ -10,13 +10,15 @@ jobs:
           version: 20.10.14
       - run:
           command: cd ./backend/strengthgadget && ./deploy.sh
-#  infra:
-#    docker:
-#      - image: alpine/terragrunt
-#    steps:
-#      - checkout
-#      - run:
-#          command: ./backend/strengthgadget/deploy.sh
+  infra:
+    docker:
+      - image: alpine/terragrunt
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          command: cd ./infrastructure/terraform/live/staging/ecs && ./deploy.sh
 #  frontend-build:
 #    docker:
 #      - image: cimg/node

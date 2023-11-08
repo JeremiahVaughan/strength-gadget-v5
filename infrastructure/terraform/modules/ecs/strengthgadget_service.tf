@@ -66,7 +66,7 @@ resource "aws_ecs_task_definition" "strengthgadget" {
   container_definitions = jsonencode([
     {
       name  = var.app_name
-      image = "${var.ecr_url}:${local.app_version}"
+      image = "piegarden/strengthgadget:${local.app_version}"
 
       logConfiguration = {
         logDriver = "awslogs"

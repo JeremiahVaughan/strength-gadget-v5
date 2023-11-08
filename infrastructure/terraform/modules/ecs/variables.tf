@@ -3,7 +3,7 @@ variable "database_connection_string" { sensitive = true }
 variable "registration_email_from" { sensitive = true }
 variable "registration_email_from_password" { sensitive = true }
 variable "ecr_url" {}
-variable "build_number" {}
+variable "circle_workflow_id" {}
 variable "domain_name" {}
 variable "aws_region" {}
 variable "app_name" {}
