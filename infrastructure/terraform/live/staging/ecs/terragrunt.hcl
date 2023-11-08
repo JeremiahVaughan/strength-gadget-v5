@@ -18,6 +18,5 @@ include "env" {
 
 inputs = {
   env = local.env_name
-  pub_ssh_key_path = get_env("PUB_SSH_KEY_PATH")
 #  ecr_url = dependency.artifacts.outputs.ecr_url
 }

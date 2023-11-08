@@ -1,4 +1,4 @@
-variable "pub_ssh_key_path" {}
+variable "base64_pub_ssh_key" {}
 variable "database_connection_string" { sensitive = true }
 variable "registration_email_from" { sensitive = true }
 variable "registration_email_from_password" { sensitive = true }
@@ -9,6 +9,7 @@ variable "aws_region" {}
 variable "app_name" {}
 variable "database_root_ca" { sensitive = true }
 variable "email_root_ca" { sensitive = true }
+
 variable "redis_connection_string" {
   sensitive = true
 }

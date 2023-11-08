@@ -10,8 +10,9 @@ data "cloudflare_ip_ranges" "this" {}
 
 resource "aws_key_pair" "ssh_key" {
   key_name   = "ssh_key"
-  public_key = file(var.pub_ssh_key_path)
+  public_key = base64decode(var.base64_pub_ssh_key)
 }
+
 
 
 data "aws_caller_identity" "current" {}

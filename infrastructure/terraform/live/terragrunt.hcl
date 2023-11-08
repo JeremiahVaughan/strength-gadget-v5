@@ -1,4 +1,4 @@
-locals {
+sshlocals {
   terraform_state_bucket_region = get_env("TF_VAR_terraform_state_bucket_region")
   region     = get_env("TF_VAR_infra_aws_region")
   access_key = get_env("TF_VAR_infra_aws_key_id")
