@@ -10,7 +10,7 @@
 5. Copy the cert (localhost.pem) and key (localhost-key.pem) to<br>
 ```./backend/strengthgadget/kind```
 6. Copy the cert (localhost.pem) and key (localhost-key.pem) to<br>
-```./ui-react-2```
+```./ui```
 
 ### Debugging Dockerfiles
 Execute docker commands with verbose output. For example: 

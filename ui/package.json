@@ -1,10 +1,10 @@
 {
-  "name": "ui-react-2",
+  "name": "ui",
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
     "start": "nx serve",
-    "start-mobile": "nx run ui-react-2:serve:development --host 0.0.0.0",
+    "start-mobile": "nx run ui:serve:development --host 0.0.0.0",
     "build": "nx build",
     "test": "nx test"
   },

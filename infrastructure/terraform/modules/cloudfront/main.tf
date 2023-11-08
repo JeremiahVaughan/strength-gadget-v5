@@ -1,6 +1,6 @@
 locals {
   domain_name = var.domain_name
-  ui_dir      = "${var.workspace_dir}/ui-react-2/dist/ui-react-2"
+  ui_dir      = "${var.workspace_dir}/ui/dist/ui"
   mime_types = {
     "html" = "text/html",
     "css"  = "text/css",

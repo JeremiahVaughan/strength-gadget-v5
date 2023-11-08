@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "npmScope": "ui-react-2",
+  "npmScope": "ui",
   "tasksRunnerOptions": {
     "default": {
       "runner": "@nrwl/nx-cloud",
@@ -74,5 +74,5 @@
       }
     }
   },
-  "defaultProject": "ui-react-2"
+  "defaultProject": "ui"
 }

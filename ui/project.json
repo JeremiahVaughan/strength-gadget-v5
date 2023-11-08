@@ -1,5 +1,5 @@
 {
-  "name": "ui-react-2",
+  "name": "ui",
   "$schema": "node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "./src",
   "projectType": "application",
@@ -9,7 +9,7 @@
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/ui-react-2"
+        "outputPath": "dist/ui"
       },
       "configurations": {
         "development": {
@@ -24,7 +24,7 @@
       "executor": "@nrwl/vite:dev-server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "ui-react-2:build",
+        "buildTarget": "ui:build",
         "proxyConfig": "proxy.conf.json",
         "ssl": true,
         "sslKey": "localhost-key.pem",
@@ -32,11 +32,11 @@
       },
       "configurations": {
         "development": {
-          "buildTarget": "ui-react-2:build:development",
+          "buildTarget": "ui:build:development",
           "hmr": true
         },
         "production": {
-          "buildTarget": "ui-react-2:build:production",
+          "buildTarget": "ui:build:production",
           "hmr": false
         }
       }
@@ -45,25 +45,25 @@
       "executor": "@nrwl/vite:preview-server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "ui-react-2:build"
+        "buildTarget": "ui:build"
       },
       "configurations": {
         "development": {
-          "buildTarget": "ui-react-2:build:development"
+          "buildTarget": "ui:build:development"
         },
         "production": {
-          "buildTarget": "ui-react-2:build:production"
+          "buildTarget": "ui:build:production"
         }
       }
     },
     "test": {
       "executor": "@nrwl/vite:test",
       "outputs": [
-        "coverage/ui-react-2"
+        "coverage/ui"
       ],
       "options": {
         "passWithNoTests": true,
-        "reportsDirectory": "coverage/ui-react-2"
+        "reportsDirectory": "coverage/ui"
       }
     },
     "lint": {

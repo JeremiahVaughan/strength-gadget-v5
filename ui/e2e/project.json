@@ -8,12 +8,12 @@
       "executor": "@nrwl/cypress:cypress",
       "options": {
         "cypressConfig": "e2e/cypress.config.ts",
-        "devServerTarget": "ui-react-2:serve:development",
+        "devServerTarget": "ui:serve:development",
         "testingType": "e2e"
       },
       "configurations": {
         "production": {
-          "devServerTarget": "ui-react-2:serve:production"
+          "devServerTarget": "ui:serve:production"
         }
       }
     },
@@ -26,5 +26,5 @@
     }
   },
   "tags": [],
-  "implicitDependencies": ["ui-react-2"]
+  "implicitDependencies": ["ui"]
 }
