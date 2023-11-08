@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   backend-build:
     docker:
-      - image: cimg/base
+      - image: cimg/base:current
     steps:
       - checkout
       - run:
