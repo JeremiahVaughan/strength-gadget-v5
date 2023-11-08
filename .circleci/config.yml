@@ -26,18 +26,18 @@ jobs:
 
 
 workflows:
-  secrets-sync:
+  deploy:
     jobs:
-      - infra:
-          context:
-            - strengthgadget-staging
-            - docker-hub-creds
       - backend-build:
           context:
             - strengthgadget-staging
             - docker-hub-creds
-      - frontend-build:
-          context: strengthgadget-staging
+#      - infra:
+#          context:
+#            - strengthgadget-staging
+#            - docker-hub-creds
+#      - frontend-build:
+#          context: strengthgadget-staging
 
 
 
