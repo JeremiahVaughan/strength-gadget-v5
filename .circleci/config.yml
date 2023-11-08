@@ -27,7 +27,8 @@ jobs:
       - setup_remote_docker:
           version: 20.10.14
       - run:
-          command: cd ./ui && ./deploy.sh \
+          command: |
+            cd ./ui && ./deploy.sh 
             cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
 
 
