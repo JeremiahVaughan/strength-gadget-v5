@@ -32,14 +32,14 @@ jobs:
 workflows:
   deploy:
     jobs:
-      - backend-build:
-          context:
-            - strengthgadget-staging
-            - docker-hub-creds
-#      - infra:
+#      - backend-build:
 #          context:
 #            - strengthgadget-staging
 #            - docker-hub-creds
+      - infra:
+          context:
+            - strengthgadget-staging
+            - docker-hub-creds
 #      - frontend-build:
 #          context: strengthgadget-staging
 
