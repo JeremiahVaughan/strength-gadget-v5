@@ -28,7 +28,8 @@ jobs:
           version: 20.10.14
       - run:
           command: |
-            cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
+            cd ./infrastructure/terraform/live/staging/ecs && ../deploy.sh
+#            cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
 #            cd ./ui && ./deploy.sh &&
 
 
