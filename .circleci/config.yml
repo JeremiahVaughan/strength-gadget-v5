@@ -1,0 +1,67 @@
+version: 2.1
+
+jobs:
+  backend-build:
+    docker:
+      - image: cimg/base
+    steps:
+      - checkout
+      - run:
+          command: ./backend/strengthgadget/deploy.sh
+#  infra:
+#    docker:
+#      - image: alpine/terragrunt
+#    steps:
+#      - checkout
+#      - run:
+#          command: ./backend/strengthgadget/deploy.sh
+#  frontend-build:
+#    docker:
+#      - image: cimg/node
+#    steps:
+#      - checkout
+#      - run:
+#          command: ./deploy.sh
+
+
+
+workflows:
+  secrets-sync:
+    jobs:
+      - infra:
+          context:
+            - strengthgadget-staging
+            - docker-hub-creds
+      - backend-build:
+          context:
+            - strengthgadget-staging
+            - docker-hub-creds
+      - frontend-build:
+          context: strengthgadget-staging
+
+
+
+
+#version: 2.1
+#
+#jobs:
+#  strength-gadget-build:
+#    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+#    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+#    docker:
+#      - image: cimg/base:current
+#    # Add steps to the job
+#    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+#    steps:
+#      - checkout
+#      - run:
+#          name: "Build Pipeline Run Image"
+#          command: >
+#            echo "please work"
+#            echo "$OP_SERVICE_ACCOUNT_TOKEN"
+#
+#workflows:
+#  strength-gadget:
+#    jobs:
+#      - strength-gadget-build:
+#          context: 1password
