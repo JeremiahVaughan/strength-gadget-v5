@@ -6,6 +6,8 @@ jobs:
       - image: cimg/base:current
     steps:
       - checkout
+      - setup_remote_docker:
+          version: 20.10.14
       - run:
           command: ./backend/strengthgadget/deploy.sh
 #  infra:
