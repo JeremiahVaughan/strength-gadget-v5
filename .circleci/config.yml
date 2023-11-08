@@ -21,7 +21,7 @@ jobs:
           command: cd ./infrastructure/terraform/live/staging/ecs && ../deploy.sh
   frontend-build:
     docker:
-      - image: alpine/terragrunt
+      - image: piegarden/strengthgadget-frontend-agent
     steps:
       - checkout
       - setup_remote_docker:
