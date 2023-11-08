@@ -2,7 +2,7 @@ variable "base64_pub_ssh_key" {}
 variable "database_connection_string" { sensitive = true }
 variable "registration_email_from" { sensitive = true }
 variable "registration_email_from_password" { sensitive = true }
-variable "ecr_url" {}
+#variable "ecr_url" {}
 variable "circle_workflow_id" {}
 variable "domain_name" {}
 variable "aws_region" {}
