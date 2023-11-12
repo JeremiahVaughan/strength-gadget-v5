@@ -2,20 +2,20 @@ import styles from './time-display.module.scss';
 
 /* eslint-disable-next-line */
 export interface TimeDisplayProps {
-    seconds: number;
-    started: boolean;
+    countDownRunning: boolean;
+    currentCountDownInSeconds: number;
     onClick: () => void;
 }
 
-export function TimeDisplay({started, seconds, onClick}: TimeDisplayProps) {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+export function TimeDisplay({countDownRunning, currentCountDownInSeconds, onClick}: TimeDisplayProps) {
+    const minutes = Math.floor(currentCountDownInSeconds / 60);
+    const remainingSeconds = currentCountDownInSeconds % 60;
     let style = "";
-    if (started) {
+    if (countDownRunning) {
         style = `${styles['timer-running']}`
     }
 
-    if (seconds === 0) {
+    if (currentCountDownInSeconds === 0) {
         style = `${styles['timer-finished']}`
     }
 

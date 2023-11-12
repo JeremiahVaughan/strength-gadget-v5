@@ -8,27 +8,34 @@ export interface MeasurementSecondsProps {
 }
 
 export function MeasurementSeconds({currentMeasurement}: MeasurementSecondsProps) {
-    const [seconds, setSeconds] = useState(currentMeasurement);
-    const [countingDown, setCountingDown] = useState(false);
-    const [countDownStarted, setCountDownStarted] = useState(false);
+    const [currentCountDownInSeconds, setCurrentCountDownInSeconds] = useState(currentMeasurement);
+    const [countDownRunning, setCountDownRunning] = useState(false);
 
-    const startCountDown = () => {
-        setCountingDown(true);
-        setCountDownStarted(true);
+    const timerPressed = () => {
+        if (countDownRunning) {
+            setCurrentCountDownInSeconds(currentMeasurement)
+            if (currentCountDownInSeconds !== 0) {
+                setCountDownRunning(false);
+            }
+        } else {
+            setCountDownRunning(true)
+        }
     };
 
+    // Timer value has been changed
     useEffect(() => {
-        setSeconds(currentMeasurement);
+        setCurrentCountDownInSeconds(currentMeasurement);
+        setCountDownRunning(false)
     }, [currentMeasurement]);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (countingDown && seconds > 0) {
+        if (countDownRunning && currentCountDownInSeconds > 0) {
             timer = setInterval(() => {
-                setSeconds((prevSeconds) => prevSeconds - 1);
+                setCurrentCountDownInSeconds((prevSeconds) => prevSeconds - 1);
             }, 1000);
         } else { // @ts-ignore
-            if (!countingDown && timer) {
+            if (!countDownRunning && timer) {
                 clearInterval(timer);
             }
         }
@@ -36,11 +43,13 @@ export function MeasurementSeconds({currentMeasurement}: MeasurementSecondsProps
         return () => {
             clearInterval(timer);
         };
-    }, [countingDown, seconds]);
+    }, [countDownRunning, currentCountDownInSeconds]);
 
     return (
         <div className={styles['container']}>
-            <TimeDisplay onClick={() => startCountDown()} seconds={seconds} started={countDownStarted}/>
+            <TimeDisplay onClick={() => timerPressed()}
+                         countDownRunning={countDownRunning}
+                         currentCountDownInSeconds={currentCountDownInSeconds}/>
         </div>
     );
 }
