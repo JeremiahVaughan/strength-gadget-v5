@@ -104,6 +104,7 @@ resource "aws_ecs_task_definition" "strengthgadget" {
         { "name" : "REDIS_CA_PEM_PART_TWO", "value" : var.redis_ca_pem_part_two },
         { "name" : "REDIS_CA_PEM_PART_THREE", "value" : var.redis_ca_pem_part_three },
         { "name" : "REDIS_CA_PEM_PART_FOUR", "value" : var.redis_ca_pem_part_four },
+        { "name" : "SENTRY_END_POINT", "value" : var.sentry_end_point },
       ],
       essential         = true
       memoryReservation = local.nodeSizeMemorySizeInMB

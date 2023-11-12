@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
@@ -15,8 +16,21 @@ import (
 
 func main() {
 	log.Printf("starting strengthgadget...")
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: config.SentryEndpoint,
+		// Set TracesSampleRate to 1.0 to capture 100%
+		// of transactions for performance monitoring.
+		// We recommend adjusting this value in production,
+		TracesSampleRate: 1.0,
+		Environment:      config.Environment,
+	})
+	if err != nil {
+		log.Fatalf("error, sentry.Init: %s", err)
+	}
+
 	ctx := context.Background()
-	err := config.InitConfig(ctx)
+	err = config.InitConfig(ctx)
 	if err != nil {
 		log.Fatalf("error, attempting to initialize configuration: %v", err)
 	}

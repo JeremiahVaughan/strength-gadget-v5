@@ -6,6 +6,7 @@ variable "circle_workflow_id" {}
 variable "domain_name" {}
 variable "aws_region" {}
 variable "app_name" {}
+variable "sentry_end_point" { sensitive = true }
 variable "database_root_ca" { sensitive = true }
 variable "email_root_ca" { sensitive = true }
 

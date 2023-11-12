@@ -4,6 +4,7 @@ locals {
   access_key = get_env("TF_VAR_infra_aws_key_id")
   secret_key = get_env("TF_VAR_infra_aws_secret")
   api_token = get_env("TF_VAR_infra_cloudflare_api_token")
+  statuscake_key = get_env("TF_VAR_statuscake_key")
 }
 
 generate "providers" {
@@ -14,6 +15,10 @@ provider "aws" {
   region     = "${local.region}"
   access_key = "${local.access_key}"
   secret_key = "${local.secret_key}"
+}
+
+provider "statuscake" {
+  api_token = "${local.statuscake_key}"
 }
 
 provider "cloudflare" {

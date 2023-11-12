@@ -16,6 +16,10 @@ import (
 )
 
 var (
+	Environment = "local"
+
+	SentryEndpoint string
+
 	RegistrationEmailFrom         string
 	RegistrationEmailFromPassword string
 
@@ -60,6 +64,11 @@ var (
 
 func InitConfig(ctx context.Context) error {
 	var errorMsgs []string
+	SentryEndpoint = os.Getenv("SENTRY_END_POINT")
+	if SentryEndpoint == "" {
+		errorMsgs = append(errorMsgs, "SENTRY_END_POINT")
+	}
+
 	RegistrationEmailFrom = os.Getenv("REGISTRATION_EMAIL_FROM")
 	if RegistrationEmailFrom == "" {
 		errorMsgs = append(errorMsgs, "REGISTRATION_EMAIL_FROM")
