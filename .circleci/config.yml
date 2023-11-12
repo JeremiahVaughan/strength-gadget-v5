@@ -33,6 +33,9 @@ jobs:
   frontend-build:
     docker:
       - image: piegarden/strengthgadget-frontend-agent:0.0.1
+        auth:
+          username: $TF_VAR_docker_user
+          password: $TF_VAR_docker_token
     steps:
       - checkout
       - setup_remote_docker:
@@ -55,7 +58,9 @@ workflows:
             - context-staging
             - context-docker-hub
       - frontend-build:
-          context: context-staging
+          context:
+            - context-staging
+            - context-docker-hub
 
 
 
