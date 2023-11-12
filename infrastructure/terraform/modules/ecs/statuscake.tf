@@ -3,7 +3,10 @@ resource "statuscake_uptime_check" "backend_health_check" {
   name = "Backend health"
 
   // Put the URL o' the endpoint ye want to keep an eye on.
-  website_url = "https://api.${var.app_name}.com/api/health"
+
+  monitored_resource {
+    address = "https://api.${var.app_name}.com/api/health"
+  }
 
   // Yarrr, here be the confirmation server's a-sayin' "All's well!"
   confirmation = 2
