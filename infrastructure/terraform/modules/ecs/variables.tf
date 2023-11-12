@@ -9,6 +9,7 @@ variable "app_name" {}
 variable "sentry_end_point" { sensitive = true }
 variable "database_root_ca" { sensitive = true }
 variable "email_root_ca" { sensitive = true }
+variable "status_cake_contact_group_id" { sensitive = true }
 
 variable "redis_connection_string" {
   sensitive = true
