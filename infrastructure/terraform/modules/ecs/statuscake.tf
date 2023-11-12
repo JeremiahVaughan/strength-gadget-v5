@@ -12,7 +12,7 @@ resource "statuscake_uptime_check" "backend_health_check" {
   trigger_rate = 15
 
   // The contact group IDs ye want to notify when the seas be rough (service down).
-  contact_group = [var.status_cake_contact_group_id]
+  contact_groups = [var.status_cake_contact_group_id]
 
   http_check {
     timeout          = 20
