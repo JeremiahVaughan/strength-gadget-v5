@@ -7,7 +7,6 @@ import {exercise, login, register} from "../../constants/nav";
 
 
 export function WelcomePage() {
-    const version = import.meta.env.VITE_APP_VERSION;
     const navigate = useNavigate();
     useEffect(() => {
         getAxiosInstance().get("/isLoggedIn")
@@ -22,7 +21,6 @@ export function WelcomePage() {
     }, [navigate])
     return (
         <div>
-            <div className={styles['version-tag']}>v{version}</div>
             <div className={styles['container']}>
                 <div className={styles['content']}>
                     <div className={styles['header']}>
