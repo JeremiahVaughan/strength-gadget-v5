@@ -44,7 +44,7 @@ terraform {
     }
     statuscake = {
       source = "StatusCakeDev/statuscake"
-      version = "~> 2.2.2"
+      version = "~> 2.2.2"  # This version must stay in sync with the sub module called endpoint in the statuscake parent module.
     }
   }
 }

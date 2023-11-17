@@ -1,4 +1,4 @@
-module "status_cake" {
+module "status_cake_front_end" {
   source = "./endpoint"
   name = "Frontend health"
   endpoint = "https://strengthgadget.com/health.json"
@@ -8,7 +8,7 @@ module "status_cake" {
 
 
 
-module "status_cake" {
+module "status_cake_back_end" {
   source = "./endpoint"
   name = "Backend health"
   endpoint = "https://api.strengthgadget.com/api/health"
