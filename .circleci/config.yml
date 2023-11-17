@@ -41,6 +41,19 @@ jobs:
           command: |
             cd ./ui && ./deploy.sh && cd ../ &&
             cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
+  statuscake:
+    docker:
+      - image: alpine/terragrunt
+        auth:
+          username: $TF_VAR_docker_user
+          password: $TF_VAR_docker_token
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.14
+      - run:
+          command: cd ./infrastructure/terraform/live/staging/statuscake && ../deploy.sh
+
 
 
 workflows:
@@ -58,6 +71,9 @@ workflows:
           context:
             - context-staging
             - context-docker-hub
+      - statuscake:
+          context:
+            - context-staging
 
 
 
