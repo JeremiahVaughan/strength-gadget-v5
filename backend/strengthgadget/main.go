@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -12,6 +13,7 @@ import (
 	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/handler"
 	"strengthgadget.com/m/v2/service"
+	"time"
 )
 
 func main() {
@@ -23,11 +25,14 @@ func main() {
 		// of transactions for performance monitoring.
 		// We recommend adjusting this value in production,
 		TracesSampleRate: 1.0,
-		Environment:      config.Environment,
+
+		Environment: config.Environment,
 	})
 	if err != nil {
 		log.Fatalf("error, sentry.Init: %s", err)
 	}
+	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", config.Environment))
+	defer sentry.Flush(2 * time.Second)
 
 	ctx := context.Background()
 	err = config.InitConfig(ctx)
