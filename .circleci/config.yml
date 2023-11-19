@@ -13,7 +13,7 @@ jobs:
           version: 20.10.14
       - run:
           command: |
-            cd ./backend/strengthgadget && ./deploy.sh
+            cd ./backend && ./deploy.sh
 
   infra:
     docker:
