@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	Environment = "local"
+	Environment string
 
 	SentryEndpoint string
 
@@ -64,6 +64,11 @@ var (
 
 func InitConfig(ctx context.Context) error {
 	var errorMsgs []string
+	Environment = os.Getenv("ENVIRONMENT")
+	if Environment == "" {
+		errorMsgs = append(errorMsgs, "ENVIRONMENT")
+	}
+
 	SentryEndpoint = os.Getenv("SENTRY_END_POINT")
 	if SentryEndpoint == "" {
 		errorMsgs = append(errorMsgs, "SENTRY_END_POINT")

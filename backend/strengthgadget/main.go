@@ -19,7 +19,13 @@ import (
 func main() {
 	log.Printf("starting strengthgadget...")
 
-	err := sentry.Init(sentry.ClientOptions{
+	ctx := context.Background()
+	err := config.InitConfig(ctx)
+	if err != nil {
+		log.Fatalf("error, attempting to initialize configuration: %v", err)
+	}
+
+	err = sentry.Init(sentry.ClientOptions{
 		Dsn: config.SentryEndpoint,
 		// Set TracesSampleRate to 1.0 to capture 100%
 		// of transactions for performance monitoring.
@@ -33,12 +39,6 @@ func main() {
 	}
 	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", config.Environment))
 	defer sentry.Flush(2 * time.Second)
-
-	ctx := context.Background()
-	err = config.InitConfig(ctx)
-	if err != nil {
-		log.Fatalf("error, attempting to initialize configuration: %v", err)
-	}
 
 	err = service.ProcessSchemaChanges(ctx)
 	if err != nil {

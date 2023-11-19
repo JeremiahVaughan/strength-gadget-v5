@@ -133,7 +133,7 @@ resource "aws_s3_bucket" "static_html_bucket" {
 }
 
 resource "aws_s3_bucket" "cloudfront_logging_bucket" {
-  bucket = "cloudfront-strengthgadget-logging-${var.env}"
+  bucket = "cloudfront-strengthgadget-logging-${var.environment}"
 }
 
 

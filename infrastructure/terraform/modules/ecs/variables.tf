@@ -1,3 +1,4 @@
+variable "environment" {}
 variable "base64_pub_ssh_key" {}
 variable "database_connection_string" { sensitive = true }
 variable "registration_email_from" { sensitive = true }

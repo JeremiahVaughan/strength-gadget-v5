@@ -78,6 +78,7 @@ resource "aws_ecs_task_definition" "strengthgadget" {
         }
       }
       environment = [
+        { "name" : "ENVIRONMENT", "value" : var.environment },
         { "name" : "REGISTRATION_EMAIL_FROM", "value" : var.registration_email_from },
         { "name" : "REGISTRATION_EMAIL_FROM_PASSWORD", "value" : var.registration_email_from_password },
         { "name" : "DATABASE_CONNECTION_STRING", "value" : var.database_connection_string },

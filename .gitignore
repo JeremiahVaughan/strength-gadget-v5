@@ -37,6 +37,7 @@ nginx
 # Terraform
 
 strength-gadget-terraform-live.iml
+local_secret.yaml
 
 
 #  Local .terraform directories

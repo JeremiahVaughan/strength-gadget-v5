@@ -53,10 +53,10 @@ just-strengthgadget:
 	kubectl apply -f kind/strengthgadget.yaml
 
 test-tornado:
-	kubectl delete -f kind/secrets.yaml > /dev/null || true
+	kubectl delete -f kind/local_secret.yaml > /dev/null || true
 	kubectl delete -f kind/test_tornado.yaml > /dev/null || true
 	docker build -t localhost:5000/test-tornado:0.0.1 -f test_tornado/Dockerfile . && kind load docker-image localhost:5000/test-tornado:0.0.1 --name kind
-	kubectl apply -f kind/secrets.yaml
+	kubectl apply -f kind/local_secret.yaml
 	kubectl apply -f kind/test_tornado.yaml
 
 get-ingress-ip: context-kind

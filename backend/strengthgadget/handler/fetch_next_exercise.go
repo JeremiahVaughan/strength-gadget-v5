@@ -3,8 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"strengthgadget.com/m/v2/constants"
+	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 )
 
@@ -19,9 +20,10 @@ func HandleReadyForNextExercise(w http.ResponseWriter, r *http.Request) {
 		r.URL.Query().Get("measurement"),
 	)
 	if err != nil {
-		errorMsg := fmt.Sprintf("error, failed to perform exercises handler action: %v", err)
-		log.Printf(errorMsg)
-		http.Error(w, errorMsg, http.StatusInternalServerError)
+		service.GenerateResponse(w, &model.Error{
+			InternalError:     fmt.Errorf("error, failed to perform exercises handler action: %v", err),
+			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+		})
 		return
 	}
 

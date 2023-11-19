@@ -15,7 +15,7 @@ spec:
             - name: NOTIFICATION_ENDPOINT
               valueFrom:
                 secretKeyRef:
-                  name: configuration-secrets
-                  key: notificationEndpoint
+                  name: local-secret
+                  key: testTornadoNotificationEndpoint
       restartPolicy: Never
 

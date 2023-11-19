@@ -14,5 +14,5 @@ include "env" {
 
 
 inputs = {
-  env = local.env_name
+  environment = local.env_name
 }

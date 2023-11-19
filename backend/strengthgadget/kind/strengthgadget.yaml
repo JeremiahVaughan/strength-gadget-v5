@@ -20,6 +20,8 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: ENVIRONMENT
+              value: "local"
             - name: REGISTRATION_EMAIL_FROM
               value: "strengthgadget@gmail.com"
             - name: REGISTRATION_EMAIL_FROM_PASSWORD
@@ -33,6 +35,11 @@ spec:
                 secretKeyRef:
                   name: cockroachdb-node
                   key: ca.crt
+            - name: SENTRY_END_POINT
+              valueFrom:
+                secretKeyRef:
+                  name: local-secret
+                  key: sentryEndPoint
             - name: EMAIL_ROOT_CA
               value: "bm90X2FfcmVhbF9wYXNzd29yZF9kb19ub3RfdXNlX2luX3Byb2R1Y3Rpb24="
             - name: LOCAL_DEVELOPMENT
