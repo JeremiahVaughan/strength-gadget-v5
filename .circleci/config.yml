@@ -16,8 +16,7 @@ jobs:
             cd ./backend && ./deploy.sh
   backend-deploy:
     docker:
-      - image: cloudflare/cloudflared
-        entrypoint: []
+      - image: piegarden/cloudflared:2023.10.0
         auth:
           username: $TF_VAR_docker_user
           password: $TF_VAR_docker_token
