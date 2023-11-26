@@ -17,7 +17,7 @@ jobs:
   backend-deploy:
     docker:
       - image: cloudflare/cloudflared
-        entrypoint: ["/bin/sh", "-c"]
+        entrypoint: []
         auth:
           username: $TF_VAR_docker_user
           password: $TF_VAR_docker_token
