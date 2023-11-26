@@ -29,8 +29,8 @@ jobs:
           command: |
             export CF_ACCESS_CLIENT_ID="$TF_VAR_cf_access_client_id"
             export CF_ACCESS_CLIENT_SECRET="$TF_VAR_cf_access_client_secret"
-            cloudflared access ssh --hostname pi4.frii.day --url localhost:22 &
-            ssh piegarden@localhost 'touch i-did-it'
+            cloudflared access ssh --hostname pi4.frii.day --url localhost:22
+
   infra:
     docker:
       - image: alpine/terragrunt
