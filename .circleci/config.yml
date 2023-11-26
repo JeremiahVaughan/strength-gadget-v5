@@ -29,6 +29,7 @@ jobs:
           command: |
             export CF_ACCESS_CLIENT_ID="$TF_VAR_cf_access_client_id"
             export CF_ACCESS_CLIENT_SECRET="$TF_VAR_cf_access_client_secret"
+            echo "$CF_ACCESS_CLIENT_ID"
             cloudflared access ssh --hostname pi4.frii.day --url localhost:22 &
             sleep 10 # waiting for proxy to start
             ssh piegarden@localhost 'touch i-did-it'
