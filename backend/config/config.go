@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -60,6 +61,8 @@ var (
 	Version             string
 	ConnectionPool      *pgxpool.Pool
 	RedisConnectionPool *redis.Client
+
+	HttpServer *http.Server
 )
 
 func InitConfig(ctx context.Context) error {
@@ -103,6 +106,14 @@ func InitConfig(ctx context.Context) error {
 	EmailRootCa = os.Getenv("EMAIL_ROOT_CA")
 	if EmailRootCa == "" {
 		errorMsgs = append(errorMsgs, "EMAIL_ROOT_CA")
+	}
+	webServerCertKey := os.Getenv("KEY_PEM")
+	if webServerCertKey == "" {
+		errorMsgs = append(errorMsgs, "KEY_PEM")
+	}
+	webServerCert := os.Getenv("CERT_PEM")
+	if webServerCert == "" {
+		errorMsgs = append(errorMsgs, "CERT_PEM")
 	}
 	redisConnectionString := os.Getenv("REDIS_CONNECTION_STRING")
 	if redisConnectionString == "" {
@@ -176,7 +187,43 @@ func InitConfig(ctx context.Context) error {
 		return fmt.Errorf("error, when attempting to ping databse after establishing the initial pooling connection: %v", err)
 	}
 
+	HttpServer, err = initHttpServer()
+	if err != nil {
+		return fmt.Errorf("error, when attempting to setup http server for configuration init. Error: %v", err)
+	}
 	return nil
+}
+
+func initHttpServer() (*http.Server, error) {
+	certPem := os.Getenv("CERT_PEM")
+	certPemBytes, err := base64.StdEncoding.DecodeString(certPem)
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to decode the webserver cert: %v", err)
+	}
+
+	keyPem := os.Getenv("KEY_PEM")
+	keyPemBytes, err := base64.StdEncoding.DecodeString(keyPem)
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to decode the webserver cert key: %v", err)
+	}
+
+	// Load the certificate and key
+	cert, err := tls.X509KeyPair(certPemBytes, keyPemBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load key pair: %v", err)
+	}
+
+	// Set up a TLS Config with the certificate
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+
+	// Create a custom server with TLSConfig
+	server := &http.Server{
+		Addr:      ":443",
+		TLSConfig: tlsConfig,
+	}
+	return server, nil
 }
 
 func connectToRedisDatabase(connectionString string, password string) (*redis.Client, error) {

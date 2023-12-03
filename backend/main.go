@@ -90,7 +90,7 @@ func main() {
 
 	defer config.ConnectionPool.Close()
 	log.Printf("initialization complete")
-	err = http.ListenAndServe(":8080", r)
+	err = config.HttpServer.ListenAndServeTLS("", "") // certs are already present in the tls config
 	if err != nil {
 		log.Fatalf("error, when attempting to start server: %v", err)
 	}

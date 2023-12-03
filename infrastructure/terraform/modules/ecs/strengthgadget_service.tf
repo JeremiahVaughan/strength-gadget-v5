@@ -91,13 +91,8 @@ resource "aws_ecs_task_definition" "strengthgadget" {
         { "name" : "VERIFICATION_EXCESSIVE_RETRY_ATTEMPT_LOCKOUT_DURATION_IN_SECONDS", "value" : "86400" },
         { "name" : "ALLOWED_VERIFICATION_ATTEMPTS_WITH_THE_EXCESSIVE_RETRY_LOCKOUT_WINDOW", "value" : "5" },
         { "name" : "VERIFICATION_CODE_VALIDITY_WINDOW_IN_MIN", "value" : "30" },
-        {
-          "name" : "WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_VERIFICATION_EMAILS_BEFORE_LOCKOUT",
-          "value" : "3600"
-        },
-        {
-          "name" : "WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_LOGIN_ATTEMPTS_BEFORE_LOCKOUT", "value" : "3600"
-        },
+        { "name" : "WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_VERIFICATION_EMAILS_BEFORE_LOCKOUT", "value" : "3600" },
+        { "name" : "WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_LOGIN_ATTEMPTS_BEFORE_LOCKOUT", "value" : "3600" },
         { "name" : "ALLOWED_LOGIN_ATTEMPTS_BEFORE_TRIGGERING_LOCKOUT", "value" : "7" },
         { "name" : "REDIS_USER_PRIVATE_KEY", "value" : var.redis_user_private_key },
         { "name" : "REDIS_USER_CRT", "value" : var.redis_user_crt },

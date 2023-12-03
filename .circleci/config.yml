@@ -16,7 +16,7 @@ jobs:
             cd ./backend && ./deploy.sh
   backend-deploy:
     docker:
-      - image: piegarden/cloudflared:2023.10.0
+      - image: piegarden/file_mover:8.2
         auth:
           username: $TF_VAR_docker_user
           password: $TF_VAR_docker_token
@@ -25,13 +25,14 @@ jobs:
       - setup_remote_docker:
           version: 20.10.14
       - run:
-          name: Authenticate using service token and deploy new version
+          name: Deploy new version
           command: |
-            export TUNNEL_TOKEN_ID="$TF_VAR_cf_access_client_id"
-            export TUNNEL_TOKEN_SECRET="$TF_VAR_cf_access_client_secret"
-            cloudflared access ssh --hostname pi4.frii.day --url localhost:22 &
-            sleep 10 # waiting for proxy to start
-            ssh piegarden@localhost 'touch i-did-it'
+            echo "$TF_VAR_backend_deployment_ssh_private_key" | base64 -d > .key
+            ssh -i ./.key "piegarden@$BACKEND_PUBLIC_IP" 'mkdir -p strengthgadget'
+            scp -i ./.key backend/docker-compose.yaml "piegarden@$BACKEND_PUBLIC_IP:strengthgadget"
+            printenv > .env
+            scp -i ./.key .env "piegarden@$BACKEND_PUBLIC_IP:strengthgadget"
+            ssh -i ./.key "piegarden@$BACKEND_PUBLIC_IP" 'cd strengthgadget && source ./.env && sudo docker compose restart'
   infra:
     docker:
       - image: alpine/terragrunt
