@@ -28,7 +28,7 @@ jobs:
           name: Deploy new version
           command: |
             echo "$TF_VAR_backend_deployment_ssh_private_key" | base64 -d > .key
-            echo "$TF_VAR_backend_deployment_ssh_public_key" | base64 -d > ~/.ssh/known_hosts
+            echo "$TF_VAR_backend_deployment_ssh_public_known_host" | base64 -d > ~/.ssh/known_hosts
             ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'mkdir -p strengthgadget'
             scp -i ./.key backend/docker-compose.yaml "piegarden@$TF_VAR_backend_public_ip:strengthgadget"
             printenv > .env
