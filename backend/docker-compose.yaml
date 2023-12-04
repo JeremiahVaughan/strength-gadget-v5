@@ -3,8 +3,8 @@ services:
   webserver:
     image: "piegarden/strengthgadget:${CIRCLE_WORKFLOW_ID}"
     environment:
-      CERT_PEM: "${TF_VAR_cert_pem}"
-      KEY_PEM: "${TF_VAR_key_pem}"
+      CERT_PEM: "${TF_VAR_cloudflare_origin_cert}"
+      KEY_PEM: "${TF_VAR_cloudflare_origin_cert_key}"
       ENVIRONMENT: "${TF_VAR_environment}"
       REGISTRATION_EMAIL_FROM: "${TF_VAR_registration_email_from}"
       REGISTRATION_EMAIL_FROM_PASSWORD: "${TF_VAR_registration_email_from_password}"

@@ -33,7 +33,7 @@ jobs:
             scp -i ./.key backend/docker-compose.yaml "piegarden@$TF_VAR_backend_public_ip:strengthgadget"
             printenv > .env
             scp -i ./.key .env "piegarden@$TF_VAR_backend_public_ip:strengthgadget"
-            ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'cd strengthgadget && source ./.env && sudo docker compose restart'
+            ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'cd strengthgadget && sudo docker compose restart'
   infra:
     docker:
       - image: alpine/terragrunt
