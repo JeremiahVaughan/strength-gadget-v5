@@ -13,7 +13,7 @@ services:
       VERSION: "${CIRCLE_WORKFLOW_ID}"
       DATABASE_ROOT_CA: "${TF_VAR_database_root_ca}"
       EMAIL_ROOT_CA: "${TF_VAR_email_root_ca}"
-      TRUSTED_UI_ORIGIN: "${TF_VAR_trusted_ui_origin}"
+      TRUSTED_UI_ORIGIN: "https://${TF_VAR_domain_name}"
       REDIS_PASSWORD: "${TF_VAR_redis_password}"
       VERIFICATION_EXCESSIVE_RETRY_ATTEMPT_LOCKOUT_DURATION_IN_SECONDS: "${TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds}"
       ALLOWED_VERIFICATION_ATTEMPTS_WITH_THE_EXCESSIVE_RETRY_LOCKOUT_WINDOW: "${TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window}"
