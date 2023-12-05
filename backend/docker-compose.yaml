@@ -10,7 +10,7 @@ services:
       REGISTRATION_EMAIL_FROM_PASSWORD: "${TF_VAR_registration_email_from_password}"
       DATABASE_CONNECTION_STRING: "${TF_VAR_database_connection_string}"
       REDIS_CONNECTION_STRING: "${TF_VAR_redis_connection_string}"
-      VERSION: "${TF_VAR_version}"
+      VERSION: "${CIRCLE_WORKFLOW_ID}"
       DATABASE_ROOT_CA: "${TF_VAR_database_root_ca}"
       EMAIL_ROOT_CA: "${TF_VAR_email_root_ca}"
       TRUSTED_UI_ORIGIN: "${TF_VAR_trusted_ui_origin}"
