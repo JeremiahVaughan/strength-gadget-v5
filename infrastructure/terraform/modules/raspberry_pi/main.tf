@@ -14,14 +14,3 @@ resource "cloudflare_record" "this" {
   proxied = true
 }
 
-# todo this might be doing more harm then good since it makes requests take longer should they need redirecting.
-resource "cloudflare_page_rule" "http_to_https_redirect" {
-  zone_id  = data.cloudflare_zone.this.zone_id
-  target   = "http://*${var.domain_name}*"
-  priority = 1
-  status   = "active"
-
-  actions {
-    always_use_https = true
-  }
-}
