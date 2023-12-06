@@ -10,7 +10,7 @@ resource "cloudflare_record" "this" {
   zone_id = data.cloudflare_zone.this.zone_id
   name    = local.api_domain_name
   value   = var.static_ip
-  type    = "CNAME"
+  type    = "A"
   proxied = true
 }
 
