@@ -45,7 +45,7 @@ jobs:
       - setup_remote_docker:
           version: 20.10.14
       - run:
-          command: cd ./infrastructure/terraform/live/staging/ecs && ../deploy.sh
+          command: cd ./infrastructure/terraform/live/staging/raspberry_pi && ../deploy.sh
   frontend-build:
     docker:
       - image: piegarden/strengthgadget-frontend-agent:0.0.1
@@ -78,24 +78,26 @@ jobs:
 workflows:
   deploy:
     jobs:
-#      - backend-build:
-#          context:
-#            - context-staging
-#            - context-docker-hub
-#      - infra:
-#          context:
-#            - context-staging
-#            - context-docker-hub
-#      - frontend-build:
-#          context:
-#            - context-staging
-#            - context-docker-hub
-#      - statuscake:
-#          context:
-#            - context-staging
+      - backend-build:
+          context:
+            - context-staging
+            - context-docker-hub
+      - infra:
+          context:
+            - context-staging
+            - context-docker-hub
+      - frontend-build:
+          context:
+            - context-staging
+            - context-docker-hub
+      - statuscake:
+          context:
+            - context-staging
       - backend-deploy:
           context:
             - context-staging
+          requires:
+            - backend-build
 
 
 
