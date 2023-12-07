@@ -5,12 +5,12 @@ import (
 	"net"
 	"net/http"
 	"strengthgadget.com/m/v2/config"
+	"strings"
 )
 
 func IpFilterMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//clientIP := strings.Split(r.RemoteAddr, ":")[0]
-		clientIP := "10.0.0.2"
+		clientIP := strings.Split(r.RemoteAddr, ":")[0]
 		ip := net.ParseIP(clientIP)
 		for _, block := range config.AllowedIpRanges {
 			if block.Contains(ip) {
