@@ -5,13 +5,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
+	"strengthgadget.com/m/v2/model"
 	"strings"
 	"time"
 )
@@ -63,6 +67,8 @@ var (
 	RedisConnectionPool *redis.Client
 
 	HttpServer *http.Server
+
+	AllowedIpRanges []*net.IPNet
 )
 
 func InitConfig(ctx context.Context) error {
@@ -167,6 +173,11 @@ func InitConfig(ctx context.Context) error {
 		return fmt.Errorf("missing required environmental variables: %v", errorMsgs)
 	}
 
+	AllowedIpRanges, err = initAllowedIpRanges()
+	if err != nil {
+		return fmt.Errorf("error, when initAllowedIpRanges() for InitConfig(). Error: %v", err)
+	}
+
 	RedisConnectionPool, err = connectToRedisDatabase(redisConnectionString, redisPassword)
 	if err != nil {
 		return fmt.Errorf("error, when connectToRedisDatabase() for InitConfig(). Error: %v", err)
@@ -192,6 +203,73 @@ func InitConfig(ctx context.Context) error {
 		return fmt.Errorf("error, when attempting to setup http server for configuration init. Error: %v", err)
 	}
 	return nil
+}
+
+func initAllowedIpRanges() ([]*net.IPNet, error) {
+	var blocksSlice []string
+	var err error
+	blocksSlice, err = fetchAllowedIpRanges()
+	if err != nil {
+		return nil, fmt.Errorf("error, could not fetchAllowedIpRanges() for initAllowedIpRanges(). Error: %v", err)
+	}
+	var result []*net.IPNet
+	result = []*net.IPNet{}
+	for _, cidr := range blocksSlice {
+		var block *net.IPNet
+		_, block, err = net.ParseCIDR(strings.TrimSpace(cidr))
+		if err != nil {
+			return nil, fmt.Errorf("error, could parse cidr block. Block: %s. Error: %v", cidr, err)
+		}
+		result = append(result, block)
+	}
+	return result, nil
+}
+
+func fetchAllowedIpRanges() ([]string, error) {
+	request, err := http.NewRequest(http.MethodGet, "https://api.cloudflare.com/client/v4/ips", nil)
+	if err != nil {
+		return nil, fmt.Errorf("error, when generating get request: %v", err)
+	}
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if response != nil {
+		defer func(Body io.ReadCloser) {
+			err = Body.Close()
+			if err != nil {
+				log.Printf("error, when attempting to close response body: %v", err)
+			}
+		}(response.Body)
+	}
+	if response != nil && (response.StatusCode < 200 || response.StatusCode > 299) {
+		if response.StatusCode == http.StatusNotFound {
+			log.Printf("recieved a 404 when attempting url: %s", request.URL)
+		}
+		var rb []byte
+		rb, err = io.ReadAll(response.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error, when reading error response body: %v", err)
+		}
+		return nil, fmt.Errorf("error, when performing get request. ERROR: %v. RESPONSE CODE: %d. RESPONSE MESSAGE: %s", err, response.StatusCode, string(rb))
+	}
+	if err != nil {
+		if response != nil {
+			err = fmt.Errorf("error: %v. RESPONSE CODE: %d", err, response.StatusCode)
+		}
+		return nil, fmt.Errorf("error, when performing post request. ERROR: %v", err)
+	}
+
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error, when reading response body: %v", err)
+	}
+
+	var result model.CloudflareIpsResponse
+	err = json.Unmarshal(responseBody, &result)
+	if err != nil {
+		return nil, fmt.Errorf("error, when unmarshalling response body: %v", err)
+	}
+	return result.Result.Ipv4Cidrs, nil
 }
 
 func initHttpServer() (*http.Server, error) {

@@ -12,6 +12,7 @@ import (
 	"strengthgadget.com/m/v2/config"
 	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/handler"
+	custom_middleware "strengthgadget.com/m/v2/middleware"
 	"strengthgadget.com/m/v2/service"
 	"time"
 )
@@ -59,8 +60,11 @@ func main() {
 		AllowedHeaders: []string{"*"},
 	})
 
-	r.Use(corsMiddleware.Handler)
-	r.Use(middleware.Logger)
+	r.Use(
+		corsMiddleware.Handler,
+		middleware.Logger,
+		custom_middleware.IpFilterMiddleware,
+	)
 
 	// The /api prefix is for the local proxy when developing locally. This proxy exists so authentication works locally.
 	r.Route(constants.ApiPrefix, func(r chi.Router) {
