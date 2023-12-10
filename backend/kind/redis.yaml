@@ -20,7 +20,7 @@ spec:
           ports:
             - containerPort: 6379
           env:
-            - name: REDIS_PASSWORD
+            - name: TF_VAR_redis_password
               value: "not_a_real_password_do_not_use_in_production"
 ---
 

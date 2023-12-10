@@ -73,99 +73,99 @@ var (
 
 func InitConfig(ctx context.Context) error {
 	var errorMsgs []string
-	Environment = os.Getenv("ENVIRONMENT")
+	Environment = os.Getenv("TF_VAR_environment")
 	if Environment == "" {
-		errorMsgs = append(errorMsgs, "ENVIRONMENT")
+		errorMsgs = append(errorMsgs, "TF_VAR_environment")
 	}
 
-	SentryEndpoint = os.Getenv("SENTRY_END_POINT")
+	SentryEndpoint = os.Getenv("TF_VAR_sentry_end_point")
 	if SentryEndpoint == "" {
-		errorMsgs = append(errorMsgs, "SENTRY_END_POINT")
+		errorMsgs = append(errorMsgs, "TF_VAR_sentry_end_point")
 	}
 
-	RegistrationEmailFrom = os.Getenv("REGISTRATION_EMAIL_FROM")
+	RegistrationEmailFrom = os.Getenv("TF_VAR_registration_email_from")
 	if RegistrationEmailFrom == "" {
-		errorMsgs = append(errorMsgs, "REGISTRATION_EMAIL_FROM")
+		errorMsgs = append(errorMsgs, "TF_VAR_registration_email_from")
 	}
-	RegistrationEmailFromPassword = os.Getenv("REGISTRATION_EMAIL_FROM_PASSWORD")
+	RegistrationEmailFromPassword = os.Getenv("TF_VAR_registration_email_from_password")
 	if RegistrationEmailFromPassword == "" {
-		errorMsgs = append(errorMsgs, "REGISTRATION_EMAIL_FROM_PASSWORD")
+		errorMsgs = append(errorMsgs, "TF_VAR_registration_email_from_password")
 	}
-	databaseConnectionString := os.Getenv("DATABASE_CONNECTION_STRING")
+	databaseConnectionString := os.Getenv("TF_VAR_database_connection_string")
 	if databaseConnectionString == "" {
-		errorMsgs = append(errorMsgs, "DATABASE_CONNECTION_STRING")
+		errorMsgs = append(errorMsgs, "TF_VAR_database_connection_string")
 	}
-	Version = os.Getenv("VERSION")
+	Version = os.Getenv("TF_VAR_version")
 	if Version == "" {
-		errorMsgs = append(errorMsgs, "VERSION")
+		errorMsgs = append(errorMsgs, "TF_VAR_version")
 	}
-	databaseRootCa := os.Getenv("DATABASE_ROOT_CA")
+	databaseRootCa := os.Getenv("TF_VAR_database_root_ca")
 	if databaseRootCa == "" {
-		errorMsgs = append(errorMsgs, "DATABASE_ROOT_CA")
+		errorMsgs = append(errorMsgs, "TF_VAR_database_root_ca")
 	}
-	trustedUiOriginsString := os.Getenv("TRUSTED_UI_ORIGIN")
+	trustedUiOriginsString := os.Getenv("TF_VAR_trusted_ui_origin")
 	if trustedUiOriginsString == "" {
-		errorMsgs = append(errorMsgs, "TRUSTED_UI_ORIGIN")
+		errorMsgs = append(errorMsgs, "TF_VAR_trusted_ui_origin")
 	} else {
 		TrustedUiOrigins = strings.Split(trustedUiOriginsString, ",")
 	}
-	EmailRootCa = os.Getenv("EMAIL_ROOT_CA")
+	EmailRootCa = os.Getenv("TF_VAR_email_root_ca")
 	if EmailRootCa == "" {
-		errorMsgs = append(errorMsgs, "EMAIL_ROOT_CA")
+		errorMsgs = append(errorMsgs, "TF_VAR_email_root_ca")
 	}
-	webServerCertKey := os.Getenv("KEY_PEM")
+	webServerCertKey := os.Getenv("TF_VAR_cloudflare_origin_cert_key")
 	if webServerCertKey == "" {
-		errorMsgs = append(errorMsgs, "KEY_PEM")
+		errorMsgs = append(errorMsgs, "TF_VAR_cloudflare_origin_cert_key")
 	}
-	webServerCert := os.Getenv("CERT_PEM")
+	webServerCert := os.Getenv("TF_VAR_cloudflare_origin_cert")
 	if webServerCert == "" {
-		errorMsgs = append(errorMsgs, "CERT_PEM")
+		errorMsgs = append(errorMsgs, "TF_VAR_cloudflare_origin_cert")
 	}
-	redisConnectionString := os.Getenv("REDIS_CONNECTION_STRING")
+	redisConnectionString := os.Getenv("TF_VAR_redis_connection_string")
 	if redisConnectionString == "" {
-		errorMsgs = append(errorMsgs, "REDIS_CONNECTION_STRING")
+		errorMsgs = append(errorMsgs, "TF_VAR_redis_connection_string")
 	}
 
-	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisPassword := os.Getenv("TF_VAR_redis_password")
 	if redisPassword == "" {
-		errorMsgs = append(errorMsgs, "REDIS_PASSWORD")
+		errorMsgs = append(errorMsgs, "TF_VAR_redis_password")
 	}
 
-	toParse := os.Getenv("VERIFICATION_EXCESSIVE_RETRY_ATTEMPT_LOCKOUT_DURATION_IN_SECONDS")
+	toParse := os.Getenv("TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds")
 	var err error
 	VerificationExcessiveRetryAttemptLockoutDurationInSeconds, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "VERIFICATION_EXCESSIVE_RETRY_ATTEMPT_LOCKOUT_DURATION_IN_SECONDS")
+		errorMsgs = append(errorMsgs, "TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds")
 	}
 
-	toParse = os.Getenv("ALLOWED_VERIFICATION_ATTEMPTS_WITH_THE_EXCESSIVE_RETRY_LOCKOUT_WINDOW")
+	toParse = os.Getenv("TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window")
 	AllowedVerificationAttemptsWithTheExcessiveRetryLockoutWindow, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "ALLOWED_VERIFICATION_ATTEMPTS_WITH_THE_EXCESSIVE_RETRY_LOCKOUT_WINDOW")
+		errorMsgs = append(errorMsgs, "TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window")
 	}
 
-	toParse = os.Getenv("WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_VERIFICATION_EMAILS_BEFORE_LOCKOUT")
+	toParse = os.Getenv("TF_VAR_window_length_in_seconds_for_the_number_of_allowed_verification_emails_before_lockout")
 	WindowLengthInSecondsForTheNumberOfAllowedVerificationEmailsBeforeLockout, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_VERIFICATION_EMAILS_BEFORE_LOCKOUT")
+		errorMsgs = append(errorMsgs, "TF_VAR_window_length_in_seconds_for_the_number_of_allowed_verification_emails_before_lockout")
 	}
 
-	toParse = os.Getenv("WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_LOGIN_ATTEMPTS_BEFORE_LOCKOUT")
+	toParse = os.Getenv("TF_VAR_window_length_in_seconds_for_the_number_of_allowed_login_attempts_before_lockout")
 	WindowLengthInSecondsForTheNumberOfAllowedLoginAttemptsBeforeLockout, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "WINDOW_LENGTH_IN_SECONDS_FOR_THE_NUMBER_OF_ALLOWED_LOGIN_ATTEMPTS_BEFORE_LOCKOUT")
+		errorMsgs = append(errorMsgs, "TF_VAR_window_length_in_seconds_for_the_number_of_allowed_login_attempts_before_lockout")
 	}
 
-	toParse = os.Getenv("ALLOWED_LOGIN_ATTEMPTS_BEFORE_TRIGGERING_LOCKOUT")
+	toParse = os.Getenv("TF_VAR_allowed_login_attempts_before_triggering_lockout")
 	AllowedLoginAttemptsBeforeTriggeringLockout, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "ALLOWED_LOGIN_ATTEMPTS_BEFORE_TRIGGERING_LOCKOUT")
+		errorMsgs = append(errorMsgs, "TF_VAR_allowed_login_attempts_before_triggering_lockout")
 	}
 
-	toParse = os.Getenv("VERIFICATION_CODE_VALIDITY_WINDOW_IN_MIN")
+	toParse = os.Getenv("TF_VAR_verification_code_validity_window_in_min")
 	VerificationCodeValidityWindowInMin, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "VERIFICATION_CODE_VALIDITY_WINDOW_IN_MIN")
+		errorMsgs = append(errorMsgs, "TF_VAR_verification_code_validity_window_in_min")
 	}
 
 	LocalDevelopment = os.Getenv("LOCAL_DEVELOPMENT")
@@ -273,13 +273,13 @@ func fetchAllowedIpRanges() ([]string, error) {
 }
 
 func initHttpServer() (*http.Server, error) {
-	certPem := os.Getenv("CERT_PEM")
+	certPem := os.Getenv("TF_VAR_cloudflare_origin_cert")
 	certPemBytes, err := base64.StdEncoding.DecodeString(certPem)
 	if err != nil {
 		return nil, fmt.Errorf("error, when attempting to decode the webserver cert: %v", err)
 	}
 
-	keyPem := os.Getenv("KEY_PEM")
+	keyPem := os.Getenv("TF_VAR_cloudflare_origin_cert_key")
 	keyPemBytes, err := base64.StdEncoding.DecodeString(keyPem)
 	if err != nil {
 		return nil, fmt.Errorf("error, when attempting to decode the webserver cert key: %v", err)
@@ -344,12 +344,12 @@ func connectToRedisDatabase(connectionString string, password string) (*redis.Cl
 }
 
 func getClientCertAndKey() ([]byte, []byte, error) {
-	clientCert, err := base64.StdEncoding.DecodeString(os.Getenv("REDIS_USER_CRT"))
+	clientCert, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_user_crt"))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error, when decoding clientCert. Error: %v", err)
 	}
 
-	clientKey, err := base64.StdEncoding.DecodeString(os.Getenv("REDIS_USER_PRIVATE_KEY"))
+	clientKey, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_user_private_key"))
 	if err != nil {
 		return nil, nil, fmt.Errorf("error, when decoding clientKey. Error: %v", err)
 	}
@@ -358,22 +358,22 @@ func getClientCertAndKey() ([]byte, []byte, error) {
 }
 
 func getCaCert() ([]byte, error) {
-	partOne, err := base64.StdEncoding.DecodeString(os.Getenv("REDIS_CA_PEM_PART_ONE"))
+	partOne, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_one"))
 	if err != nil {
 		return nil, fmt.Errorf("error, when decoding CA cert part one. Error: %v", err)
 	}
 
-	partTwo, err := base64.StdEncoding.DecodeString(os.Getenv("REDIS_CA_PEM_PART_TWO"))
+	partTwo, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_two"))
 	if err != nil {
 		return nil, fmt.Errorf("error, when decoding CA cert part two. Error: %v", err)
 	}
 
-	partThree, err := base64.StdEncoding.DecodeString(os.Getenv("REDIS_CA_PEM_PART_THREE"))
+	partThree, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_three"))
 	if err != nil {
 		return nil, fmt.Errorf("error, when decoding CA cert part three. Error: %v", err)
 	}
 
-	partFour, err := base64.StdEncoding.DecodeString(os.Getenv("REDIS_CA_PEM_PART_FOUR"))
+	partFour, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_four"))
 	if err != nil {
 		return nil, fmt.Errorf("error, when decoding CA cert part four. Error: %v", err)
 	}
