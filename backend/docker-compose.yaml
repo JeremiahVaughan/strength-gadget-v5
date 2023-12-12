@@ -23,10 +23,7 @@ services:
       TF_VAR_allowed_login_attempts_before_triggering_lockout: "${TF_VAR_allowed_login_attempts_before_triggering_lockout}"
       TF_VAR_redis_user_private_key: "${TF_VAR_redis_user_private_key}"
       TF_VAR_redis_user_crt: "${TF_VAR_redis_user_crt}"
-      TF_VAR_redis_ca_pem_part_one: "${TF_VAR_redis_ca_pem_part_one}"
-      TF_VAR_redis_ca_pem_part_two: "${TF_VAR_redis_ca_pem_part_two}"
-      TF_VAR_redis_ca_pem_part_three: "${TF_VAR_redis_ca_pem_part_three}"
-      TF_VAR_redis_ca_pem_part_four: "${TF_VAR_redis_ca_pem_part_four}"
+      TF_VAR_redis_ca: "${TF_VAR_redis_ca}"
       TF_VAR_sentry_end_point: "${TF_VAR_sentry_end_point}"
     ports:
       - "443:443"
