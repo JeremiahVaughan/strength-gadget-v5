@@ -358,31 +358,10 @@ func getClientCertAndKey() ([]byte, []byte, error) {
 }
 
 func getCaCert() ([]byte, error) {
-	partOne, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_one"))
+	result, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca"))
 	if err != nil {
-		return nil, fmt.Errorf("error, when decoding CA cert part one. Error: %v", err)
+		return nil, fmt.Errorf("error, when decoding CA cert. Error: %v", err)
 	}
-
-	partTwo, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_two"))
-	if err != nil {
-		return nil, fmt.Errorf("error, when decoding CA cert part two. Error: %v", err)
-	}
-
-	partThree, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_three"))
-	if err != nil {
-		return nil, fmt.Errorf("error, when decoding CA cert part three. Error: %v", err)
-	}
-
-	partFour, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca_pem_part_four"))
-	if err != nil {
-		return nil, fmt.Errorf("error, when decoding CA cert part four. Error: %v", err)
-	}
-
-	var result []byte
-	result = append(result, partOne...)
-	result = append(result, partTwo...)
-	result = append(result, partThree...)
-	result = append(result, partFour...)
 	return result, nil
 }
 

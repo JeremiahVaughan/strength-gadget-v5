@@ -1,3 +1,3 @@
 package constants
 
-const DatabaseMigrationDirectory = "/workspace/database"
+const DatabaseMigrationDirectory = "database"

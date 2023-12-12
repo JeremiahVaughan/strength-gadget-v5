@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"github.com/jackc/pgx/v4"
+	"io/fs"
 	"log"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -14,7 +15,7 @@ import (
 	"strings"
 )
 
-func ProcessSchemaChanges(ctx context.Context) error {
+func ProcessSchemaChanges(ctx context.Context, databaseFiles embed.FS) error {
 	initExists, err := doesInitTableExist(ctx)
 	if err != nil {
 		return fmt.Errorf("error has occurred when checking if database initialization is needed: %v", err)
@@ -30,18 +31,18 @@ func ProcessSchemaChanges(ctx context.Context) error {
 	}
 
 	log.Println("checking for migrations ...")
-	var migrationFileCandidates []os.DirEntry
-	migrationFileCandidates, err = os.ReadDir(constants.DatabaseMigrationDirectory)
+	dirEntries, err := fs.ReadDir(databaseFiles, constants.DatabaseMigrationDirectory)
 	if err != nil {
-		return fmt.Errorf("an error has occurred when attempting to check if migration files exist: %v", err)
+		return fmt.Errorf("an error has occurred when attempting to read database directory. Error: %v", err)
 	}
 	var migrationFileCandidateFileNames []string
-	for _, candidate := range migrationFileCandidates {
-		migrationFileCandidateFileNames = append(migrationFileCandidateFileNames, candidate.Name())
+	for _, entry := range dirEntries {
+		if !entry.IsDir() {
+			migrationFileCandidateFileNames = append(migrationFileCandidateFileNames, entry.Name())
+		}
 	}
 
 	migrationFiles := filterForMigrationFiles(migrationFileCandidateFileNames)
-
 	var migrationsCompleted []string
 	noMigrationsToProcessMessage := "no database migration files to process, skipping migrations ..."
 	if len(migrationFiles) == 0 {
@@ -66,7 +67,7 @@ func ProcessSchemaChanges(ctx context.Context) error {
 		}
 		filePath := fmt.Sprintf("%s/%s", constants.DatabaseMigrationDirectory, fileName)
 		err = func() error {
-			err = executeSQLFile(tx, filePath)
+			err = executeSQLFile(tx, filePath, databaseFiles)
 			if err != nil {
 				return fmt.Errorf("error occurred when executing sql script: Filename: %s. Error: %v", fileName, err)
 			}
@@ -221,8 +222,8 @@ func doesInitTableExist(ctx context.Context) (*bool, error) {
 	return &result, nil
 }
 
-func executeSQLFile(tx pgx.Tx, filePath string) error {
-	content, err := os.ReadFile(filePath)
+func executeSQLFile(tx pgx.Tx, filePath string, databaseFiles embed.FS) error {
+	content, err := databaseFiles.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read SQL file: %w", err)
 	}

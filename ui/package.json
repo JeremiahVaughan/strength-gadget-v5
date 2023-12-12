@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "start": "nx serve",
-    "start-mobile": "nx run ui:serve:development --host 0.0.0.0",
+    "start-mobile": "npx nx run ui:serve:development --host 0.0.0.0",
     "build": "nx build",
     "test": "nx test"
   },

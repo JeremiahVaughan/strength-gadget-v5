@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5"
@@ -16,6 +17,9 @@ import (
 	"strengthgadget.com/m/v2/service"
 	"time"
 )
+
+//go:embed database/*
+var databaseFiles embed.FS
 
 func main() {
 	log.Printf("starting strengthgadget...")
@@ -41,7 +45,7 @@ func main() {
 	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", config.Environment))
 	defer sentry.Flush(2 * time.Second)
 
-	err = service.ProcessSchemaChanges(ctx)
+	err = service.ProcessSchemaChanges(ctx, databaseFiles)
 	if err != nil {
 		log.Fatalf("error, when attempting to process schema changes: %v", err)
 	}
