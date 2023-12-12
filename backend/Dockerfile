@@ -12,5 +12,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app .
 
 FROM public.ecr.aws/docker/library/alpine:3.18.4
 COPY --from=builder /app /app
-COPY --from=builder /workspace/database /workspace/database
 ENTRYPOINT ["/app"]
