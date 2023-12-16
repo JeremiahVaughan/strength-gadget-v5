@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strings"
 	"time"
@@ -208,10 +209,15 @@ func InitConfig(ctx context.Context) error {
 func initAllowedIpRanges() ([]*net.IPNet, error) {
 	var blocksSlice []string
 	var err error
-	blocksSlice, err = fetchAllowedIpRanges()
-	if err != nil {
-		return nil, fmt.Errorf("error, could not fetchAllowedIpRanges() for initAllowedIpRanges(). Error: %v", err)
+	if Environment == constants.EnvironmentLocal {
+		blocksSlice = []string{"127.0.0.1/32"}
+	} else {
+		blocksSlice, err = fetchAllowedIpRanges()
+		if err != nil {
+			return nil, fmt.Errorf("error, could not fetchAllowedIpRanges() for initAllowedIpRanges(). Error: %v", err)
+		}
 	}
+
 	var result []*net.IPNet
 	result = []*net.IPNet{}
 	for _, cidr := range blocksSlice {
