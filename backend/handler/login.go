@@ -116,7 +116,7 @@ func startNewSession(ctx context.Context, userId string) (*http.Cookie, error) {
 	}
 	expirationTime := time.Now().Add(sessionLength)
 	var domain string
-	if config.LocalDevelopment == "true" {
+	if config.Environment == constants.EnvironmentLocal {
 		domain = "localhost"
 	} else {
 		domain = ".strengthgadget.com"

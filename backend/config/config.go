@@ -33,7 +33,6 @@ var (
 	//LockoutDurationInHours                           = 24
 	AllowedVerificationAttemptsWithTheExcessiveRetryLockoutWindow int
 	VerificationCodeValidityWindowInMin                           int
-	LocalDevelopment                                              string
 	EmailRootCa                                                   string
 	TrustedUiOrigins                                              []string
 
@@ -167,11 +166,6 @@ func InitConfig(ctx context.Context) error {
 	VerificationCodeValidityWindowInMin, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
 		errorMsgs = append(errorMsgs, "TF_VAR_verification_code_validity_window_in_min")
-	}
-
-	LocalDevelopment = os.Getenv("LOCAL_DEVELOPMENT")
-	if len(errorMsgs) != 0 {
-		return fmt.Errorf("missing required environmental variables: %v", errorMsgs)
 	}
 
 	AllowedIpRanges, err = initAllowedIpRanges()
@@ -316,36 +310,34 @@ func connectToRedisDatabase(connectionString string, password string) (*redis.Cl
 		DB:       0, // use default DB
 		Password: password,
 	}
-	if LocalDevelopment != "true" {
-		// Load client cert
-		clientCert, clientKey, err := getClientCertAndKey()
-		if err != nil {
-			return nil, fmt.Errorf("error, when getClientCertAndKey() for connectToRedisDatabase(). Error: %v", err)
-		}
-		cert, err := tls.X509KeyPair(clientCert, clientKey)
-		if err != nil {
-			return nil, fmt.Errorf("error, when attempting set LoadX509KeyPair() for connectToRedisDatabase(). Error: %v", err) // Ye don't want to sail without a map!
-		}
-
-		caCert, err := getCaCert()
-		if err != nil {
-			return nil, fmt.Errorf("error, when getCaCert() for connectToRedisDatabase(). Error: %v", err)
-		}
-
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(caCert)
-
-		// Create TLS configuration
-		tlsConfig := &tls.Config{
-			Certificates:       []tls.Certificate{cert},
-			RootCAs:            caCertPool,
-			InsecureSkipVerify: false,
-			// Remember, settin' InsecureSkipVerify to true is like sailin' without a lookout!
-			// InsecureSkipVerify: true, // Only for development or testing!
-		}
-
-		options.TLSConfig = tlsConfig
+	// Load client cert
+	clientCert, clientKey, err := getClientCertAndKey()
+	if err != nil {
+		return nil, fmt.Errorf("error, when getClientCertAndKey() for connectToRedisDatabase(). Error: %v", err)
 	}
+	cert, err := tls.X509KeyPair(clientCert, clientKey)
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting set LoadX509KeyPair() for connectToRedisDatabase(). Error: %v", err) // Ye don't want to sail without a map!
+	}
+
+	caCert, err := getCaCert()
+	if err != nil {
+		return nil, fmt.Errorf("error, when getCaCert() for connectToRedisDatabase(). Error: %v", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	// Create TLS configuration
+	tlsConfig := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            caCertPool,
+		InsecureSkipVerify: false,
+		// Remember, settin' InsecureSkipVerify to true is like sailin' without a lookout!
+		// InsecureSkipVerify: true, // Only for development or testing!
+	}
+
+	options.TLSConfig = tlsConfig
 	return redis.NewClient(&options), nil
 }
 
@@ -438,14 +430,9 @@ func loadRootCA(databaseRootCa string) (*x509.CertPool, error) {
 	var decodedCert []byte
 
 	// The cert is encoded when deployed because I need to pass it around with terraform
-	// todo figure out a way to keep the code from having to worry about infrastructure
-	if LocalDevelopment != "true" {
-		decodedCert, err = base64.StdEncoding.DecodeString(databaseRootCa)
-		if err != nil {
-			return nil, fmt.Errorf("error, when base64 decoding database CA cert: %v", err)
-		}
-	} else {
-		decodedCert = []byte(databaseRootCa)
+	decodedCert, err = base64.StdEncoding.DecodeString(databaseRootCa)
+	if err != nil {
+		return nil, fmt.Errorf("error, when base64 decoding database CA cert: %v", err)
 	}
 
 	rootCAs := x509.NewCertPool()

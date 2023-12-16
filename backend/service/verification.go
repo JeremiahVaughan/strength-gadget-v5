@@ -132,13 +132,9 @@ func GenerateNewVerificationCode(ctx context.Context, tx pgx.Tx, userId string, 
 	}
 
 	var verificationCode string
-	if config.LocalDevelopment == "true" {
-		verificationCode = constants.MockVerificationCode
-	} else {
-		verificationCode, err = generateEmailVerificationCode()
-		if err != nil {
-			return fmt.Errorf("error, when generating verification code: %v", err)
-		}
+	verificationCode, err = generateEmailVerificationCode()
+	if err != nil {
+		return fmt.Errorf("error, when generating verification code: %v", err)
 	}
 
 	expiration := time.Now().Add(time.Minute * time.Duration(config.VerificationCodeValidityWindowInMin)).Unix()
@@ -153,11 +149,9 @@ func GenerateNewVerificationCode(ctx context.Context, tx pgx.Tx, userId string, 
 		return fmt.Errorf("an error has occurred when attempting to generate a verification code. Error: %v", e)
 	}
 
-	if config.LocalDevelopment != "true" {
-		e = sendEmailVerification(email, verificationCode, isPasswordReset)
-		if e != nil {
-			return fmt.Errorf("error, when sending email verification: %v", e)
-		}
+	e = sendEmailVerification(email, verificationCode, isPasswordReset)
+	if e != nil {
+		return fmt.Errorf("error, when sending email verification: %v", e)
 	}
 	return nil
 }
