@@ -11,7 +11,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.14
+          docker_layer_caching: true
       - run:
           command: |
             cd ./backend && ./deploy.sh
@@ -24,7 +24,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.14
+          docker_layer_caching: true
       - run:
           name: Deploy new version
           command: |
@@ -44,7 +44,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.14
+          docker_layer_caching: true
       - run:
           command: cd ./infrastructure/terraform/live/staging/raspberry_pi && ../deploy.sh
   frontend-build:
@@ -56,7 +56,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.14
+          docker_layer_caching: true
       - run:
           command: |
             cd ./ui && ./deploy.sh && cd ../ &&
@@ -70,7 +70,7 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker:
-          version: 20.10.14
+          docker_layer_caching: true
       - run:
           command: cd ./infrastructure/terraform/live/staging/statuscake && ../deploy.sh
 
