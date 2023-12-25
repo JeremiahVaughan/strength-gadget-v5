@@ -1,0 +1,89 @@
+warmup/cardio selection 1
+warmup/cardio selection 2
+warmup/cardio selection 3
+warmup/cardio selection 4
+
+warmup/cardio completion exercise 1
+warmup/cardio completion exercise 2
+warmup/cardio completion exercise 3
+warmup/cardio completion exercise 4
+
+exercise selection 1
+exercise selection 2
+exercise selection 3
+
+# Selection confirmation shows all three exercises selected for the set on the same screen with a confirmation button
+# seeing all 3 exercises at the same time is helpful for prepping the set equipment or area.
+set 1 selection confirmation
+
+exercise completion 1
+exercise completion 2
+exercise completion 3
+
+exercise repeat completion 1
+exercise repeat completion 2
+exercise repeat completion 3
+
+exercise repeat completion 1
+exercise repeat completion 2
+exercise repeat completion 3
+
+exercise repeat completion 1
+exercise repeat completion 2
+exercise repeat completion 3
+
+exercise selection 4
+exercise selection 5
+exercise selection 6
+
+set 2 selection confirmation
+
+exercise completion 4
+exercise completion 5
+exercise completion 6
+
+exercise repeat completion 4
+exercise repeat completion 5
+exercise repeat completion 6
+
+exercise repeat completion 4
+exercise repeat completion 5
+exercise repeat completion 6
+
+exercise repeat completion 4
+exercise repeat completion 5
+exercise repeat completion 6
+
+exercise selection 7
+exercise selection 8
+exercise selection 9
+
+set 3 selection confirmation
+
+exercise completion 7
+exercise completion 8
+exercise completion 9
+
+exercise repeat completion 7
+exercise repeat completion 8
+exercise repeat completion 9
+
+exercise repeat completion 7
+exercise repeat completion 8
+exercise repeat completion 9
+
+exercise repeat completion 7
+exercise repeat completion 8    
+exercise repeat completion 9
+
+cool-down/stretch selection 1
+cool-down/stretch selection 2
+cool-down/stretch selection 3
+cool-down/stretch selection 4
+
+cool-down/stretch completion 1
+cool-down/stretch completion 2
+cool-down/stretch completion 3
+cool-down/stretch completion 4
+
+

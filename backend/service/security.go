@@ -151,7 +151,7 @@ func generateSalt() (*string, *model.Error) {
 }
 
 func IncrementLoginAttemptCount(ctx context.Context, email string) *model.Error {
-	key := constants.LoginAttemptPrefix + email
+	key := model.LoginAttemptPrefix + email
 	err := IncrementRateLimitingCount(ctx, key, config.WindowLengthInSecondsForTheNumberOfAllowedLoginAttemptsBeforeLockout)
 	if err != nil {
 		return &model.Error{
@@ -163,7 +163,7 @@ func IncrementLoginAttemptCount(ctx context.Context, email string) *model.Error 
 }
 
 func HasLoginAttemptRateLimitBeenReached(ctx context.Context, email string) (bool, *model.Error) {
-	key := constants.LoginAttemptPrefix + email
+	key := model.LoginAttemptPrefix + email
 	result, err := HasRateLimitBeenReached(ctx, key, config.AllowedLoginAttemptsBeforeTriggeringLockout)
 	if err != nil {
 		return false, &model.Error{

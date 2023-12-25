@@ -1,0 +1,29 @@
+I can use the redis hash set to keep track of current step and updated
+values for each exercise measurement. At the end of each superset I can
+save updated measurement values.
+
+# daily_workouts are created each day. They expire after 36 hours (should they fail to replace this should trigger health check failure)
+daily_workout hash composition:
+- lower json string
+- core json string
+- upper json string
+
+user workout hash composition:
+- current_step_pointer.
+- workout_routine
+
+user updated measurement values hash composition:
+- updated exercise measurement values
+
+# Exercises slotted
+user exercises selection sorted set values
+- exercise selection values
+
+
+
+client calls
+- getCurrentWorkout
+- selectStep
+- replaceStep
+- completeStep/repeatCompletionStep #repeat completions are just pointers to the corresponding completion step. This makes selection easier because I don't have to update multiple of the same steps
+    - increment/decrement measurement type

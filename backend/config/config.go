@@ -54,7 +54,7 @@ var (
 
 	// CurrentSupersetExpirationTimeInHours this addresses the edge case where the user doesn't finish the superset within a reasonable amount of time.
 	// the superset is assumed to be aborted regardless of the progress made in that superset.
-	CurrentSupersetExpirationTimeInHours = 2
+	CurrentSupersetExpirationTimeInHours = 6
 
 	// CurrentWorkoutExpirationTimeInHours this is used to set the expiration time for the muscle groups worked counter.
 	// This counter is used to keep the number of exercises spread evenly as possible throughout the week. The aim here
@@ -440,4 +440,8 @@ func loadRootCA(databaseRootCa string) (*x509.CertPool, error) {
 		return nil, fmt.Errorf("error, failed to append CA certificate to the certificate pool")
 	}
 	return rootCAs, nil
+}
+
+func GetSuperSetExpiration() time.Duration {
+	return time.Duration(CurrentSupersetExpirationTimeInHours) * time.Hour
 }

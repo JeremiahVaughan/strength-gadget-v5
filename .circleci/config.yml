@@ -1,6 +1,22 @@
 version: 2.1
 
 jobs:
+  daily-workout-generation:
+    docker:
+      - image: piegarden/strengthgadget:latest
+        auth:
+          username: $TF_VAR_docker_user
+          password: $TF_VAR_docker_token
+    environment:
+      MODE: "workout_gen"
+    resource_class: arm.medium  # Specify ARM resource class
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          command: |
+            /app
   backend-build:
     docker:
       - image: cimg/base:current
@@ -77,6 +93,15 @@ jobs:
 
 
 workflows:
+  daily-workout-generation:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *" # This is the cron syntax for every day at midnight
+    jobs:
+      - daily-workout-generation:
+          context:
+            - context-staging
+            - context-docker-hub
   deploy:
     jobs:
       - backend-build:

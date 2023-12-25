@@ -157,7 +157,7 @@ func GenerateNewVerificationCode(ctx context.Context, tx pgx.Tx, userId string, 
 }
 
 func IncrementVerificationAttemptCount(ctx context.Context, email string) error {
-	key := constants.EmailRateLimitPrefix + email
+	key := model.EmailRateLimitPrefix + email
 	err := IncrementRateLimitingCount(ctx, key, config.WindowLengthInSecondsForTheNumberOfAllowedVerificationEmailsBeforeLockout)
 	if err != nil {
 		return fmt.Errorf("error, when attempting to increment rate limiting count for email. Email: %s. Error: %v", email, err)
@@ -307,6 +307,6 @@ func getEarlierTime(theCurrentTime int64, secondsAgo int) int64 {
 }
 
 func HasVerificationCodeRateLimitBeenReached(ctx context.Context, email string) (bool, error) {
-	key := constants.EmailRateLimitPrefix + email
+	key := model.EmailRateLimitPrefix + email
 	return HasRateLimitBeenReached(ctx, key, config.AllowedVerificationResendCodeAttemptsWithinOneHour)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"github.com/jackc/pgx/v4"
 	"io/fs"
 	"log"
 	"regexp"
@@ -59,35 +58,15 @@ func ProcessSchemaChanges(ctx context.Context, databaseFiles embed.FS) error {
 	migrationsNeededSorted := sortMigrationsNeededFiles(migrationsNeeded)
 	for _, fileName := range migrationsNeededSorted {
 		log.Printf("attempting to perform database migration with %s ...", fileName)
-		var tx pgx.Tx
-		// todo Ran into an error where schema changes were failing because the transaction couldn't see DDL changes until it was committed (e.g., trying to add data to columns that are being created in the same transaction). Should consider removing the transaction as it may just be making things worse.
-		tx, err = config.ConnectionPool.Begin(ctx)
-		if err != nil {
-			return fmt.Errorf("error, when attempting to start a transaction: %v", err)
-		}
-		filePath := fmt.Sprintf("%s/%s", constants.DatabaseMigrationDirectory, fileName)
-		err = func() error {
-			err = executeSQLFile(tx, filePath, databaseFiles)
-			if err != nil {
-				return fmt.Errorf("error occurred when executing sql script: Filename: %s. Error: %v", fileName, err)
-			}
-			err = recordSuccessfulMigration(ctx, tx, fileName)
-			if err != nil {
-				return fmt.Errorf("error has occurred when attempting to record a successful migration: %v", err)
-			}
-			return nil
-		}()
-		if err != nil {
-			rollbackError := tx.Rollback(ctx)
-			if rollbackError != nil {
-				return fmt.Errorf("error, when attempting to rollback commit: Filename: %s. Rollback Error: %v. Original Error: %v", fileName, rollbackError, err)
-			}
-			return fmt.Errorf("error, when attempting to perform database migration using: Filename: %s. Error: %v", fileName, err)
-		}
 
-		err = tx.Commit(ctx)
+		filePath := fmt.Sprintf("%s/%s", constants.DatabaseMigrationDirectory, fileName)
+		err = executeSQLFile(filePath, databaseFiles)
 		if err != nil {
-			return fmt.Errorf("error, when attempting to commit transaction: %v", err)
+			return fmt.Errorf("error occurred when executing sql script: Filename: %s. Error: %v", fileName, err)
+		}
+		err = recordSuccessfulMigration(ctx, fileName)
+		if err != nil {
+			return fmt.Errorf("error has occurred when attempting to record a successful migration: %v", err)
 		}
 	}
 	log.Println("finished database schema changes")
@@ -167,8 +146,8 @@ func filterForMigrationFiles(candidates []string) []string {
 	return migrationFiles
 }
 
-func recordSuccessfulMigration(ctx context.Context, tx pgx.Tx, fileName string) error {
-	_, err := tx.Exec(
+func recordSuccessfulMigration(ctx context.Context, fileName string) error {
+	_, err := config.ConnectionPool.Exec(
 		ctx,
 		"INSERT INTO init (migration_file_name)\nVALUES ($1)",
 		fileName,
@@ -222,7 +201,7 @@ func doesInitTableExist(ctx context.Context) (*bool, error) {
 	return &result, nil
 }
 
-func executeSQLFile(tx pgx.Tx, filePath string, databaseFiles embed.FS) error {
+func executeSQLFile(filePath string, databaseFiles embed.FS) error {
 	content, err := databaseFiles.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read SQL file: %w", err)
@@ -237,7 +216,7 @@ func executeSQLFile(tx pgx.Tx, filePath string, databaseFiles embed.FS) error {
 			continue
 		}
 
-		_, err = tx.Exec(context.Background(), query)
+		_, err = config.ConnectionPool.Exec(context.Background(), query)
 		if err != nil {
 			return fmt.Errorf("error, failed to execute QUERY: %s. ERROR: %v", query, err)
 		}

@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"strconv"
 	"strengthgadget.com/m/v2/config"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strings"
 	"time"
@@ -148,7 +147,7 @@ func getCurrentWorkoutMuscleGroupsWorkedCount(ctx context.Context, user *model.U
 
 func getTotalMuscleGroupsCount(ctx context.Context) (int, error) {
 	var result int
-	redisResult, err := config.RedisConnectionPool.Get(ctx, constants.TotalMuscleGroupCountKey).Result()
+	redisResult, err := config.RedisConnectionPool.Get(ctx, model.TotalMuscleGroupCountKey).Result()
 	exists := !errors.Is(err, redis.Nil)
 	if err != nil && exists {
 		return 0, fmt.Errorf("error, when attempting to fetch total muscle group count from redis. Error: %v", err)
@@ -164,7 +163,7 @@ func getTotalMuscleGroupsCount(ctx context.Context) (int, error) {
 		if err != nil {
 			return 0, fmt.Errorf("error, when attempting to execute sql statement: %v", err)
 		}
-		err = config.RedisConnectionPool.Set(ctx, constants.TotalMuscleGroupCountKey, result, time.Hour).Err()
+		err = config.RedisConnectionPool.Set(ctx, model.TotalMuscleGroupCountKey, result, time.Hour).Err()
 		if err != nil {
 			return 0, fmt.Errorf("error, when attempting to cache the total muscle group count. Error: %v", err)
 		}
@@ -497,7 +496,7 @@ func selectRandomExercise(availableExercises []model.Exercise) *model.Exercise {
 
 func fetchAllMuscleGroups(ctx context.Context) ([]model.MuscleGroup, error) {
 	var muscleGroups []model.MuscleGroup
-	muscleGroupsFromRedis, err := config.RedisConnectionPool.Get(ctx, constants.CachedMuscleGroupsKey).Result()
+	muscleGroupsFromRedis, err := config.RedisConnectionPool.Get(ctx, model.CachedMuscleGroupsKey).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
 			var rows pgx.Rows
@@ -527,7 +526,7 @@ func fetchAllMuscleGroups(ctx context.Context) ([]model.MuscleGroup, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error, when marshalling musclegroups for caching in redis. Error: %v", err)
 			}
-			err = config.RedisConnectionPool.Set(ctx, constants.CachedMuscleGroupsKey, bytes, time.Hour).Err()
+			err = config.RedisConnectionPool.Set(ctx, model.CachedMuscleGroupsKey, bytes, time.Hour).Err()
 			if err != nil {
 				return nil, fmt.Errorf("error, when attempting to cache muscle groups in redis. Error: %v", err)
 			}
@@ -548,11 +547,11 @@ func getUserMuscleGroupInRecoveryKey(userId string, muscleGroupId string) string
 }
 
 func getCompletedMuscleGroupsInSessionCountKey(userId string) string {
-	return fmt.Sprintf("%s:%s", constants.MuscleGroupsCompletedInSessionKey, userId)
+	return fmt.Sprintf("%s:%s", model.MuscleGroupsCompletedInSessionKey, userId)
 }
 
 func getCurrentSupersetForUserKey(userId string) string {
-	return fmt.Sprintf("%s%s", constants.CurrentSupersetPrefix, userId)
+	return fmt.Sprintf("%s%s", model.CurrentSupersetPrefix, userId)
 }
 
 func fetchAllMuscleGroupsNotInRecovery(ctx context.Context, currentSuperset *model.SuperSet, shuffle bool) ([]model.MuscleGroup, error) {
@@ -683,7 +682,7 @@ func FetchCurrentSuperset(ctx context.Context) (*model.SuperSet, error) {
 
 func FetchExercise(ctx context.Context, exerciseId string) (*model.Exercise, error) {
 	var exercise model.Exercise
-	key := fmt.Sprintf("%s%s", constants.CachedExercisePrefix, exerciseId)
+	key := fmt.Sprintf("%s%s", model.CachedExercisePrefix, exerciseId)
 	result, err := config.RedisConnectionPool.Get(ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -743,4 +742,39 @@ func SuperSetToExerciseResponse(ctx context.Context, set *model.SuperSet) (*mode
 		Exercise:         exercise,
 		SuperSetProgress: set.SuperSetProgress,
 	}, nil
+}
+
+func FetchAllExercises(ctx context.Context) ([]model.Exercise, error) {
+	rows, err := config.ConnectionPool.Query(
+		ctx,
+		"SELECT e.id, e.name, e.demonstration_giphy_id, emg.muscle_group_id, e.exercise_type_id, mg.workout_routine\nFROM exercise e\nJOIN exercise_muscle_group emg on e.id = emg.exercise_id\nJOIN muscle_group mg on emg.muscle_group_id = mg.id",
+	)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
+	}
+
+	var exercises []model.Exercise
+	for rows.Next() {
+		var exercise model.Exercise
+		err = rows.Scan(
+			&exercise.Id,
+			&exercise.Name,
+			&exercise.DemonstrationGiphyId,
+			&exercise.MuscleGroupId,
+			&exercise.ExerciseType,
+			&exercise.RoutineType,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when scanning database rows: %v", err)
+		}
+		exercises = append(exercises, exercise)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error, when iterating through database rows: %v", err)
+	}
+	return exercises, nil
 }
