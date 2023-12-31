@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -97,9 +98,9 @@ func generateDailyWorkout(ctx context.Context) error {
 		return fmt.Errorf("error, when generateDailyWorkoutValue(model.UPPER) for generateDailyWorkout(). Error: %v", err)
 	}
 	err = config.RedisConnectionPool.HSet(ctx, model.DailyWorkoutKey,
-		getDailyWorkoutKey(model.LOWER), lowerWorkout,
-		getDailyWorkoutKey(model.CORE), coreWorkout,
-		getDailyWorkoutKey(model.UPPER), upperWorkout,
+		service.GetDailyWorkoutKey(model.LOWER), lowerWorkout,
+		service.GetDailyWorkoutKey(model.CORE), coreWorkout,
+		service.GetDailyWorkoutKey(model.UPPER), upperWorkout,
 	).Err()
 	if err != nil {
 		return fmt.Errorf("error, when attempting to create daily_workout redis hash. Error: %v", err)
@@ -109,7 +110,53 @@ func generateDailyWorkout(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error, then attempting to set expiration for daily_workout redis hash. Error: %v", err)
 	}
+
+	healthPushUrl := os.Getenv("TF_VAR_daily_workout_generated_push_health")
+	if healthPushUrl != "" {
+		err = updateHealthCheck(healthPushUrl)
+		if err != nil {
+			return fmt.Errorf("error, when updateHealthCheck() for generateDailyWorkout(). Error: %v", err)
+		}
+	}
 	return nil
+}
+
+func updateHealthCheck(url string) error {
+	request, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return fmt.Errorf("error, when creating post request. ERROR: %v", err)
+	}
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if response != nil {
+		defer func(Body io.ReadCloser) {
+			err = Body.Close()
+			if err != nil {
+				log.Printf("error, when attempting to close response body: %v", err)
+			}
+		}(response.Body)
+	}
+	if response != nil && (response.StatusCode < 200 || response.StatusCode > 299) {
+		if response.StatusCode == http.StatusNotFound {
+			log.Printf("recieved a 404 when attempting url: %s", request.URL)
+		}
+		var rb []byte
+		rb, err = io.ReadAll(response.Body)
+		if err != nil {
+			return fmt.Errorf("error, when reading error response body: %v", err)
+		}
+		return fmt.Errorf("error, when performing get request. ERROR: %v. RESPONSE CODE: %d. RESPONSE MESSAGE: %s", err, response.StatusCode, string(rb))
+	}
+	if err != nil {
+		if response != nil {
+			err = fmt.Errorf("error: %v. RESPONSE CODE: %d", err, response.StatusCode)
+		}
+		return fmt.Errorf("error, when performing post request. ERROR: %v", err)
+	}
+
+	return nil
+
 }
 
 func generateDailyWorkoutValue(exerciseMap map[model.RoutineType]map[model.ExerciseType]map[string][]model.Exercise, rt model.RoutineType) ([]byte, error) {
@@ -166,10 +213,6 @@ func generateDailyWorkoutValue(exerciseMap map[model.RoutineType]map[model.Exerc
 	return bytes, nil
 }
 
-func getDailyWorkoutKey(rt model.RoutineType) string {
-	return fmt.Sprintf("%s%d", model.DailyWorkoutHashKeyPrefix, rt)
-}
-
 func serveAthletes(ctx context.Context) error {
 	err := service.ProcessSchemaChanges(ctx, databaseFiles)
 	if err != nil {
@@ -219,6 +262,8 @@ func serveAthletes(ctx context.Context) error {
 			r.Get(constants.ReadyForNextExercise, handler.HandleReadyForNextExercise)
 			r.Get(constants.CurrentExercise, handler.HandleFetchCurrentExercise)
 			r.Get(constants.ShuffleExercise, handler.HandleShuffleExercise)
+
+			r.Get(constants.GetCurrentWorkout, handler.HandleGetCurrentWorkout)
 		})
 	})
 

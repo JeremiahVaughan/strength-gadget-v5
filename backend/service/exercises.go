@@ -15,6 +15,142 @@ import (
 	"time"
 )
 
+func GetCurrentWorkout(ctx context.Context) (*model.UserWorkoutDto, error) {
+	user, err := fetchUserFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error, could not FetchCurrentSuperset() for fetchAllMuscleGroupsNotInRecovery(). Error: %v", err)
+	}
+
+	userWorkout := model.UserWorkout{
+		ProgressIndex: [][]int{
+			{0},
+		},
+	}
+	err = userWorkout.FromRedis(ctx, user.Id, config.RedisConnectionPool)
+	if err != nil {
+		return nil, fmt.Errorf("error, when fetching user workout from redis. Error: %v", err)
+	}
+
+	var dailyWorkout model.DailyWorkout
+	if !userWorkout.Exists {
+		userWorkout.WorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, user.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetchCurrentWorkoutRoutine() for GetCurrentWorkout(). Error: %v", err)
+		}
+
+		err = dailyWorkout.FromRedis(
+			ctx,
+			config.RedisConnectionPool,
+			GetDailyWorkoutKey(userWorkout.WorkoutRoutine),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetching the daily workout from redis for new workout. Error: %v", err)
+		}
+
+		var slottedExercises []string
+		slottedExercises, err = userWorkout.InitSlottedExercises(config.NumberOfExerciseInSuperset, dailyWorkout)
+		if err != nil {
+			return nil, fmt.Errorf("error, when InitSlottedExercises(). Error: %v", err)
+		}
+		userWorkout.ExerciseMeasurements, err = fetchExerciseMeasurements(ctx, user.Id, slottedExercises)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetchExerciseMeasurements() for GetCurrentWorkout(). Error: %v", err)
+		}
+
+		err = userWorkout.ToRedis(
+			ctx,
+			user.Id,
+			config.RedisConnectionPool,
+			config.GetSuperSetExpiration(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when userWorkout.ToRedis() for GetCurrentWorkout(). Error: %v", err)
+		}
+	} else {
+		err = dailyWorkout.FromRedis(
+			ctx,
+			config.RedisConnectionPool,
+			GetDailyWorkoutKey(userWorkout.WorkoutRoutine),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetching the daily workout from redis for existing workout. Error: %v", err)
+		}
+	}
+
+	result := model.UserWorkoutDto{}
+	result.Fill(
+		userWorkout,
+		dailyWorkout,
+		config.NumberOfSetsInSuperSet,
+		config.NumberOfExerciseInSuperset,
+	)
+	return &result, nil
+}
+
+func fetchExerciseMeasurements(ctx context.Context, userId string, exerciseIds []string) (map[string]uint16, error) {
+	var placeholders strings.Builder
+	var args []interface{}
+	args = append(args, userId) // user id will be our first argument
+
+	for i, exerciseId := range exerciseIds {
+		if i != 0 {
+			placeholders.WriteString(", ")
+		}
+		placeholders.WriteString(fmt.Sprintf("$%d", i+2))
+
+		args = append(args, exerciseId)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT exercise_id, measurement FROM last_completed_measurement WHERE user_id = $1 AND exercise_id IN (%s)",
+		placeholders.String(),
+	)
+
+	rows, err := config.ConnectionPool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
+	}
+
+	result := make(map[string]uint16)
+	for rows.Next() {
+		var exerciseId string
+		var measurement uint16
+		err = rows.Scan(
+			&exerciseId,
+			&measurement,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when scanning database rows: %v", err)
+		}
+		result[exerciseId] = measurement
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error, when iterating through database rows: %v", err)
+	}
+	return result, nil
+}
+
+func fetchCurrentWorkoutRoutine(ctx context.Context, userId string) (model.RoutineType, error) {
+	var result model.RoutineType
+	err := config.ConnectionPool.QueryRow(
+		ctx,
+		"SELECT current_routine\nFROM public.\"user\"\nWHERE id = $1",
+		userId,
+	).Scan(
+		&result,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("error, when attempting to execute sql statement: %v", err)
+	}
+	return result, nil
+}
+
 func FinishCurrentAndFetchNextExercise(ctx context.Context, measurement string) (*model.ExerciseResponse, error) {
 	parsedMeasurement, err := strconv.Atoi(measurement)
 	if err != nil {
@@ -777,4 +913,8 @@ func FetchAllExercises(ctx context.Context) ([]model.Exercise, error) {
 		return nil, fmt.Errorf("error, when iterating through database rows: %v", err)
 	}
 	return exercises, nil
+}
+
+func GetDailyWorkoutKey(rt model.RoutineType) string {
+	return fmt.Sprintf("%s%d", model.DailyWorkoutHashKeyPrefix, rt)
 }

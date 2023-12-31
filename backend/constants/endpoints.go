@@ -18,4 +18,6 @@ const (
 	ReadyForNextExercise = "/readyForNextExercise"
 	CurrentExercise      = "/currentExercise"
 	ShuffleExercise      = "/shuffleExercise"
+
+	GetCurrentWorkout = "/getCurrentWorkout"
 )

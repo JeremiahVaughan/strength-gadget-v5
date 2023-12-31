@@ -1,13 +1,17 @@
 package model
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/redis/go-redis/v9"
 	"math/rand"
 )
 
 // todo address the issue where if someone is working out when the daily workout gets rotated
 type DailyWorkout struct {
 	// Cardio is done first for initial warmup
-	CardioExercises []Exercise
+	CardioExercises []Exercise `json:"cardioExercises"`
 	// outer slice is for each target muscle group, inner slice is for
 	// applicable muscle groups for the corresponding target muscle group
 	MuscleCoverageMainExercises [][]Exercise `json:"muscleCoverageExercises"`
@@ -16,6 +20,26 @@ type DailyWorkout struct {
 
 	// CoolDownExercises is used for stretching
 	CoolDownExercises [][]Exercise `json:"coolDownExercises"`
+}
+
+func (dw *DailyWorkout) FromRedis(ctx context.Context, client *redis.Client, key string) error {
+	workoutJson, err := client.HGet(ctx, DailyWorkoutKey, key).Result()
+	if err != nil {
+		return fmt.Errorf("error retrieving DailyWorkout from Redis. Error: %v", err)
+	}
+
+	// Check if key exists (but expired or never set)
+	if workoutJson == "" {
+		return fmt.Errorf("error, DailyWorkout key expired or never set")
+	}
+
+	// Unmarshal
+	err = json.Unmarshal([]byte(workoutJson), dw)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling DailyWorkout. Error: %v", err)
+	}
+
+	return nil
 }
 
 func (d *DailyWorkout) ShuffleCardioExercises() {

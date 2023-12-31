@@ -96,7 +96,7 @@ workflows:
   daily-workout-generation:
     triggers:
       - schedule:
-          cron: "0 0 * * *" # This is the cron syntax for every day at midnight
+          cron: "0 18 * * *" # This is the cron syntax for every day at 6pm central time. Want to simulate this change when I am working out, so I can tell if something breaks.
     jobs:
       - daily-workout-generation:
           context:
