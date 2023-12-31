@@ -45,14 +45,6 @@ func GenerateSecureHash(password, salt string) (*string, *model.Error) {
 	return &encodedHash, nil
 }
 
-func fetchUserFromContext(ctx context.Context) (*model.User, error) {
-	user, ok := ctx.Value(constants.SessionKey).(*model.User)
-	if !ok {
-		return nil, fmt.Errorf("error, could not locate the user in session context")
-	}
-	return user, nil
-}
-
 func Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := checkForValidActiveSession(r)
@@ -72,7 +64,7 @@ func Authenticate(next http.Handler) http.Handler {
 		user := &model.User{Id: session.UserId}
 
 		// attach the user to the context
-		ctx := context.WithValue(r.Context(), constants.SessionKey, user)
+		ctx := context.WithValue(r.Context(), model.SessionKey, user)
 
 		// and call the next handler with the new context
 		next.ServeHTTP(w, r.WithContext(ctx))

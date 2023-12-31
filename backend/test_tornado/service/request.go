@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strengthgadget.com/m/v2/constants"
 	model2 "strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/test_tornado/config"
 	"strengthgadget.com/m/v2/test_tornado/model"
@@ -75,7 +74,7 @@ func TestRequest(
 	}
 	var authCookie *http.Cookie
 	for _, c := range response.Cookies() {
-		if c.Name == constants.SessionKey {
+		if c.Name == model2.SessionKey {
 			authCookie = c
 		}
 	}

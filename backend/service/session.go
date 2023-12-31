@@ -13,7 +13,7 @@ import (
 
 func checkForValidActiveSession(r *http.Request) (*model.UserSession, *model.Error) {
 	var result model.UserSession
-	cookie, err := r.Cookie(constants.SessionKey)
+	cookie, err := r.Cookie(model.SessionKey)
 	if err != nil {
 		// Missing session id means the user is not logged in
 		result.Authenticated = false

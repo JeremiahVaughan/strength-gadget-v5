@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strengthgadget.com/m/v2/service"
+	"strengthgadget.com/m/v2/config"
+	"strengthgadget.com/m/v2/model"
 )
 
 func HandleGetCurrentWorkout(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +14,14 @@ func HandleGetCurrentWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := service.GetCurrentWorkout(r.Context())
+	result, err := model.GetCurrentWorkout(
+		r.Context(),
+		config.RedisConnectionPool,
+		config.ConnectionPool,
+		config.NumberOfSetsInSuperSet,
+		config.NumberOfExerciseInSuperset,
+		config.GetSuperSetExpiration(),
+	)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error, failed to perform  handler action: %v", err), http.StatusInternalServerError)
 		return

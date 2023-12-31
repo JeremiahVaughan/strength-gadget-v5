@@ -11,7 +11,7 @@ import (
 )
 
 func validateLogoutRequest(r *http.Request) (string, *model.Error) {
-	cookie, err := r.Cookie(constants.SessionKey)
+	cookie, err := r.Cookie(model.SessionKey)
 	if err != nil {
 		return "", &model.Error{
 			InternalError:     fmt.Errorf("error, no session_key provided in request when attempting to logout. Error: %v", err),
@@ -53,7 +53,7 @@ func logout(ctx context.Context, w http.ResponseWriter, sessionKey string) *mode
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:   constants.SessionKey,
+		Name:   model.SessionKey,
 		Value:  "",
 		MaxAge: -1, // This deletes the cookie
 	})

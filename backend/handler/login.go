@@ -122,7 +122,7 @@ func startNewSession(ctx context.Context, userId string) (*http.Cookie, error) {
 		domain = ".strengthgadget.com"
 	}
 	cookie := &http.Cookie{
-		Name:     constants.SessionKey,
+		Name:     model.SessionKey,
 		Value:    sessionKey,
 		HttpOnly: true,
 		Secure:   true,

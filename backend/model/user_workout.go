@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"math/rand"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 )
 
 type UserWorkout struct {
+	Weekday                  time.Weekday      `json:"weekday"`
 	ProgressIndex            [][]int           `json:"progressIndex"`
 	WorkoutRoutine           RoutineType       `json:"workoutRoutine"`
 	SlottedWarmupExercises   []uint16          `json:"-"`
@@ -302,4 +304,160 @@ func calculateNumberOfSets(workout DailyWorkout, exercisesPerSuperSet int) int {
 
 func getUserKey(userId, key string) string {
 	return userId + ":" + key
+}
+
+func GetCurrentWorkout(
+	ctx context.Context,
+	redisDb *redis.Client,
+	db *pgxpool.Pool,
+	numberOfSetsInSuperSet,
+	numberOfExerciseInSuperset int,
+	superSetExpiration time.Duration,
+) (*UserWorkoutDto, error) {
+	user, err := FetchUserFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error, could not FetchCurrentSuperset() for fetchAllMuscleGroupsNotInRecovery(). Error: %v", err)
+	}
+
+	userWorkout := UserWorkout{}
+	err = userWorkout.FromRedis(ctx, user.Id, redisDb)
+	if err != nil {
+		return nil, fmt.Errorf("error, when fetching user workout from redis. Error: %v", err)
+	}
+
+	var dailyWorkout DailyWorkout
+	weekday := time.Now().Weekday()
+	if !userWorkout.Exists {
+		userWorkout.ProgressIndex = [][]int{
+			{0},
+		}
+		userWorkout.Weekday = time.Now().Weekday()
+		userWorkout.WorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, db, user.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetchCurrentWorkoutRoutine() for GetCurrentWorkout(). Error: %v", err)
+		}
+
+		err = dailyWorkout.FromRedis(
+			ctx,
+			redisDb,
+			getDailyWorkoutHashKey(userWorkout.WorkoutRoutine),
+			weekday,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetching the daily workout from redis for new workout. Error: %v", err)
+		}
+
+		var slottedExercises []string
+		slottedExercises, err = userWorkout.InitSlottedExercises(numberOfExerciseInSuperset, dailyWorkout)
+		if err != nil {
+			return nil, fmt.Errorf("error, when InitSlottedExercises(). Error: %v", err)
+		}
+		userWorkout.ExerciseMeasurements, err = fetchExerciseMeasurements(
+			ctx,
+			db,
+			user.Id,
+			slottedExercises,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetchExerciseMeasurements() for GetCurrentWorkout(). Error: %v", err)
+		}
+
+		err = userWorkout.ToRedis(
+			ctx,
+			user.Id,
+			redisDb,
+			superSetExpiration,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when userWorkout.ToRedis() for GetCurrentWorkout(). Error: %v", err)
+		}
+	} else {
+		err = dailyWorkout.FromRedis(
+			ctx,
+			redisDb,
+			getDailyWorkoutHashKey(userWorkout.WorkoutRoutine),
+			weekday,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when fetching the daily workout from redis for existing workout. Error: %v", err)
+		}
+	}
+
+	result := UserWorkoutDto{}
+	result.Fill(
+		userWorkout,
+		dailyWorkout,
+		numberOfSetsInSuperSet,
+		numberOfExerciseInSuperset,
+	)
+	return &result, nil
+}
+
+func fetchCurrentWorkoutRoutine(ctx context.Context, db *pgxpool.Pool, userId string) (RoutineType, error) {
+	var result RoutineType
+	err := db.QueryRow(
+		ctx,
+		"SELECT current_routine\nFROM public.\"user\"\nWHERE id = $1",
+		userId,
+	).Scan(
+		&result,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("error, when attempting to execute sql statement: %v", err)
+	}
+	return result, nil
+}
+
+func fetchExerciseMeasurements(
+	ctx context.Context,
+	db *pgxpool.Pool,
+	userId string,
+	exerciseIds []string,
+) (map[string]uint16, error) {
+	var placeholders strings.Builder
+	var args []interface{}
+	args = append(args, userId) // user id will be our first argument
+
+	for i, exerciseId := range exerciseIds {
+		if i != 0 {
+			placeholders.WriteString(", ")
+		}
+		placeholders.WriteString(fmt.Sprintf("$%d", i+2))
+
+		args = append(args, exerciseId)
+	}
+
+	query := fmt.Sprintf(
+		"SELECT exercise_id, measurement FROM last_completed_measurement WHERE user_id = $1 AND exercise_id IN (%s)",
+		placeholders.String(),
+	)
+
+	rows, err := db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
+	}
+
+	result := make(map[string]uint16)
+	for rows.Next() {
+		var exerciseId string
+		var measurement uint16
+		err = rows.Scan(
+			&exerciseId,
+			&measurement,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error, when scanning database rows: %v", err)
+		}
+		result[exerciseId] = measurement
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error, when iterating through database rows: %v", err)
+	}
+	return result, nil
 }

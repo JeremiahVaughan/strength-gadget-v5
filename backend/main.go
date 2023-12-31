@@ -3,13 +3,11 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/cors"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -52,7 +50,7 @@ func main() {
 	defer sentry.Flush(2 * time.Second)
 
 	if os.Getenv(constants.ModeKey) == constants.WorkoutGen {
-		err = generateDailyWorkout(ctx)
+		err = model.GenerateDailyWorkout(ctx, config.ConnectionPool, config.RedisConnectionPool)
 		if err != nil {
 			log.Fatalf("error, when generateDailyWorkout() for main(). Error: %v", err)
 		}
@@ -62,155 +60,6 @@ func main() {
 			log.Fatalf("error, when serveAthletes() for main(). Error: %v", err)
 		}
 	}
-}
-
-func generateDailyWorkout(ctx context.Context) error {
-	allExercises, err := service.FetchAllExercises(ctx)
-	if err != nil {
-		return fmt.Errorf("error, when FetchAllExercises() for generateDailyWorkout(). Error: %v", err)
-	}
-
-	// third key is muscle group id, the value is the exercises that target the muscle group
-	exerciseMap := make(map[model.RoutineType]map[model.ExerciseType]map[string][]model.Exercise)
-	for _, exercise := range allExercises {
-		// Initialize nested maps and slices if they do not exist yet
-		if exerciseMap[exercise.RoutineType] == nil {
-			exerciseMap[exercise.RoutineType] = make(map[model.ExerciseType]map[string][]model.Exercise)
-		}
-		if exerciseMap[exercise.RoutineType][exercise.ExerciseType] == nil {
-			exerciseMap[exercise.RoutineType][exercise.ExerciseType] = make(map[string][]model.Exercise)
-		}
-
-		// Categorize the exercise
-		exerciseMap[exercise.RoutineType][exercise.ExerciseType][exercise.MuscleGroupId] = append(exerciseMap[exercise.RoutineType][exercise.ExerciseType][exercise.MuscleGroupId], exercise)
-	}
-
-	lowerWorkout, err := generateDailyWorkoutValue(exerciseMap, model.LOWER)
-	if err != nil {
-		return fmt.Errorf("error, when generateDailyWorkoutValue(model.LOWER) for generateDailyWorkout(). Error: %v", err)
-	}
-	coreWorkout, err := generateDailyWorkoutValue(exerciseMap, model.CORE)
-	if err != nil {
-		return fmt.Errorf("error, when generateDailyWorkoutValue(model.CORE) for generateDailyWorkout(). Error: %v", err)
-	}
-	upperWorkout, err := generateDailyWorkoutValue(exerciseMap, model.UPPER)
-	if err != nil {
-		return fmt.Errorf("error, when generateDailyWorkoutValue(model.UPPER) for generateDailyWorkout(). Error: %v", err)
-	}
-	err = config.RedisConnectionPool.HSet(ctx, model.DailyWorkoutKey,
-		service.GetDailyWorkoutKey(model.LOWER), lowerWorkout,
-		service.GetDailyWorkoutKey(model.CORE), coreWorkout,
-		service.GetDailyWorkoutKey(model.UPPER), upperWorkout,
-	).Err()
-	if err != nil {
-		return fmt.Errorf("error, when attempting to create daily_workout redis hash. Error: %v", err)
-	}
-
-	err = config.RedisConnectionPool.Expire(ctx, model.DailyWorkoutHashKeyPrefix, 36*time.Hour).Err()
-	if err != nil {
-		return fmt.Errorf("error, then attempting to set expiration for daily_workout redis hash. Error: %v", err)
-	}
-
-	healthPushUrl := os.Getenv("TF_VAR_daily_workout_generated_push_health")
-	if healthPushUrl != "" {
-		err = updateHealthCheck(healthPushUrl)
-		if err != nil {
-			return fmt.Errorf("error, when updateHealthCheck() for generateDailyWorkout(). Error: %v", err)
-		}
-	}
-	return nil
-}
-
-func updateHealthCheck(url string) error {
-	request, err := http.NewRequest(http.MethodPost, url, nil)
-	if err != nil {
-		return fmt.Errorf("error, when creating post request. ERROR: %v", err)
-	}
-
-	client := &http.Client{}
-	response, err := client.Do(request)
-	if response != nil {
-		defer func(Body io.ReadCloser) {
-			err = Body.Close()
-			if err != nil {
-				log.Printf("error, when attempting to close response body: %v", err)
-			}
-		}(response.Body)
-	}
-	if response != nil && (response.StatusCode < 200 || response.StatusCode > 299) {
-		if response.StatusCode == http.StatusNotFound {
-			log.Printf("recieved a 404 when attempting url: %s", request.URL)
-		}
-		var rb []byte
-		rb, err = io.ReadAll(response.Body)
-		if err != nil {
-			return fmt.Errorf("error, when reading error response body: %v", err)
-		}
-		return fmt.Errorf("error, when performing get request. ERROR: %v. RESPONSE CODE: %d. RESPONSE MESSAGE: %s", err, response.StatusCode, string(rb))
-	}
-	if err != nil {
-		if response != nil {
-			err = fmt.Errorf("error: %v. RESPONSE CODE: %d", err, response.StatusCode)
-		}
-		return fmt.Errorf("error, when performing post request. ERROR: %v", err)
-	}
-
-	return nil
-
-}
-
-func generateDailyWorkoutValue(exerciseMap map[model.RoutineType]map[model.ExerciseType]map[string][]model.Exercise, rt model.RoutineType) ([]byte, error) {
-	dailyWorkout := model.DailyWorkout{}
-	var cardioExercises []model.Exercise
-	cardioExercises = []model.Exercise{}
-	targetRoutine := exerciseMap[rt]
-	for _, v := range exerciseMap[model.ALL][model.Cardio] {
-		for _, e := range v {
-			cardioExercises = append(cardioExercises, e)
-		}
-	}
-	dailyWorkout.CardioExercises = cardioExercises
-	dailyWorkout.ShuffleCardioExercises()
-
-	weightLiftingExercises := targetRoutine[model.Weightlifting]
-	calisthenicExercises := targetRoutine[model.Calisthenics]
-	combinedExercises := make(map[string][]model.Exercise)
-	// First, copy everything from weightLiftingExercises to combinedExercises
-	for key, exercises := range weightLiftingExercises {
-		combinedExercises[key] = append(combinedExercises[key], exercises...)
-	}
-	// Then, append exercises from calisthenicExercises to combinedExercises
-	for key, exercises := range calisthenicExercises {
-		combinedExercises[key] = append(combinedExercises[key], exercises...)
-	}
-	for _, exercises := range combinedExercises {
-		dailyWorkout.MuscleCoverageMainExercises = append(dailyWorkout.MuscleCoverageMainExercises, exercises)
-	}
-	dailyWorkout.ShuffleMuscleCoverageMainExercises()
-
-	// key is exercise id
-	allExercisesMap := make(map[string]model.Exercise)
-	for _, exercises := range combinedExercises {
-		for _, e := range exercises {
-			allExercisesMap[e.Id] = e
-		}
-	}
-	for _, exercise := range allExercisesMap {
-		dailyWorkout.AllMainExercises = append(dailyWorkout.AllMainExercises, exercise)
-	}
-	dailyWorkout.ShuffleMainExercises()
-
-	coolDownExercises := targetRoutine[model.CoolDown]
-	for _, exercises := range coolDownExercises {
-		dailyWorkout.CoolDownExercises = append(dailyWorkout.CoolDownExercises, exercises)
-	}
-	dailyWorkout.ShuffleCoolDownExercises()
-
-	bytes, err := json.Marshal(dailyWorkout)
-	if err != nil {
-		return nil, fmt.Errorf("error, when marshalling daily workout to json. Error: %v", err)
-	}
-	return bytes, nil
 }
 
 func serveAthletes(ctx context.Context) error {

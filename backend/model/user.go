@@ -1,5 +1,10 @@
 package model
 
+import (
+	"context"
+	"fmt"
+)
+
 type User struct {
 	Id            string
 	Email         string
@@ -17,3 +22,14 @@ type UserFeedbackError struct {
 	Message      string
 	ResponseCode int
 }
+
+func FetchUserFromContext(ctx context.Context) (*User, error) {
+	user, ok := ctx.Value(SessionKey).(*User)
+	if !ok {
+		return nil, fmt.Errorf("error, could not locate the user in session context")
+	}
+	return user, nil
+}
+
+// SessionKey use for both locating the user session ID from the http cookie and locating the user struct in context
+const SessionKey = "session_key"
