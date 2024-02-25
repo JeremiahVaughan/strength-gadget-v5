@@ -120,7 +120,9 @@ func GenerateDailyWorkout(ctx context.Context, db *pgxpool.Pool, redisDb *redis.
 	if err != nil {
 		return fmt.Errorf("error, when generateDailyWorkoutValue(model.UPPER) for generateDailyWorkout(). Error: %v", err)
 	}
-	dailyWorkoutKey := GetDailyWorkoutKey(time.Now().Weekday())
+	// generating tomorrow's workout so there is overlap
+	tomorrow := getTomorrowsWeekday(time.Now().Weekday())
+	dailyWorkoutKey := GetDailyWorkoutKey(tomorrow)
 	err = redisDb.HSet(ctx, dailyWorkoutKey,
 		getDailyWorkoutHashKey(LOWER), lowerWorkout,
 		getDailyWorkoutHashKey(CORE), coreWorkout,
@@ -130,7 +132,7 @@ func GenerateDailyWorkout(ctx context.Context, db *pgxpool.Pool, redisDb *redis.
 		return fmt.Errorf("error, when attempting to create daily_workout redis hash. Error: %v", err)
 	}
 
-	err = redisDb.Expire(ctx, dailyWorkoutKey, 48*time.Hour).Err()
+	err = redisDb.Expire(ctx, dailyWorkoutKey, 72*time.Hour).Err()
 	if err != nil {
 		return fmt.Errorf("error, then attempting to set expiration for daily_workout redis hash. Error: %v", err)
 	}
@@ -143,6 +145,10 @@ func GenerateDailyWorkout(ctx context.Context, db *pgxpool.Pool, redisDb *redis.
 		}
 	}
 	return nil
+}
+
+func getTomorrowsWeekday(today time.Weekday) time.Weekday {
+	return (today + 1) % 7
 }
 
 func generateDailyWorkoutValue(exerciseMap map[RoutineType]map[ExerciseType]map[string][]Exercise, rt RoutineType) ([]byte, error) {

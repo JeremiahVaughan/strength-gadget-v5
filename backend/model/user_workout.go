@@ -433,7 +433,7 @@ func GetCurrentWorkout(
 	}
 
 	var dailyWorkout DailyWorkout
-	weekday := time.Now().Weekday()
+	today := time.Now().Weekday()
 	if !userWorkout.Exists {
 		userWorkout.ProgressIndex = []int{
 			0,
@@ -448,7 +448,7 @@ func GetCurrentWorkout(
 			ctx,
 			redisDb,
 			getDailyWorkoutHashKey(userWorkout.WorkoutRoutine),
-			weekday,
+			today,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error, when fetching the daily workout from redis for new workout. Error: %v", err)
@@ -493,7 +493,7 @@ func GetCurrentWorkout(
 			ctx,
 			redisDb,
 			getDailyWorkoutHashKey(userWorkout.WorkoutRoutine),
-			weekday,
+			userWorkout.Weekday,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error, when fetching the daily workout from redis for existing workout. Error: %v", err)
