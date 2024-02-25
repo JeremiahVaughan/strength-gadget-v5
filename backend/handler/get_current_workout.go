@@ -23,7 +23,7 @@ func HandleGetCurrentWorkout(w http.ResponseWriter, r *http.Request) {
 		config.GetSuperSetExpiration(),
 	)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("error, failed to perform  handler action: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("error, failed to perform get current workout handler action: %v", err), http.StatusInternalServerError)
 		return
 	}
 	responseData, err := json.Marshal(result)

@@ -35,7 +35,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if loginAttemptLockout {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, user %s hit the login attempt lockout for too many recent failed login attempts", cred.Email),
-			UserFeedbackError: constants.ErrorLoginAttemptRateLimitReached,
+			UserFeedbackError: model.ErrorLoginAttemptRateLimitReached,
 		})
 		return
 	}
@@ -72,7 +72,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if deferErr != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to record login attempt for user %s. Defer error: %v. Original error: %v", user.Email, deferErr, err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -84,7 +84,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if !user.EmailVerified {
 		err = &model.Error{
 			InternalError:     errors.New("user attempted to login without verifying email first"),
-			UserFeedbackError: constants.ErrorUnverifiedEmailAddress,
+			UserFeedbackError: model.ErrorUnverifiedEmailAddress,
 		}
 		service.GenerateResponse(w, err)
 		return
@@ -94,7 +94,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when persisting session key upon login: %v", e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -140,7 +140,7 @@ func verifyValidUserProvidedPassword(hashedInput string, userHash string) *model
 	} else {
 		return &model.Error{
 			InternalError:     errors.New("user password did not match their password hash"),
-			UserFeedbackError: constants.ErrorUserFeedbackWrongPasswordOrUsername,
+			UserFeedbackError: model.ErrorUserFeedbackWrongPasswordOrUsername,
 		}
 	}
 }
@@ -150,7 +150,7 @@ func getSalt(hash string) (string, *model.Error) {
 	if len(fields) != 6 {
 		return "", &model.Error{
 			InternalError:     errors.New("user hash contains corrupted formatting"),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	return fields[4], nil

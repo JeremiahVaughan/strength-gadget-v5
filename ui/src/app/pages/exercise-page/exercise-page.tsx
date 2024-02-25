@@ -2,28 +2,31 @@ import {AxiosError} from 'axios';
 import {useEffect, useState} from 'react';
 import styles from './exercise-page.module.scss';
 import {useNavigate} from "react-router-dom";
-import {getAxiosInstance} from "../../utils";
+import {getAxiosInstance, incrementLocalWorkoutProgressIndex, sendRequestWithRetry} from "../../utils";
 import ToolBar from "../../components/tool-bar/tool-bar";
 import {Exercise} from "../../model/exercise";
-import Button from "../../components/button/button";
-import HotButton from "../../hot-button/hot-button";
-import CoolButton from 'src/app/cool-button/cool-button';
 import LoadingMessage from "../../loading-message/loading-message";
-import ExerciseMeasurement from "../../exercise-measurement/exercise-measurement";
 import {
     measurementTypeMile,
     measurementTypePounds,
     measurementTypeRepetition,
     measurementTypeSecond
 } from "../../model/meaurement_type";
+import {ExerciseDisplay} from "../../exercise/exercise-display";
+import {WorkoutPhase} from "../../model/workout_phase";
+import {Workout} from "../../model/workout";
+import Button from "../../components/button/button";
+import {ExerciseType} from "../../model/exercise_type";
 
 
 export function ExercisePage() {
-    const [exercise, setExercise] = useState<Exercise>(new Exercise())
-    const [supersetFull, setSupersetFull] = useState<boolean>(false)
+    const [workout, setWorkout] = useState<Workout>(new Workout())
     const [workoutComplete, setWorkoutComplete] = useState<boolean>(false)
     const [loading, setLoading] = useState(false)
-    const [iframeLoaded, setIframeLoaded] = useState(false);
+    const [asyncLoading, setAsyncLoading] = useState(false)
+    const [iframeLoaded, setIframeLoaded] = useState(false)
+    const [currentStep, setCurrentStep] = useState<Exercise>(new Exercise())
+    const [selectionMode, setSelectionMode] = useState<boolean>(true)
 
     const handleIframeLoad = () => {
         setIframeLoaded(true);
@@ -32,14 +35,14 @@ export function ExercisePage() {
 
     useEffect(() => {
         showLoadingMessage();
-        getAxiosInstance().get("/currentExercise")
+        getAxiosInstance().get("/getCurrentWorkout")
             .then(
                 (response) => {
                     setLoading(false)
                     if (response.data) {
-                        setData(response.data)
-                    } else {
-                        onShuffleExercise();
+                        const workout: Workout = response.data
+                        setWorkout(workout)
+                        updateDisplayExercise(workout, workout.progressIndex)
                     }
                 },
             ).catch(
@@ -54,38 +57,102 @@ export function ExercisePage() {
         );
     }, [])
 
-    function onCompleteExercise() {
-        showLoadingMessage();
-        getAxiosInstance().get("/readyForNextExercise?measurement=" + exercise.lastCompletedMeasurement)
-            .then((response) => {
-                setLoading(false)
-                setIframeLoaded(false)
-                if (response.data) {
-                    setData(response.data)
-                }
-            }).catch(
-            (e: AxiosError) => {
-                setLoading(false)
-                if (e?.response?.status === 401) {
-                    navigate(
-                        "/login",
-                    )
-                }
-            }
-        );
+    function updateLocalLastCompletedMeasurement(workout: Workout, progressIndex: number[], lastCompletedMeasurement: number) {
+        const currentWorkoutPhase = progressIndex.length - 1;
+        const currentExerciseProgressIndex = progressIndex[currentWorkoutPhase];
+
+        let exercises: Exercise[] = []
+        let exercise: Exercise
+        switch (currentWorkoutPhase) {
+            case WorkoutPhase.WarmUp:
+                exercises = workout.warmupExercises;
+                break;
+            case WorkoutPhase.Main:
+                exercises = workout.mainExercises;
+                break;
+            case WorkoutPhase.CoolDown:
+                exercises = workout.coolDownExercises;
+                break;
+        }
+
+        exercise = exercises[currentExerciseProgressIndex]
+        exercise = exercises[exercise.sourceExerciseSlotIndex]
+        exercise.lastCompletedMeasurement = lastCompletedMeasurement
+        exercises[exercise.sourceExerciseSlotIndex] = exercise
+
+        switch (currentWorkoutPhase) {
+            case WorkoutPhase.WarmUp:
+                setWorkout(
+                    {
+                        ...workout,
+                        warmupExercises: exercises
+                    }
+                )
+                break;
+            case WorkoutPhase.Main:
+                setWorkout(
+                    {
+                        ...workout,
+                        mainExercises: exercises
+                    }
+                )
+                break;
+            case WorkoutPhase.CoolDown:
+                setWorkout(
+                    {
+                        ...workout,
+                        coolDownExercises: exercises
+                    }
+                )
+                break;
+        }
     }
 
-    function onShuffleExercise() {
-        showLoadingMessage();
-        getAxiosInstance().get("/shuffleExercise")
-            .then(
-                (response) => {
-                    setLoading(false)
-                    if (response.data) {
-                        setData(response.data)
+    function onCompleteExercise() {
+        updateLocalLastCompletedMeasurement(
+            workout,
+            workout.progressIndex,
+            currentStep.lastCompletedMeasurement
+        )
+
+        const incrementedWorkoutProgressIndex = incrementLocalWorkoutProgressIndex(workout, workout.progressIndex)
+        updateDisplayExercise(workout, incrementedWorkoutProgressIndex)
+
+        setAsyncLoading(true)
+        sendRequestWithRetry("/recordIncrementedWorkoutStep", 'PUT', {
+            incrementedProgressIndex: incrementedWorkoutProgressIndex,
+            exerciseId: currentStep.id,
+            lastCompletedMeasurement: currentStep.lastCompletedMeasurement
+        })
+            .then(() => {
+                setAsyncLoading(false)
+                setWorkout({...workout, progressIndex: incrementedWorkoutProgressIndex})
+                console.log("workout step completed")
+            })
+            .catch(
+                (e: AxiosError) => {
+                    setAsyncLoading(false)
+                    if (e?.response?.status === 401) {
+                        navigate(
+                            "/login",
+                        )
                     }
-                },
-            ).catch(
+                }
+            )
+    }
+
+    function onSwapExercise() {
+        showLoadingMessage();
+        getAxiosInstance().put("/swapExercise", {
+            exerciseId: currentStep.id
+        }).then(
+            (response) => {
+                setLoading(false)
+                const workout: Workout = response.data
+                setWorkout(workout)
+                updateDisplayExercise(workout, workout.progressIndex)
+            },
+        ).catch(
             (e: AxiosError) => {
                 setLoading(false)
                 if (e?.response?.status === 401) {
@@ -102,58 +169,54 @@ export function ExercisePage() {
         setLoading(true)
     }
 
-    function setData(data: any) {
-        setSupersetFull(data.superSetFull)
-        setWorkoutComplete(data.workoutComplete)
-        let exercise: Exercise = new Exercise()
-        if (data.exercise) {
-            exercise = data.exercise
-        }
-        setExercise(applyDefaultStartingValues(exercise))
-    }
-
     function applyDefaultStartingValues(exercise: Exercise): Exercise {
-        let startingValue = 0
-        switch (exercise.measurementType) {
-            case measurementTypePounds:
-                startingValue = 5
-                break;
-            case measurementTypeRepetition:
-                startingValue = 3
-                break;
-            case measurementTypeSecond:
-                startingValue = 10
-                break;
-            case measurementTypeMile:
-                startingValue = 1
-                break;
-            default:
-                console.error("unexpected measurement type: ", exercise.measurementType)
-                break;
+        if (exercise.lastCompletedMeasurement) {
+            return exercise
+        }
+        let startingValue = 0;
+        if (exercise.exerciseType === ExerciseType.CoolDown) {
+            startingValue = 30
+        } else {
+            switch (exercise.measurementType) {
+                case measurementTypePounds:
+                    startingValue = 5;
+                    break;
+                case measurementTypeRepetition:
+                    startingValue = 3;
+                    break;
+                case measurementTypeSecond:
+                    startingValue = 10;
+                    break;
+                case measurementTypeMile:
+                    startingValue = 1;
+                    break;
+                default:
+                    console.error("unexpected measurement type: ", exercise.measurementType);
+                    break;
+            }
         }
         return {
             ...exercise,
-            lastCompletedMeasurement: exercise.lastCompletedMeasurement !== 0 ?
-                exercise.lastCompletedMeasurement :
-                startingValue
+            lastCompletedMeasurement: startingValue
         }
     }
 
     function onEasier() {
-        let incrementAmount = getIncrementAmount(exercise.measurementType);
-        let newValue = exercise.lastCompletedMeasurement - incrementAmount;
-        setExercise({
-            ...exercise,
+        let incrementAmount = getIncrementAmount(currentStep.measurementType);
+        let newValue = currentStep.lastCompletedMeasurement - incrementAmount;
+        setCurrentStep({
+            ...currentStep,
             lastCompletedMeasurement: newValue < 1 ?
-                exercise.lastCompletedMeasurement :
+                currentStep.lastCompletedMeasurement :
                 newValue
         })
     }
 
     function onHarder() {
-        setExercise({
-            ...exercise,
-            lastCompletedMeasurement: exercise.lastCompletedMeasurement + getIncrementAmount(exercise.measurementType)
+        setCurrentStep({
+            ...currentStep,
+            lastCompletedMeasurement: currentStep.lastCompletedMeasurement +
+                getIncrementAmount(currentStep.measurementType)
         })
     }
 
@@ -178,66 +241,75 @@ export function ExercisePage() {
         return result;
     }
 
+
+    function updateDisplayExercise(workout: Workout, currentProgressIndex: number[]) {
+        const workoutPhase = currentProgressIndex.length - 1
+        const exerciseProgressIndex = currentProgressIndex[workoutPhase]
+        let e: Exercise | null | undefined;
+        let exercises: Exercise[] = []
+        switch (workoutPhase) {
+            case WorkoutPhase.WarmUp:
+                exercises = workout.warmupExercises
+                break;
+            case WorkoutPhase.Main:
+                exercises = workout.mainExercises
+                break;
+            case WorkoutPhase.CoolDown:
+                exercises = workout.coolDownExercises
+                break;
+            default:
+                setWorkoutComplete(true)
+                return;
+        }
+        const exercise = exercises[exerciseProgressIndex]
+        if (!exercise.id) {
+            setSelectionMode(false)
+            e = exercises[exercise.sourceExerciseSlotIndex]
+        } else {
+            setSelectionMode(true)
+            e = exercise
+        }
+        const exerciseWithDefaultValuesApplied = applyDefaultStartingValues(e as Exercise);
+        setCurrentStep(exerciseWithDefaultValuesApplied)
+    }
+
+
     return (
         <div>
             <ToolBar/>
-            <div key={exercise.id} className={styles['container']}>
+            <div className={styles['container']}>
                 {loading ? <LoadingMessage/> :
                     workoutComplete ? <div className={styles['workout-complete-text']}>
                             <div>Workout Complete</div>
                         </div> :
                         <div>
                             {!iframeLoaded && <LoadingMessage/>}
-                            <div className={styles['gif-container']}
-                                 style={{display: iframeLoaded ? 'block' : 'none'}}>
-                                <div className={styles['gif']}>
-                                    <div style={{
-                                        top: 0,
-                                        left: 0,
-                                        width: '100vw',
-                                        height: '55vh',
-                                        position: "absolute"
-                                    }}></div>
-                                    <iframe src={`https://giphy.com/embed/${exercise.demonstrationGiphyId}`}
-                                            style={{
-                                                width: '100vw',
-                                                height: '55vh',
-                                            }}
-                                            frameBorder="0"
-                                            className="giphy-embed"
-                                            onLoad={handleIframeLoad}
-                                            allowFullScreen>
-                                    </iframe>
-                                </div>
-                                <p className={styles['giphy-link']}>
-                                    <a href={`https://giphy.com/gifs/${exercise.demonstrationGiphyId}`}
-                                       style={{color: "white"}}>
-                                        via GIPHY
-                                    </a>
-                                </p>
-                                <div className={styles['buttons-first-row']}>
-                                    <CoolButton onClick={onEasier}>-</CoolButton>
-                                    <ExerciseMeasurement exercise={exercise}/>
-                                    <div>
-                                        <HotButton onClick={onHarder}>+</HotButton>
-                                        <div className={styles['button-spacer']}/>
-                                    </div>
-
-                                </div>
-                                <div className={styles['buttons-second-row']}>
-                                    {supersetFull ? <div className={styles['spacer']}/> :
-                                        <Button color="secondary"
-                                                loading={loading}
-                                                onClick={onShuffleExercise}>
-                                            Shuffle
-                                        </Button>}
+                            <div style={{display: iframeLoaded ? 'block' : 'none'}}>
+                                <ExerciseDisplay
+                                    data={currentStep}
+                                    onEasier={onEasier}
+                                    onHarder={onHarder}
+                                    handleIframeLoad={handleIframeLoad}
+                                    selectionMode={selectionMode}
+                                />
+                                {/* pushing these buttons rapidly may cause undesired behavior
+                                for the user if the backend becomes out of sync, so I am
+                                disabling the buttons until the backend and client become in
+                                sync again */}
+                                {!asyncLoading && <div className={styles['buttons']}>
+                                    {selectionMode ? <Button color="secondary"
+                                                             loading={loading}
+                                                             onClick={onSwapExercise}>
+                                        No
+                                    </Button> : <div className={styles['spacer']}/>}
                                     <Button triggerFromEnter={true} loading={loading}
-                                            onClick={() => onCompleteExercise()}>Complete</Button>
-                                </div>
+                                            onClick={() => onCompleteExercise()}>
+                                        {selectionMode ? "Yes" : "Complete"}
+                                    </Button>
+                                </div>}
                             </div>
                         </div>
                 }
-
             </div>
         </div>
     );

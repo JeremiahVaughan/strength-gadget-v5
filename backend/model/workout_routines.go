@@ -9,6 +9,6 @@ const (
 	ALL
 )
 
-func getNextRoutine(current RoutineType) RoutineType {
-	return (current + 1) % 3
+func (r RoutineType) GetNextRoutine() RoutineType {
+	return (r + 1) % 3
 }

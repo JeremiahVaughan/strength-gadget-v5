@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strengthgadget.com/m/v2/config"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 )
@@ -15,7 +14,7 @@ func validateLogoutRequest(r *http.Request) (string, *model.Error) {
 	if err != nil {
 		return "", &model.Error{
 			InternalError:     fmt.Errorf("error, no session_key provided in request when attempting to logout. Error: %v", err),
-			UserFeedbackError: constants.ErrorUserNotLoggedIn,
+			UserFeedbackError: model.ErrorUserNotLoggedIn,
 		}
 	}
 	return cookie.Value, nil
@@ -25,7 +24,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, only POST method is supported"),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -48,7 +47,7 @@ func logout(ctx context.Context, w http.ResponseWriter, sessionKey string) *mode
 	if err != nil {
 		return &model.Error{
 			InternalError:     fmt.Errorf("unable to delete session. Error: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 

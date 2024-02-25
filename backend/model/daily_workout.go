@@ -248,7 +248,7 @@ func updateHealthCheck(url string) error {
 func fetchAllExercises(ctx context.Context, db *pgxpool.Pool) ([]Exercise, error) {
 	rows, err := db.Query(
 		ctx,
-		"SELECT e.id, e.name, e.demonstration_giphy_id, emg.muscle_group_id, e.exercise_type_id, mg.workout_routine\nFROM exercise e\nJOIN exercise_muscle_group emg on e.id = emg.exercise_id\nJOIN muscle_group mg on emg.muscle_group_id = mg.id",
+		"SELECT e.id, e.name, e.demonstration_giphy_id, measurement_type_id, emg.muscle_group_id, e.exercise_type_id, mg.workout_routine\nFROM exercise e\nJOIN exercise_muscle_group emg on e.id = emg.exercise_id\nJOIN muscle_group mg on emg.muscle_group_id = mg.id",
 	)
 	defer rows.Close()
 
@@ -263,6 +263,7 @@ func fetchAllExercises(ctx context.Context, db *pgxpool.Pool) ([]Exercise, error
 			&exercise.Id,
 			&exercise.Name,
 			&exercise.DemonstrationGiphyId,
+			&exercise.MeasurementType,
 			&exercise.MuscleGroupId,
 			&exercise.ExerciseType,
 			&exercise.RoutineType,

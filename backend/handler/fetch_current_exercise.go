@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 )
@@ -19,7 +18,7 @@ func HandleFetchCurrentExercise(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, failed to perform fetchCurrentExercise handler action: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}

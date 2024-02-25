@@ -31,7 +31,7 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 	if verificationRequest.Code == "" {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, user %s failed to provide a verification code in the verification request", verificationRequest.Email),
-			UserFeedbackError: constants.ErrorUserFeedbackAccessDenied,
+			UserFeedbackError: model.ErrorUserFeedbackAccessDenied,
 		})
 		return
 	}
@@ -56,7 +56,7 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 	if deferErr != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to record verification attempt for user %s. Defer error: %v. Original error: %v", user.Email, deferErr, err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -69,7 +69,7 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when persisting session key upon verification completion: %v", e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -81,7 +81,7 @@ func getVerificationRequestBody(requestBody io.Reader) (*model.VerificationReque
 	if err != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("error, unable to parse request body: %v", err),
-			UserFeedbackError: constants.ErrorUserFeedbackAccessDenied,
+			UserFeedbackError: model.ErrorUserFeedbackAccessDenied,
 		}
 	}
 
@@ -90,7 +90,7 @@ func getVerificationRequestBody(requestBody io.Reader) (*model.VerificationReque
 	if err != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("unable to decode verification request due to: %v", err),
-			UserFeedbackError: constants.ErrorUserFeedbackAccessDenied,
+			UserFeedbackError: model.ErrorUserFeedbackAccessDenied,
 		}
 	}
 	return &verificationRequest, nil

@@ -1,5 +1,7 @@
-import axios, {AxiosInstance} from "axios";
+import axios, {AxiosInstance, Method} from "axios";
 import {useLocation} from "react-router-dom";
+import {Workout} from "./model/workout";
+import {WorkoutPhase} from "./model/workout_phase";
 
 export function getBaseApiUrlFromHostname() {
     const hostname = window.location.hostname;
@@ -55,4 +57,44 @@ export const getAxiosInstance = (): AxiosInstance => {
 
 export function useQuery() {
     return new URLSearchParams(useLocation().search);
+}
+
+
+export async function sendRequestWithRetry(url: string, method: Method, data: any, retryCount = 3): Promise<any> {
+    try {
+        const response = await getAxiosInstance().request({url, method, data});
+        return response.data;
+    } catch (err) {
+        if (retryCount <= 0) {
+            throw err;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second
+        return sendRequestWithRetry(url, method, data, retryCount - 1);
+    }
+}
+
+
+export function incrementLocalWorkoutProgressIndex(workout: Workout, oldProgressIndex: number[]): number[] {
+    const oldWorkoutPhase = oldProgressIndex.length - 1;
+    const oldExerciseProgressIndex = oldProgressIndex[oldWorkoutPhase];
+
+    let exercisesInPhase = 0;
+    switch (oldWorkoutPhase) {
+        case WorkoutPhase.WarmUp:
+            exercisesInPhase = workout.warmupExercises.length;
+            break;
+        case WorkoutPhase.Main:
+            exercisesInPhase = workout.mainExercises.length;
+            break;
+        case WorkoutPhase.CoolDown:
+            exercisesInPhase = workout.coolDownExercises.length;
+            break;
+    }
+
+    if (oldExerciseProgressIndex + 1 === exercisesInPhase) {
+        return [...oldProgressIndex, 0];
+    } else {
+        oldProgressIndex[oldWorkoutPhase]++
+        return oldProgressIndex;
+    }
 }

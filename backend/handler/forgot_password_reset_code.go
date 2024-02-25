@@ -30,7 +30,7 @@ func validateForgotPasswordResetCodeRequest(req *model.ForgotPassword) *model.Er
 	if len(errorFeedback) > 0 {
 		return &model.Error{
 			InternalError:     fmt.Errorf("errors, when validating request: %v", errorFeedback),
-			UserFeedbackError: constants.ErrorPasswordResetCodeIsInvalid,
+			UserFeedbackError: model.ErrorPasswordResetCodeIsInvalid,
 		}
 	}
 	return nil
@@ -70,7 +70,7 @@ func HandleForgotPasswordResetCode(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to get user for password reset code: %v", err),
-			UserFeedbackError: constants.ErrorUserFeedbackAccessDenied,
+			UserFeedbackError: model.ErrorUserFeedbackAccessDenied,
 		})
 		return
 	}

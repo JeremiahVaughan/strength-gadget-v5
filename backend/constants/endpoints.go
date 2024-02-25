@@ -19,5 +19,7 @@ const (
 	CurrentExercise      = "/currentExercise"
 	ShuffleExercise      = "/shuffleExercise"
 
-	GetCurrentWorkout = "/getCurrentWorkout"
+	GetCurrentWorkout            = "/getCurrentWorkout"
+	SwapExercise                 = "/swapExercise"
+	RecordIncrementedWorkoutStep = "/recordIncrementedWorkoutStep"
 )

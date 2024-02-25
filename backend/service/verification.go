@@ -174,7 +174,7 @@ func IsVerificationCodeValid(ctx context.Context, user *model.User, verification
 	if hasVerificationLimitBeenReached(*count, config.AllowedVerificationAttemptsWithTheExcessiveRetryLockoutWindow) {
 		return &model.Error{
 			InternalError:     fmt.Errorf("error, user %s has attempted verification too many times in a small window of time", user.Email),
-			UserFeedbackError: constants.ErrorLimitReachedOnVerificationAttempts,
+			UserFeedbackError: model.ErrorLimitReachedOnVerificationAttempts,
 		}
 	}
 
@@ -186,9 +186,9 @@ func IsVerificationCodeValid(ctx context.Context, user *model.User, verification
 
 	var userFeedbackError model.UserFeedbackError
 	if verificationAttemptType == constants.PasswordResetAttemptType {
-		userFeedbackError = constants.ErrorPasswordResetCodeIsInvalid
+		userFeedbackError = model.ErrorPasswordResetCodeIsInvalid
 	} else {
-		userFeedbackError = constants.ErrorVerificationCodeIsInvalid
+		userFeedbackError = model.ErrorVerificationCodeIsInvalid
 	}
 	codeMatch := doesProvidedCodeMatchExpectedCode(verificationRequest.Code, persistedCode.Code)
 	if !codeMatch {
@@ -202,7 +202,7 @@ func IsVerificationCodeValid(ctx context.Context, user *model.User, verification
 	if expired {
 		return &model.Error{
 			InternalError:     fmt.Errorf("error, user %s provided an expired code", user.Email),
-			UserFeedbackError: constants.ErrorVerificationCodeHasExpired,
+			UserFeedbackError: model.ErrorVerificationCodeHasExpired,
 		}
 	}
 
@@ -271,7 +271,7 @@ func getMostRecentVerificationCode(ctx context.Context, user *model.User) (*mode
 	if e != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to execute sql statement for getMostRecentVerificationCode(): %v", e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	return &verificationCode, nil
@@ -296,7 +296,7 @@ func getRecentVerificationCount(ctx context.Context, user *model.User) (*int, *m
 	if queryErr != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("error has occurred when attempting to scan result of access attempts made within the past 24 hours: %v", queryErr),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	return &count, nil

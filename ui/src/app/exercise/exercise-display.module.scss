@@ -1,0 +1,27 @@
+.git-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.giphy-link {
+  margin-left: .5rem;
+}
+
+.buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #0a2938;
+  border-radius: 2rem;
+  height: 5rem;
+  margin: 2rem;
+}
+
+.button-spacer {
+  height: 1.8rem;
+}
+
+
+.gif {
+  position: relative;
+}

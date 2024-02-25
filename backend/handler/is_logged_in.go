@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 )
@@ -19,7 +18,7 @@ func HandleIsLoggedIn(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to check if user is logged in. Error: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 	}
 

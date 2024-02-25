@@ -12,6 +12,9 @@ type User struct {
 	PasswordHash  string
 }
 
+type UserService struct {
+}
+
 // Error Structuring errors to better ensure the user does not get exposed to information he/she shouldn't have.
 type Error struct {
 	InternalError     error
@@ -23,7 +26,7 @@ type UserFeedbackError struct {
 	ResponseCode int
 }
 
-func FetchUserFromContext(ctx context.Context) (*User, error) {
+func (us *UserService) FetchFromContext(ctx context.Context) (*User, error) {
 	user, ok := ctx.Value(SessionKey).(*User)
 	if !ok {
 		return nil, fmt.Errorf("error, could not locate the user in session context")

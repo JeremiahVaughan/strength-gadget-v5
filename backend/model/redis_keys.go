@@ -18,9 +18,6 @@ const (
 	// DailyWorkoutKey is the key used for the daily workout.
 	DailyWorkoutKey = "daily_workout"
 
-	// UserUpdatedExerciseMeasurementUpdatesPrefix is the prefix used for keys related to the updates of exercise measurements for a user.
-	UserUpdatedExerciseMeasurementUpdatesPrefix = "exercise_measurement_updates_"
-
 	// UserExercisesSlottedPrefix is the prefix used for keys related to exercise slotted for a user.
 	UserExercisesSlottedPrefix = "exercises_slotted_"
 )

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strengthgadget.com/m/v2/auth"
 	"strengthgadget.com/m/v2/config"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 )
@@ -22,7 +21,7 @@ func HandleResendVerification(w http.ResponseWriter, r *http.Request) {
 	if verificationRequest.Email == "" {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, user failed to provide an email in the resend verification request"),
-			UserFeedbackError: constants.ErrorUserFeedbackAccessDenied,
+			UserFeedbackError: model.ErrorUserFeedbackAccessDenied,
 		})
 		return
 	}
@@ -36,7 +35,7 @@ func HandleResendVerification(w http.ResponseWriter, r *http.Request) {
 	if user.EmailVerified {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, user attempting to request another email verification code when there account was already verified"),
-			UserFeedbackError: constants.ErrorVerificationNoLongerRequired,
+			UserFeedbackError: model.ErrorVerificationNoLongerRequired,
 		})
 		return
 	}
@@ -45,7 +44,7 @@ func HandleResendVerification(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to check if verification code limit has been reached for user for resend verification. Email: %s. Error: %v", user.Email, e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -53,7 +52,7 @@ func HandleResendVerification(w http.ResponseWriter, r *http.Request) {
 	if verificationCodeRateLimitReached {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, user reached the verification code rate limit for resend verification. User: %s", user.Email),
-			UserFeedbackError: constants.ErrorEmailVerificationRateLimitReached,
+			UserFeedbackError: model.ErrorEmailVerificationRateLimitReached,
 		})
 		return
 	}
@@ -62,7 +61,7 @@ func HandleResendVerification(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to resendVerification() for HandleResendVerification(). Error: %v", e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}

@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"strengthgadget.com/m/v2/config"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 )
@@ -52,7 +51,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if *emailExists {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("a user attempted to register with an email that already exists: %s", request.Email),
-			UserFeedbackError: constants.ErrorEmailAlreadyExists,
+			UserFeedbackError: model.ErrorEmailAlreadyExists,
 		})
 		return
 	}
@@ -78,7 +77,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to persist new user: %v", e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -103,14 +102,14 @@ func emailIsValid(email string) *model.Error {
 	if email == "" {
 		return &model.Error{
 			InternalError:     fmt.Errorf("the user did not provide an email address with their credentials: %s", email),
-			UserFeedbackError: constants.ErrorMissingEmailAddress,
+			UserFeedbackError: model.ErrorMissingEmailAddress,
 		}
 	}
 
 	if !service.EmailIsValidFormat(email) {
 		return &model.Error{
 			InternalError:     fmt.Errorf("the user provided an email address with an invalid format: %s", email),
-			UserFeedbackError: constants.ErrorInvalidEmailAddress,
+			UserFeedbackError: model.ErrorInvalidEmailAddress,
 		}
 	}
 	return nil
@@ -126,7 +125,7 @@ func emailAlreadyExists(ctx context.Context, email string) (*bool, *model.Error)
 		} else {
 			return nil, &model.Error{
 				InternalError:     fmt.Errorf("an unexpected error occurred when attempting to check if the email: %s exists. Error: %v", email, queryErr),
-				UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+				UserFeedbackError: model.ErrorUnexpectedTryAgain,
 			}
 		}
 	} else {

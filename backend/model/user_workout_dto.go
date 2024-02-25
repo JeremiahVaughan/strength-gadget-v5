@@ -1,62 +1,94 @@
 package model
 
+import "time"
+
 type UserWorkoutDto struct {
-	// ProgressIndex outer slice represents workout stage (e.g, warmup, main, coolDown). Inner slice represents exercise in the stage (e.g., barbell curls is exercise two in the main stage)
-	ProgressIndex     [][]int            `json:"progressIndex"`
-	WarmupExercises   []WarmupExercise   `json:"warmupExercises"`
-	MainExercises     []MainExercise     `json:"mainExercises"`
-	CoolDownExercises []CoolDownExercise `json:"coolDownExercises"`
+	ProgressIndex     WorkoutProgressIndex `json:"progressIndex"`
+	Weekday           time.Weekday         `json:"weekday"`
+	WarmupExercises   []Exercise           `json:"warmupExercises"`
+	MainExercises     []Exercise           `json:"mainExercises"`
+	CoolDownExercises []Exercise           `json:"coolDownExercises"`
 }
 
-func (u *UserWorkoutDto) Fill(userWorkout UserWorkout, dailyWorkout DailyWorkout, numberOfSetsPerSuperset, numberOfExercisesPerSuperset int) {
+func (u *UserWorkoutDto) Fill(
+	userWorkout UserWorkout,
+	dailyWorkout DailyWorkout,
+	numberOfSetsPerSuperset, numberOfExercisesPerSuperset int,
+) {
 	u.ProgressIndex = userWorkout.ProgressIndex
+	u.Weekday = userWorkout.Weekday
 
+	currentExerciseSlotReference := 0 // isn't referenced by anything, this is just helpful for debugging
 	for _, exerciseIndex := range userWorkout.SlottedWarmupExercises {
-		warmupExercise := WarmupExercise{
-			dailyWorkout.CardioExercises[exerciseIndex],
-		}
+		// selection slot
+		warmupExercise := dailyWorkout.CardioExercises[exerciseIndex]
+		warmupExercise.CurrentExerciseSlotIndex = currentExerciseSlotReference
+		warmupExercise.SourceExerciseSlotIndex = currentExerciseSlotReference
 		u.WarmupExercises = append(u.WarmupExercises, warmupExercise)
+		currentExerciseSlotReference++
+
+		// work slot
+		workingWarmupExercise := Exercise{
+			CurrentExerciseSlotIndex: currentExerciseSlotReference,
+			SourceExerciseSlotIndex:  currentExerciseSlotReference - 1,
+		}
+		u.WarmupExercises = append(u.WarmupExercises, workingWarmupExercise)
+		currentExerciseSlotReference++
 	}
 
 	numberOfMuscleGroupTargetMainExercises := len(dailyWorkout.MuscleCoverageMainExercises)
 	numberOfMainExercises := len(userWorkout.SlottedMainExercises)
 	totalSuperSets := numberOfMainExercises / numberOfExercisesPerSuperset
+	currentExerciseSlotReference = 0
 	for i := 0; i < totalSuperSets; i++ {
-		superSetStepOffset := i * numberOfExercisesPerSuperset
+		superSetSlottedExercisesOffset := i * numberOfExercisesPerSuperset
+		// main exercise selection
 		for j := 0; j < numberOfExercisesPerSuperset; j++ {
-			var mainExercise MainExercise
 			var exercise Exercise
-			exerciseSlotIndex := superSetStepOffset + j
+			exerciseSlotIndex := superSetSlottedExercisesOffset + j
 			exerciseIndex := userWorkout.SlottedMainExercises[exerciseSlotIndex]
 			if exerciseSlotIndex < numberOfMuscleGroupTargetMainExercises {
 				exercise = dailyWorkout.MuscleCoverageMainExercises[exerciseSlotIndex][exerciseIndex]
 			} else {
 				exercise = dailyWorkout.AllMainExercises[exerciseIndex]
 			}
-			mainExercise = MainExercise{
-				SourceExerciseIndex: exerciseIndex,
-				Exercise:            &exercise,
-			}
-			u.MainExercises = append(u.MainExercises, mainExercise)
+			exercise.LastCompletedMeasurement = userWorkout.UserExerciseDataMap[exercise.Id].Measurement
+			exercise.SourceExerciseSlotIndex = currentExerciseSlotReference
+			exercise.CurrentExerciseSlotIndex = currentExerciseSlotReference
+			u.MainExercises = append(u.MainExercises, exercise)
+			currentExerciseSlotReference++
 		}
-		// subtracting one to account for the source set
-		for j := 0; j < numberOfSetsPerSuperset-1; j++ {
+		// conduct main exercises
+		for m := 0; m < numberOfSetsPerSuperset; m++ {
 			for k := 0; k < numberOfExercisesPerSuperset; k++ {
-				var mainExercise MainExercise
-				exerciseIndex := userWorkout.SlottedMainExercises[superSetStepOffset+k]
-				mainExercise = MainExercise{
-					SourceExerciseIndex: exerciseIndex,
+				mainExerciseSlotOffset := i * ((numberOfSetsPerSuperset + 1) * numberOfExercisesPerSuperset)
+				userWorkoutDtoSlottedExercisesOffset := mainExerciseSlotOffset + k
+				mainExercise := Exercise{
+					CurrentExerciseSlotIndex: currentExerciseSlotReference,
+					SourceExerciseSlotIndex:  userWorkoutDtoSlottedExercisesOffset,
 				}
 				u.MainExercises = append(u.MainExercises, mainExercise)
+				currentExerciseSlotReference++
 			}
 		}
 	}
 
+	currentExerciseSlotReference = 0
 	for i, exercises := range dailyWorkout.CoolDownExercises {
+		// selection slot
 		exerciseIndex := userWorkout.SlottedCoolDownExercises[i]
-		coolDownExercise := CoolDownExercise{
-			exercises[exerciseIndex],
-		}
+		coolDownExercise := exercises[exerciseIndex]
+		coolDownExercise.CurrentExerciseSlotIndex = currentExerciseSlotReference
+		coolDownExercise.SourceExerciseSlotIndex = currentExerciseSlotReference
 		u.CoolDownExercises = append(u.CoolDownExercises, coolDownExercise)
+		currentExerciseSlotReference++
+
+		// work slot
+		workingCoolDownExercise := Exercise{
+			CurrentExerciseSlotIndex: currentExerciseSlotReference,
+			SourceExerciseSlotIndex:  currentExerciseSlotReference - 1,
+		}
+		u.CoolDownExercises = append(u.CoolDownExercises, workingCoolDownExercise)
+		currentExerciseSlotReference++
 	}
 }

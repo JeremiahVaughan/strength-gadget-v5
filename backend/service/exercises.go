@@ -28,9 +28,10 @@ func FinishCurrentAndFetchNextExercise(ctx context.Context, measurement string) 
 
 	currentSuperset = updateSuperSetWithCurrentMeasurement(currentSuperset, parsedMeasurement)
 
-	user, err := model.FetchUserFromContext(ctx)
+	var us model.UserService
+	user, err := us.FetchFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error, could not FinishCurrentAndFetchNextExercise() for FinishCurrentAndFetchNextExercise(). Error: %v", err)
+		return nil, fmt.Errorf("error, could not UserService.FetchFromContext() for FinishCurrentAndFetchNextExercise(). Error: %v", err)
 	}
 
 	var currentExerciseId string
@@ -194,9 +195,10 @@ func updateSuperSetWithCurrentMeasurement(currentSuperset *model.SuperSet, measu
 }
 
 func ShuffleExercise(ctx context.Context) (*model.ExerciseResponse, error) {
-	user, err := model.FetchUserFromContext(ctx)
+	var us model.UserService
+	user, err := us.FetchFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error, could not FinishCurrentAndFetchNextExercise() for FinishCurrentAndFetchNextExercise(). Error: %v", err)
+		return nil, fmt.Errorf("error, could not UserService.FetchFromContext() for FinishCurrentAndFetchNextExercise(). Error: %v", err)
 	}
 
 	currentSuperset, err := FetchCurrentSuperset(ctx)
@@ -535,9 +537,10 @@ func fetchAllMuscleGroupsNotInRecovery(ctx context.Context, currentSuperset *mod
 		return nil, fmt.Errorf("error, when fetchAllMuscleGroups() for fetchMuscleGroupsCurrentlyInRecovery(). Error: %v", err)
 	}
 
-	user, err := model.FetchUserFromContext(ctx)
+	var us model.UserService
+	user, err := us.FetchFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error, could not fetchUserFromContext() for fetchAllMuscleGroupsNotInRecovery(). Error: %v", err)
+		return nil, fmt.Errorf("error, could not UserService.FetchFromContext() for fetchAllMuscleGroupsNotInRecovery(). Error: %v", err)
 	}
 
 	pipe := config.RedisConnectionPool.Pipeline()
@@ -625,9 +628,10 @@ func FetchCurrentExercise(ctx context.Context) (*model.ExerciseResponse, error) 
 }
 
 func FetchCurrentSuperset(ctx context.Context) (*model.SuperSet, error) {
-	user, err := model.FetchUserFromContext(ctx)
+	var us model.UserService
+	user, err := us.FetchFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error, could not FetchCurrentSuperset() for fetchAllMuscleGroupsNotInRecovery(). Error: %v", err)
+		return nil, fmt.Errorf("error, could not UserService.FetchFromContext() for fetchAllMuscleGroupsNotInRecovery(). Error: %v", err)
 	}
 
 	key := getCurrentSupersetForUserKey(user.Id)

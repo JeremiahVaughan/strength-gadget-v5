@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"strengthgadget.com/m/v2/auth"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 )
@@ -40,14 +39,14 @@ func HandleForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	if !service.EmailIsValidFormat(email) {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("the user provided an email address with an invalid format when submitting to reset password: %s", email),
-			UserFeedbackError: constants.ErrorInvalidEmailAddress,
+			UserFeedbackError: model.ErrorInvalidEmailAddress,
 		})
 		return
 	}
 
 	user, err := auth.GetUser(r.Context(), email)
 	if err != nil {
-		if err.UserFeedbackError == constants.ErrorUserFeedbackWrongPasswordOrUsername {
+		if err.UserFeedbackError == model.ErrorUserFeedbackWrongPasswordOrUsername {
 			log.Printf("error, user entered an email that does not exist when reseting password. Email: %s", email)
 			return
 		} else {
@@ -60,7 +59,7 @@ func HandleForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to check if verification code limit has been reached for user for password reset: %s. Error: %v", email, e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}
@@ -68,7 +67,7 @@ func HandleForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	if verificationCodeRateLimitReached {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, user reached the verification code rate limit for password reset. User: %s", user.Email),
-			UserFeedbackError: constants.ErrorPasswordResetCodeRateLimitReached,
+			UserFeedbackError: model.ErrorPasswordResetCodeRateLimitReached,
 		})
 		return
 	}
@@ -77,7 +76,7 @@ func HandleForgotPasswordEmail(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		service.GenerateResponse(w, &model.Error{
 			InternalError:     fmt.Errorf("error, failed to send forgot password email: %v", e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		})
 		return
 	}

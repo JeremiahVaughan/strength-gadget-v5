@@ -1,6 +1,6 @@
 import styles from './measurement-seconds.module.scss';
 import TimeDisplay from "../time-display/time-display";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 
 /* eslint-disable-next-line */
 export interface MeasurementSecondsProps {

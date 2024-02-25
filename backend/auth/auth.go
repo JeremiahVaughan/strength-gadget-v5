@@ -17,7 +17,7 @@ func GetEmailAndPassword(requestBody io.Reader) (*model.Credentials, *model.Erro
 	if err != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to read request body: %v", err),
-			UserFeedbackError: constants.ErrorUserFeedbackAccessDenied,
+			UserFeedbackError: model.ErrorUserFeedbackAccessDenied,
 		}
 	}
 
@@ -26,7 +26,7 @@ func GetEmailAndPassword(requestBody io.Reader) (*model.Credentials, *model.Erro
 	if err != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("unable to decode credentials due to: %v", err),
-			UserFeedbackError: constants.ErrorUserFeedbackAccessDenied,
+			UserFeedbackError: model.ErrorUserFeedbackAccessDenied,
 		}
 	}
 	return &credentials, nil
@@ -54,12 +54,12 @@ func GetUser(ctx context.Context, email string) (*model.User, *model.Error) {
 		if err.Error() == pgx.ErrNoRows.Error() {
 			return nil, &model.Error{
 				InternalError:     fmt.Errorf("no user found for email: %v", err),
-				UserFeedbackError: constants.ErrorUserFeedbackWrongPasswordOrUsername,
+				UserFeedbackError: model.ErrorUserFeedbackWrongPasswordOrUsername,
 			}
 		} else {
 			return nil, &model.Error{
 				InternalError:     fmt.Errorf("an unexpected error occurred when attempting to retrieve user: %s. Error: %v", email, err),
-				UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+				UserFeedbackError: model.ErrorUnexpectedTryAgain,
 			}
 		}
 	}

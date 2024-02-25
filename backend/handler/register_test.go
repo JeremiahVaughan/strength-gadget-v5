@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"strengthgadget.com/m/v2/service"
 	"testing"
@@ -157,21 +156,21 @@ func Test_passwordIsAcceptable(t *testing.T) {
 			args: args{
 				password: tooManyNumbersPassword,
 			},
-			want: &constants.ErrorPasswordCannotContainAllNumbers,
+			want: &model.ErrorPasswordCannotContainAllNumbers,
 		},
 		{
 			name: "Must be at least 12 characters long 1",
 			args: args{
 				password: tooFewCharsPassword,
 			},
-			want: &constants.ErrorPasswordMustBeAtLeastTwelveCharsLong,
+			want: &model.ErrorPasswordMustBeAtLeastTwelveCharsLong,
 		},
 		{
 			name: "Must provide a password",
 			args: args{
 				password: "",
 			},
-			want: &constants.ErrorPasswordWasNotProvided,
+			want: &model.ErrorPasswordWasNotProvided,
 		},
 	}
 	for _, tt := range tests {
@@ -226,7 +225,7 @@ func Test_emailIsValid(t *testing.T) {
 			args: args{
 				email: missingEmail,
 			},
-			want: constants.ErrorMissingEmailAddress,
+			want: model.ErrorMissingEmailAddress,
 		},
 	}
 	for _, tt := range tests {

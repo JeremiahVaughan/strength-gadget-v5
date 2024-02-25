@@ -113,6 +113,8 @@ func serveAthletes(ctx context.Context) error {
 			r.Get(constants.ShuffleExercise, handler.HandleShuffleExercise)
 
 			r.Get(constants.GetCurrentWorkout, handler.HandleGetCurrentWorkout)
+			r.Put(constants.SwapExercise, handler.HandleSwapExercise)
+			r.Put(constants.RecordIncrementedWorkoutStep, handler.HandleRecordIncrementedWorkoutStep)
 		})
 	})
 

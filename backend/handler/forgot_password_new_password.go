@@ -72,10 +72,10 @@ func forgotPasswordNewPassword(ctx context.Context, req *model.ForgotPassword) (
 	user, err := auth.GetUser(ctx, req.Email)
 	if err != nil {
 		var feedback model.UserFeedbackError
-		if err.UserFeedbackError == constants.ErrorUserFeedbackWrongPasswordOrUsername {
-			feedback = constants.ErrorEmailDoesNotExists
+		if err.UserFeedbackError == model.ErrorUserFeedbackWrongPasswordOrUsername {
+			feedback = model.ErrorEmailDoesNotExists
 		} else {
-			feedback = constants.ErrorUnexpectedTryAgain
+			feedback = model.ErrorUnexpectedTryAgain
 		}
 		return &model.Error{
 			InternalError:     fmt.Errorf("error, when auth.GetUser() for forgotPasswordNewPassword() for user: %s. Error: %v", req.Email, err),
@@ -89,7 +89,7 @@ func forgotPasswordNewPassword(ctx context.Context, req *model.ForgotPassword) (
 	if deferErr != nil {
 		return &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to record password reset attempt for user %s. Defer error: %v. Original error: %v", user.Email, deferErr, err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	if err != nil {
@@ -119,7 +119,7 @@ func forgotPasswordNewPassword(ctx context.Context, req *model.ForgotPassword) (
 	if e != nil {
 		return &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to update password for forgotPasswordNewPassword(). Error: %v", e),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	return nil

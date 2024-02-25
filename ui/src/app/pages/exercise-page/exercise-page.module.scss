@@ -4,32 +4,8 @@
   color: white;
 }
 
-.git-container {
-  display: flex;
-  flex-direction: column;
-}
 
-.gif {
-  position: relative;
-}
-
-.giphy-link {
-  margin-left: .5rem;
-}
-
-
-
-.buttons-first-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #0a2938;
-  border-radius: 2rem;
-  height: 5rem;
-  margin: 2rem;
-}
-
-.buttons-second-row {
+.buttons {
   display: flex;
   justify-content: space-between;
   margin: .5rem;
@@ -38,11 +14,6 @@
 .spacer {
   width: 1rem;
 }
-
-.button-spacer {
-  height: 1.8rem;
-}
-
 
 .workout-complete-text {
   display: flex;

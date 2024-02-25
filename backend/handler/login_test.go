@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 	"testing"
 )
@@ -147,7 +146,7 @@ func Test_getSalt(t *testing.T) {
 			},
 			want:      "",
 			wantErr:   true,
-			wantedErr: constants.ErrorUnexpectedTryAgain,
+			wantedErr: model.ErrorUnexpectedTryAgain,
 		},
 	}
 	for _, tt := range tests {

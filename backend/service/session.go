@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/mail"
 	"strengthgadget.com/m/v2/config"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 )
 
@@ -26,7 +25,7 @@ func checkForValidActiveSession(r *http.Request) (*model.UserSession, *model.Err
 	if err != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("error, redis call failed when checking if session exists. Error: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 
@@ -37,7 +36,7 @@ func checkForValidActiveSession(r *http.Request) (*model.UserSession, *model.Err
 		if err != nil {
 			return nil, &model.Error{
 				InternalError:     fmt.Errorf("error, redis call failed when fetching user id from session. Error: %v", err),
-				UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+				UserFeedbackError: model.ErrorUnexpectedTryAgain,
 			}
 		}
 		result.UserId = userId

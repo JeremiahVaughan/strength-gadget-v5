@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"regexp"
 	"strengthgadget.com/m/v2/config"
-	"strengthgadget.com/m/v2/constants"
 	"strengthgadget.com/m/v2/model"
 )
 
@@ -22,7 +21,7 @@ func GenerateSecureHash(password, salt string) (*string, *model.Error) {
 	if err != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("an error has occurred when attempting to base64 decode the salt: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	// using Argon2id as it provides the most protection according to: https://security.stackexchange.com/a/197550
@@ -56,7 +55,7 @@ func Authenticate(next http.Handler) http.Handler {
 		if !session.Authenticated {
 			GenerateResponse(w, &model.Error{
 				InternalError:     fmt.Errorf("user attempted to access a protected resource without being authenticated"),
-				UserFeedbackError: constants.ErrorUserNotLoggedIn,
+				UserFeedbackError: model.ErrorUserNotLoggedIn,
 			})
 			return
 		}
@@ -83,14 +82,14 @@ func PasswordIsAcceptable(password string) *model.Error {
 	if len(password) == 0 {
 		return &model.Error{
 			InternalError:     errors.New("user did not provide a password"),
-			UserFeedbackError: constants.ErrorPasswordWasNotProvided,
+			UserFeedbackError: model.ErrorPasswordWasNotProvided,
 		}
 	}
 
 	if len(password) < 12 {
 		return &model.Error{
 			InternalError:     errors.New("user chose a password that was too short"),
-			UserFeedbackError: constants.ErrorPasswordMustBeAtLeastTwelveCharsLong,
+			UserFeedbackError: model.ErrorPasswordMustBeAtLeastTwelveCharsLong,
 		}
 	}
 
@@ -98,13 +97,13 @@ func PasswordIsAcceptable(password string) *model.Error {
 	if err != nil {
 		return &model.Error{
 			InternalError:     fmt.Errorf("an unexpected error occurred when checking password for non-numeric charactures: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	if !nonNumberMatch {
 		return &model.Error{
 			InternalError:     errors.New("user attempted to create a password with all numbers"),
-			UserFeedbackError: constants.ErrorPasswordCannotContainAllNumbers,
+			UserFeedbackError: model.ErrorPasswordCannotContainAllNumbers,
 		}
 	}
 	return nil
@@ -135,7 +134,7 @@ func generateSalt() (*string, *model.Error) {
 	if err != nil {
 		return nil, &model.Error{
 			InternalError:     fmt.Errorf("an error has occurred when generating the salt: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	result := base64.StdEncoding.EncodeToString(b)
@@ -148,7 +147,7 @@ func IncrementLoginAttemptCount(ctx context.Context, email string) *model.Error 
 	if err != nil {
 		return &model.Error{
 			InternalError:     fmt.Errorf("error, when attempting to IncrementRateLimitingCount() for IncrementLoginAttemptCount(). Error: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	return nil
@@ -160,7 +159,7 @@ func HasLoginAttemptRateLimitBeenReached(ctx context.Context, email string) (boo
 	if err != nil {
 		return false, &model.Error{
 			InternalError:     fmt.Errorf("error, when HasRateLimitBeenReached() for HasLoginAttemptRateLimitBeenReached(). Error: %v", err),
-			UserFeedbackError: constants.ErrorUnexpectedTryAgain,
+			UserFeedbackError: model.ErrorUnexpectedTryAgain,
 		}
 	}
 	return result, nil
