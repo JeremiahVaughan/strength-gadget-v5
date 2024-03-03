@@ -1,4 +1,4 @@
-import {AxiosError} from 'axios';
+import {AxiosError, AxiosResponse} from 'axios';
 import {useEffect, useState} from 'react';
 import styles from './exercise-page.module.scss';
 import {useNavigate} from "react-router-dom";
@@ -33,8 +33,7 @@ export function ExercisePage() {
     };
     const navigate = useNavigate();
 
-    useEffect(() => {
-        showLoadingMessage();
+    function getCurrentWorkout() {
         getAxiosInstance().get("/getCurrentWorkout")
             .then(
                 (response) => {
@@ -55,6 +54,11 @@ export function ExercisePage() {
                 }
             }
         );
+    }
+
+    useEffect(() => {
+        showLoadingMessage();
+        getCurrentWorkout();
     }, [])
 
     function updateLocalLastCompletedMeasurement(workout: Workout, progressIndex: number[], lastCompletedMeasurement: number) {
@@ -122,16 +126,21 @@ export function ExercisePage() {
         sendRequestWithRetry("/recordIncrementedWorkoutStep", 'PUT', {
             incrementedProgressIndex: incrementedWorkoutProgressIndex,
             exerciseId: currentStep.id,
-            lastCompletedMeasurement: currentStep.lastCompletedMeasurement
+            lastCompletedMeasurement: currentStep.lastCompletedMeasurement,
+            workoutId: workout.workoutId
         })
             .then(() => {
-                setAsyncLoading(false)
+                setAsyncLoading(false);
                 setWorkout({...workout, progressIndex: incrementedWorkoutProgressIndex})
                 console.log("workout step completed")
             })
             .catch(
                 (e: AxiosError) => {
                     setAsyncLoading(false)
+                    if (e?.response?.status === 409) {
+                        getCurrentWorkout()
+                        return
+                    }
                     if (e?.response?.status === 401) {
                         navigate(
                             "/login",
@@ -144,10 +153,11 @@ export function ExercisePage() {
     function onSwapExercise() {
         showLoadingMessage();
         getAxiosInstance().put("/swapExercise", {
-            exerciseId: currentStep.id
+            exerciseId: currentStep.id,
+            workoutId: workout.workoutId
         }).then(
             (response) => {
-                setLoading(false)
+                setLoading(false);
                 const workout: Workout = response.data
                 setWorkout(workout)
                 updateDisplayExercise(workout, workout.progressIndex)
@@ -155,6 +165,10 @@ export function ExercisePage() {
         ).catch(
             (e: AxiosError) => {
                 setLoading(false)
+                if (e?.response?.status === 409) {
+                    getCurrentWorkout()
+                    return
+                }
                 if (e?.response?.status === 401) {
                     navigate(
                         "/login",

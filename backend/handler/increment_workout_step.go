@@ -18,6 +18,15 @@ func validateRecordIncrementedWorkoutStepRequest(req *model.RecordIncrementedWor
 	if req.ExerciseId == "" {
 		errorFeedback = append(errorFeedback, errors.New("exerciseId is required"))
 	}
+
+	if req.WorkoutId == "" {
+		errorFeedback = append(errorFeedback, errors.New("workoutId is required"))
+	}
+
+	if !service.IsValidUUID(req.WorkoutId) {
+		errorFeedback = append(errorFeedback, errors.New("workoutId is not a valid UUID"))
+	}
+
 	if len(errorFeedback) > 0 {
 		return fmt.Errorf("errors, when validating request: %v", errorFeedback)
 	}
@@ -55,12 +64,11 @@ func HandleRecordIncrementedWorkoutStep(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	err = service.RecordIncrementedWorkoutStep(r.Context(), req)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("error, failed to record incremented workout step handler action: %v", err), http.StatusInternalServerError)
+	e := service.RecordIncrementedWorkoutStep(r.Context(), req)
+	if e != nil {
+		service.GenerateResponse(w, e)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 }

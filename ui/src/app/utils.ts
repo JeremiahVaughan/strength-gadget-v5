@@ -64,8 +64,8 @@ export async function sendRequestWithRetry(url: string, method: Method, data: an
     try {
         const response = await getAxiosInstance().request({url, method, data});
         return response.data;
-    } catch (err) {
-        if (retryCount <= 0) {
+    } catch (err: any) {
+        if (retryCount <= 0 || (err.response && err.response.status === 409)) {
             throw err;
         }
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second

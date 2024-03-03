@@ -5,6 +5,7 @@ import "time"
 type UserWorkoutDto struct {
 	ProgressIndex     WorkoutProgressIndex `json:"progressIndex"`
 	Weekday           time.Weekday         `json:"weekday"`
+	WorkoutId         string               `json:"workoutId"`
 	WarmupExercises   []Exercise           `json:"warmupExercises"`
 	MainExercises     []Exercise           `json:"mainExercises"`
 	CoolDownExercises []Exercise           `json:"coolDownExercises"`
@@ -17,6 +18,7 @@ func (u *UserWorkoutDto) Fill(
 ) {
 	u.ProgressIndex = userWorkout.ProgressIndex
 	u.Weekday = userWorkout.Weekday
+	u.WorkoutId = userWorkout.WorkoutId
 
 	currentExerciseSlotReference := 0 // isn't referenced by anything, this is just helpful for debugging
 	for _, exerciseIndex := range userWorkout.SlottedWarmupExercises {

@@ -12,4 +12,7 @@ type RecordIncrementedWorkoutStepRequest struct {
 	IncrementedProgressIndex WorkoutProgressIndex `json:"incrementedProgressIndex"`
 	ExerciseId               string               `json:"exerciseId"`
 	LastCompletedMeasurement int                  `json:"lastCompletedMeasurement"`
+
+	// WorkoutId is used to help prevent client and server sync issues
+	WorkoutId string `json:"workoutId"`
 }

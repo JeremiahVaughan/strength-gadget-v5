@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -22,6 +23,7 @@ type UserWorkout struct {
 	Weekday                  time.Weekday         `json:"weekday"`
 	ProgressIndex            WorkoutProgressIndex `json:"progressIndex,omitempty"`
 	WorkoutRoutine           RoutineType          `json:"workoutRoutine"`
+	WorkoutId                string               `json:"workoutId"`
 	SlottedWarmupExercises   []uint16             `json:"-"`
 	SlottedMainExercises     []uint16             `json:"-"`
 	SlottedCoolDownExercises []uint16             `json:"-"`
@@ -439,6 +441,7 @@ func GetCurrentWorkout(
 			0,
 		}
 		userWorkout.Weekday = time.Now().Weekday()
+		userWorkout.WorkoutId = uuid.New().String()
 		userWorkout.WorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, db, user.Id)
 		if err != nil {
 			return nil, fmt.Errorf("error, when fetchCurrentWorkoutRoutine() for GetCurrentWorkout(). Error: %v", err)
@@ -614,6 +617,7 @@ func SwapExercise(
 	redisDb *redis.Client,
 	db *pgxpool.Pool,
 	exerciseId string,
+	workoutId string,
 	numberOfSetsInSuperSet int,
 	numberOfExerciseInSuperset int,
 ) (*UserWorkoutDto, *Error) {
@@ -635,10 +639,10 @@ func SwapExercise(
 		}
 	}
 
-	if !userWorkout.Exists {
+	if !userWorkout.Exists || userWorkout.WorkoutId != workoutId {
 		return nil, &Error{
-			InternalError:     fmt.Errorf("error, user %s attempted to fetch an user workout that expired", user.Id),
-			UserFeedbackError: ErrorCouldNotLocateUserWorkout,
+			InternalError:     fmt.Errorf("error, user %s attempted to fetch an user workout that expired for SwapExercise()", user.Id),
+			UserFeedbackError: ErrorClientOutOfSync,
 		}
 	}
 

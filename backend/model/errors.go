@@ -18,11 +18,6 @@ var (
 		ResponseCode: http.StatusInternalServerError,
 	}
 
-	ErrorCouldNotLocateUserWorkout = UserFeedbackError{
-		Message:      "the current workout has expired",
-		ResponseCode: http.StatusNotFound,
-	}
-
 	ErrorEmailVerificationRateLimitReached = UserFeedbackError{
 		Message:      "too many email verifications have been sent recently, please try again later",
 		ResponseCode: http.StatusBadRequest,
@@ -92,5 +87,10 @@ var (
 	ErrorLimitReachedOnVerificationAttempts = UserFeedbackError{
 		Message:      "Too many recent attempts, please try again tomorrow",
 		ResponseCode: http.StatusForbidden,
+	}
+
+	ErrorClientOutOfSync = UserFeedbackError{
+		Message:      "Client is out of sync with server",
+		ResponseCode: http.StatusConflict,
 	}
 )

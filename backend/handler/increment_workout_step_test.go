@@ -16,6 +16,7 @@ func TestValidateRecordIncrementedWorkoutStepRequest(t *testing.T) {
 			req: &model.RecordIncrementedWorkoutStepRequest{
 				IncrementedProgressIndex: model.WorkoutProgressIndex{2},
 				ExerciseId:               "",
+				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
 			},
 			wantErr: true,
 		},
@@ -24,6 +25,7 @@ func TestValidateRecordIncrementedWorkoutStepRequest(t *testing.T) {
 			req: &model.RecordIncrementedWorkoutStepRequest{
 				IncrementedProgressIndex: model.WorkoutProgressIndex{},
 				ExerciseId:               "exerciseId1",
+				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
 			},
 			wantErr: true,
 		},
@@ -32,8 +34,26 @@ func TestValidateRecordIncrementedWorkoutStepRequest(t *testing.T) {
 			req: &model.RecordIncrementedWorkoutStepRequest{
 				IncrementedProgressIndex: model.WorkoutProgressIndex{3},
 				ExerciseId:               "exerciseId1",
+				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
 			},
 			wantErr: false,
+		},
+		{
+			name: "Missing workout UUID",
+			req: &model.RecordIncrementedWorkoutStepRequest{
+				IncrementedProgressIndex: model.WorkoutProgressIndex{3},
+				ExerciseId:               "exerciseId1",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid workout UUID",
+			req: &model.RecordIncrementedWorkoutStepRequest{
+				IncrementedProgressIndex: model.WorkoutProgressIndex{3},
+				ExerciseId:               "exerciseId1",
+				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9f",
+			},
+			wantErr: true,
 		},
 	}
 
