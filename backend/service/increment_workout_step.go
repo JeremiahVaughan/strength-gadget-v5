@@ -173,7 +173,7 @@ func updateExerciseUserData(ctx context.Context, req model.RecordIncrementedWork
 		req.ExerciseId,
 	).Result()
 	if err != nil {
-		return fmt.Errorf("error, unable to get exercise user data from redis. Error: %v", err)
+		return fmt.Errorf("error, unable to get exercise user data from redis for exercise: %s. Error: %v", req.ExerciseId, err)
 	}
 	var value model.ExerciseUserData
 	err = json.Unmarshal([]byte(redisString), &value)
