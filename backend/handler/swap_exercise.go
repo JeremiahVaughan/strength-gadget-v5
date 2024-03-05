@@ -67,6 +67,7 @@ func HandleSwapExercise(w http.ResponseWriter, r *http.Request) {
 		req.WorkoutId,
 		config.NumberOfSetsInSuperSet,
 		config.NumberOfExerciseInSuperset,
+		config.CurrentSupersetExpirationTimeInHours,
 	)
 	if userError != nil {
 		service.GenerateResponse(w, userError)

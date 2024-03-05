@@ -118,6 +118,7 @@ func (use *UserWorkout) ToRedisUpdateExerciseSwap(
 	newExerciseId string,
 	exerciseUserData ExerciseUserData,
 	slottedExerciseKey string,
+	expiration int,
 ) error {
 	// initialize pipeline
 	pipe := client.Pipeline()
@@ -127,6 +128,10 @@ func (use *UserWorkout) ToRedisUpdateExerciseSwap(
 	pipe.ZRem(ctx, slottedExerciseKey, oldMember)
 	newMember := serializeUniqueMember(exerciseSlotIndex, newExerciseIndex)
 	pipe.ZAdd(ctx, slottedExerciseKey, redis.Z{Score: float64(exerciseSlotIndex), Member: newMember})
+	// setting the expiration again is required due to the scenario when the last
+	// element in a sorted set gets removed the key for the sorted set also gets deleted
+	// thus also the expiration
+	pipe.Expire(ctx, slottedExerciseKey, time.Duration(expiration)*time.Hour)
 
 	// update exercise user data
 	exerciseMeasurementKey := GetUserKey(userId, UserExerciseUserDataKey)
@@ -620,6 +625,7 @@ func SwapExercise(
 	workoutId string,
 	numberOfSetsInSuperSet int,
 	numberOfExerciseInSuperset int,
+	exp int,
 ) (*UserWorkoutDto, *Error) {
 	var us UserService
 	user, err := us.FetchFromContext(ctx)
@@ -738,6 +744,7 @@ func SwapExercise(
 			newExercise.Id,
 			exerciseUserData,
 			key,
+			exp,
 		)
 		if err != nil {
 			return nil, &Error{
