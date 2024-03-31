@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strengthgadget.com/m/v2/constants"
 	"time"
 )
 
@@ -87,7 +88,12 @@ func (d *DailyWorkout) ShuffleMainExercises() {
 	})
 }
 
-func GenerateDailyWorkout(ctx context.Context, db *pgxpool.Pool, redisDb *redis.Client) error {
+func GenerateDailyWorkout(
+	ctx context.Context,
+	db *pgxpool.Pool,
+	redisDb *redis.Client,
+	environment string,
+) error {
 	allExercises, err := fetchAllExercises(ctx, db)
 	if err != nil {
 		return fmt.Errorf("error, when fetchAllExercises() for generateDailyWorkout(). Error: %v", err)
@@ -120,9 +126,18 @@ func GenerateDailyWorkout(ctx context.Context, db *pgxpool.Pool, redisDb *redis.
 	if err != nil {
 		return fmt.Errorf("error, when generateDailyWorkoutValue(model.UPPER) for generateDailyWorkout(). Error: %v", err)
 	}
-	// generating tomorrow's workout so there is overlap
-	tomorrow := getTomorrowsWeekday(time.Now().Weekday())
-	dailyWorkoutKey := GetDailyWorkoutKey(tomorrow)
+
+	var dailyWorkoutKey string
+	if environment == constants.EnvironmentLocal {
+		// testing locally means we just need a workout for today
+		today := time.Now().Weekday()
+		dailyWorkoutKey = GetDailyWorkoutKey(today)
+	} else {
+		// generating tomorrow's workout so there is overlap
+		tomorrow := getTomorrowsWeekday(time.Now().Weekday())
+		dailyWorkoutKey = GetDailyWorkoutKey(tomorrow)
+	}
+
 	err = redisDb.HSet(ctx, dailyWorkoutKey,
 		getDailyWorkoutHashKey(LOWER), lowerWorkout,
 		getDailyWorkoutHashKey(CORE), coreWorkout,

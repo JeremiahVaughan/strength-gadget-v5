@@ -50,7 +50,7 @@ func main() {
 	defer sentry.Flush(2 * time.Second)
 
 	if os.Getenv(constants.ModeKey) == constants.WorkoutGen {
-		err = model.GenerateDailyWorkout(ctx, config.ConnectionPool, config.RedisConnectionPool)
+		err = model.GenerateDailyWorkout(ctx, config.ConnectionPool, config.RedisConnectionPool, config.Environment)
 		if err != nil {
 			log.Fatalf("error, when generateDailyWorkout() for main(). Error: %v", err)
 		}

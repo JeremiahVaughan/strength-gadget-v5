@@ -204,7 +204,10 @@ func initAllowedIpRanges() ([]*net.IPNet, error) {
 	var blocksSlice []string
 	var err error
 	if Environment == constants.EnvironmentLocal {
-		blocksSlice = []string{"127.0.0.1/32"}
+		blocksSlice = []string{
+			"127.0.0.1/32", // ipv4 loop-back
+			"::1/128",      // ipv6 loop-back
+		}
 	} else {
 		blocksSlice, err = fetchAllowedIpRanges()
 		if err != nil {
