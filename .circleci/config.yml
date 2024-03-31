@@ -75,7 +75,7 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            cd ./ui && ./deploy.sh && cd ../ &&
+            ./deploy.sh &&
             cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
   statuscake:
     docker:
@@ -116,10 +116,10 @@ workflows:
           context:
             - context-staging
             - context-docker-hub
-#      - frontend-build:
-#          context:
-#            - context-staging
-#            - context-docker-hub
+      - frontend-build:
+          context:
+            - context-staging
+            - context-docker-hub
       - statuscake:
           context:
             - context-staging
