@@ -116,10 +116,10 @@ workflows:
           context:
             - context-staging
             - context-docker-hub
-      - frontend-build:
-          context:
-            - context-staging
-            - context-docker-hub
+#      - frontend-build:
+#          context:
+#            - context-staging
+#            - context-docker-hub
       - statuscake:
           context:
             - context-staging
