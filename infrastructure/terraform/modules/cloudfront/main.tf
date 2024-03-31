@@ -1,6 +1,6 @@
 locals {
   domain_name = var.domain_name
-  ui_dir      = "${var.workspace_dir}/ui/dist/ui"
+  ui_dir      = "${var.workspace_dir}/dist/ui"
   mime_types = {
     "html" = "text/html",
     "css"  = "text/css",
