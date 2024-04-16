@@ -11,12 +11,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strengthgadget.com/m/v2/config"
-	"strengthgadget.com/m/v2/constants"
-	"strengthgadget.com/m/v2/handler"
-	custom_middleware "strengthgadget.com/m/v2/middleware"
-	"strengthgadget.com/m/v2/model"
-	"strengthgadget.com/m/v2/service"
 	"time"
 )
 
@@ -27,30 +21,30 @@ func main() {
 	log.Printf("starting strengthgadget...")
 
 	ctx := context.Background()
-	err := config.InitConfig(ctx)
+	err := InitConfig(ctx)
 	if err != nil {
 		log.Fatalf("error, attempting to initialize configuration: %v", err)
 	}
 
-	defer config.ConnectionPool.Close()
+	defer ConnectionPool.Close()
 
 	err = sentry.Init(sentry.ClientOptions{
-		Dsn: config.SentryEndpoint,
+		Dsn: SentryEndpoint,
 		// Set TracesSampleRate to 1.0 to capture 100%
 		// of transactions for performance monitoring.
 		// We recommend adjusting this value in production,
 		TracesSampleRate: 1.0,
 
-		Environment: config.Environment,
+		Environment: Environment,
 	})
 	if err != nil {
 		log.Fatalf("error, sentry.Init: %s", err)
 	}
-	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", config.Environment))
+	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", Environment))
 	defer sentry.Flush(2 * time.Second)
 
-	if os.Getenv(constants.ModeKey) == constants.WorkoutGen {
-		err = model.GenerateDailyWorkout(ctx, config.ConnectionPool, config.RedisConnectionPool, config.Environment)
+	if os.Getenv(ModeKey) == WorkoutGen {
+		err = GenerateDailyWorkout(ctx, ConnectionPool, RedisConnectionPool, Environment)
 		if err != nil {
 			log.Fatalf("error, when generateDailyWorkout() for main(). Error: %v", err)
 		}
@@ -63,7 +57,7 @@ func main() {
 }
 
 func serveAthletes(ctx context.Context) error {
-	err := service.ProcessSchemaChanges(ctx, databaseFiles)
+	err := ProcessSchemaChanges(ctx, databaseFiles)
 	if err != nil {
 		return fmt.Errorf("error, when attempting to process schema changes: %v", err)
 	}
@@ -71,11 +65,11 @@ func serveAthletes(ctx context.Context) error {
 	r := chi.NewRouter()
 
 	var corsMiddleware *cors.Cors
-	log.Printf("CORS setup allowing traffic from: %s", config.TrustedUiOrigins)
+	log.Printf("CORS setup allowing traffic from: %s", TrustedUiOrigins)
 
 	corsMiddleware = cors.New(cors.Options{
 		MaxAge:           86400,
-		AllowedOrigins:   config.TrustedUiOrigins,
+		AllowedOrigins:   TrustedUiOrigins,
 		AllowCredentials: true,
 		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		// todo look into more secure by excluding uneeded headers
@@ -85,42 +79,42 @@ func serveAthletes(ctx context.Context) error {
 	r.Use(
 		corsMiddleware.Handler,
 		middleware.Logger,
-		custom_middleware.IpFilterMiddleware,
+		IpFilterMiddleware,
 	)
 
 	// The /api prefix is for the local proxy when developing locally. This proxy exists so authentication works locally.
-	r.Route(constants.ApiPrefix, func(r chi.Router) {
+	r.Route(ApiPrefix, func(r chi.Router) {
 		// public routes
-		r.Get(constants.Health, handler.HandleHealth)
-		r.Post(constants.Register, handler.HandleRegister)
-		r.Post(constants.Login, handler.HandleLogin)
-		r.Get(constants.IsLoggedIn, handler.HandleIsLoggedIn) // Currently needed for letting the browser know if it makes sense to be on the authentication pages or not.
-		r.Post(constants.Verification, handler.HandleVerification)
-		r.Post(constants.ResendVerification, handler.HandleResendVerification)
+		r.Get(EndpointHealth, HandleHealth)
+		r.Post(EndpointRegister, HandleRegister)
+		r.Post(EndpointLogin, HandleLogin)
+		r.Get(EndpointIsLoggedIn, HandleIsLoggedIn) // Currently needed for letting the browser know if it makes sense to be on the authentication pages or not.
+		r.Post(EndpointVerification, HandleVerification)
+		r.Post(EndpointResendVerification, HandleResendVerification)
 
-		r.Route(constants.ForgotPasswordPrefix, func(r chi.Router) {
-			r.Post(constants.Email, handler.HandleForgotPasswordEmail)
-			r.Post(constants.ResetCode, handler.HandleForgotPasswordResetCode)
-			r.Post(constants.NewPassword, handler.HandleForgotPasswordNewPassword)
+		r.Route(EndpointForgotPasswordPrefix, func(r chi.Router) {
+			r.Post(EndpointEmail, HandleForgotPasswordEmail)
+			r.Post(EndpointResetCode, HandleForgotPasswordResetCode)
+			r.Post(EndpointNewPassword, HandleForgotPasswordNewPassword)
 		})
 
 		// authentication required routes
 		r.Group(func(r chi.Router) {
-			r.Use(service.Authenticate)
-			r.Post(constants.Logout, handler.HandleLogout)
-			r.Get(constants.ReadyForNextExercise, handler.HandleReadyForNextExercise)
-			r.Get(constants.CurrentExercise, handler.HandleFetchCurrentExercise)
-			r.Get(constants.ShuffleExercise, handler.HandleShuffleExercise)
+			r.Use(Authenticate)
+			r.Post(EndpointLogout, HandleLogout)
+			r.Get(EndpointReadyForNextExercise, HandleReadyForNextExercise)
+			r.Get(EndpointCurrentExercise, HandleFetchCurrentExercise)
+			r.Get(EndpointShuffleExercise, HandleShuffleExercise)
 
-			r.Get(constants.GetCurrentWorkout, handler.HandleGetCurrentWorkout)
-			r.Put(constants.SwapExercise, handler.HandleSwapExercise)
-			r.Put(constants.RecordIncrementedWorkoutStep, handler.HandleRecordIncrementedWorkoutStep)
+			r.Get(EndpointGetCurrentWorkout, HandleGetCurrentWorkout)
+			r.Put(EndpointSwapExercise, HandleSwapExercise)
+			r.Put(EndpointRecordIncrementedWorkoutStep, HandleRecordIncrementedWorkoutStep)
 		})
 	})
 
 	log.Printf("initialization complete")
-	config.HttpServer.Handler = r
-	err = config.HttpServer.ListenAndServeTLS("", "") // certs are already present in the tls config
+	HttpServer.Handler = r
+	err = HttpServer.ListenAndServeTLS("", "") // certs are already present in the tls config
 	if err != nil {
 		return fmt.Errorf("error, when attempting to start server: %v", err)
 	}
