@@ -38,7 +38,7 @@ func main() {
 		Environment: Environment,
 	})
 	if err != nil {
-		log.Fatalf("error, sentry.Init: %s", err)
+		log.Fatalf("error, sentry.Init(): %s", err)
 	}
 	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", Environment))
 	defer sentry.Flush(2 * time.Second)
@@ -46,7 +46,7 @@ func main() {
 	if os.Getenv(ModeKey) == WorkoutGen {
 		err = GenerateDailyWorkout(ctx, ConnectionPool, RedisConnectionPool, Environment)
 		if err != nil {
-			log.Fatalf("error, when generateDailyWorkout() for main(). Error: %v", err)
+			log.Fatalf("error, when GenerateDailyWorkout() for main(). Error: %v", err)
 		}
 	} else {
 		err = serveAthletes(ctx)

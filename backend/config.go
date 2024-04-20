@@ -70,10 +70,17 @@ var (
 )
 
 func InitConfig(ctx context.Context) error {
+	var err error
 	var errorMsgs []string
 	Environment = os.Getenv("TF_VAR_environment")
 	if Environment == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_environment")
+	}
+
+	s := os.Getenv("TF_VAR_allowed_verification_resend_code_attempts_within_one_hour")
+	AllowedVerificationResendCodeAttemptsWithinOneHour, err = strconv.Atoi(s)
+	if err != nil {
+		return fmt.Errorf("error, ensure the env var TF_VAR_allowed_verification_resend_code_attempts_within_one_hour has a value and is a number")
 	}
 
 	SentryEndpoint = os.Getenv("TF_VAR_sentry_end_point")
@@ -130,7 +137,6 @@ func InitConfig(ctx context.Context) error {
 	}
 
 	toParse := os.Getenv("TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds")
-	var err error
 	VerificationExcessiveRetryAttemptLockoutDurationInSeconds, err = strconv.Atoi(toParse)
 	if toParse == "" || err != nil {
 		errorMsgs = append(errorMsgs, "TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds")

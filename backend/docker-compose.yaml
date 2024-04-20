@@ -25,6 +25,7 @@ services:
       TF_VAR_redis_user_crt: "${TF_VAR_redis_user_crt}"
       TF_VAR_redis_ca: "${TF_VAR_redis_ca}"
       TF_VAR_sentry_end_point: "${TF_VAR_sentry_end_point}"
+      TF_VAR_allowed_verification_resend_code_attempts_within_one_hour: "${TF_VAR_allowed_verification_resend_code_attempts_within_one_hour}"
     ports:
       - "443:443"
     network_mode: host
