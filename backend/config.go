@@ -34,17 +34,13 @@ var (
 	EmailRootCa                                                   string
 	TrustedUiOrigins                                              []string
 
-	// todo make this configurable
-	AllowedVerificationResendCodeAttemptsWithinOneHour = 3
+	AllowedVerificationResendCodeAttemptsWithinOneHour int
 
 	AllowedLoginAttemptsBeforeTriggeringLockout int
 
 	VerificationExcessiveRetryAttemptLockoutDurationInSeconds                 int
 	WindowLengthInSecondsForTheNumberOfAllowedVerificationEmailsBeforeLockout int
 	WindowLengthInSecondsForTheNumberOfAllowedLoginAttemptsBeforeLockout      int
-
-	// MuscleGroupRecoveryWindowInHours setting this for 72 hours minus 4 hours for variance in workout start time. I was subtracting 2 hours but that turned out to not be enough as my exercises were finally showing up half-way through my workout.
-	MuscleGroupRecoveryWindowInHours = time.Duration(72 - 4)
 
 	NumberOfExerciseInSuperset = 3
 
@@ -53,12 +49,6 @@ var (
 	// CurrentSupersetExpirationTimeInHours this addresses the edge case where the user doesn't finish the superset within a reasonable amount of time.
 	// the superset is assumed to be aborted regardless of the progress made in that superset.
 	CurrentSupersetExpirationTimeInHours = 6
-
-	// CurrentWorkoutExpirationTimeInHours this is used to set the expiration time for the muscle groups worked counter.
-	// This counter is used to keep the number of exercises spread evenly as possible throughout the week. The aim here
-	// is to ensure workout times stay consistent, rather than 2 hours one day and 30 min the next day. The current rule
-	// is that if the workout counter is equal or more than half the total amount of muscle groups then we will stop the workout.
-	CurrentWorkoutExpirationTimeInHours = 4
 
 	Version             string
 	ConnectionPool      *pgxpool.Pool

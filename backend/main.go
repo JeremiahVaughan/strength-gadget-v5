@@ -102,9 +102,6 @@ func serveAthletes(ctx context.Context) error {
 		r.Group(func(r chi.Router) {
 			r.Use(Authenticate)
 			r.Post(EndpointLogout, HandleLogout)
-			r.Get(EndpointReadyForNextExercise, HandleReadyForNextExercise)
-			r.Get(EndpointCurrentExercise, HandleFetchCurrentExercise)
-			r.Get(EndpointShuffleExercise, HandleShuffleExercise)
 
 			r.Get(EndpointGetCurrentWorkout, HandleGetCurrentWorkout)
 			r.Put(EndpointSwapExercise, HandleSwapExercise)

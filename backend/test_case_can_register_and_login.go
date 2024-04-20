@@ -1,36 +1,33 @@
-package test_case
+package main
 
 import (
 	"fmt"
 	"log"
 	"net/http"
-	"strengthgadget.com/m/v2/constants"
-	"strengthgadget.com/m/v2/model"
-	testConstants "strengthgadget.com/m/v2/test_tornado/constants"
-	testModel "strengthgadget.com/m/v2/test_tornado/model"
-	"strengthgadget.com/m/v2/test_tornado/service"
 	"time"
 )
 
 func CanRegisterAndLogin() error {
-	response, err := checkIfLoggedIn(nil)
+	c := IntegrationTestClient{}
+
+	response, err := c.checkIfLoggedIn(nil)
 	if response.ResponseCode != http.StatusUnauthorized {
 		return fmt.Errorf("error, expected logged out when first executing test script, but got response code: %d. Error: %v", response.ResponseCode, err)
 	}
 
 	var registeredEmail string
-	registeredEmail, err = registerNewUser()
+	registeredEmail, err = c.registerNewUser()
 	if err != nil {
 		return fmt.Errorf("error, when registerNewUser() for CanRegisterAndLogin(). Error: %v", err)
 	}
 
 	// todo implement a way to test verification code expiration (e.g., let it expire and ensure it can't be used still)
-	response, err = attemptLoginWithoutVerification(registeredEmail)
+	response, err = c.attemptLoginWithoutVerification(registeredEmail)
 	if response.ResponseCode != http.StatusForbidden {
 		return fmt.Errorf("error, when attempting to login without verification. Response Code: %d. Error: %s", response.ResponseCode, err)
 	}
 
-	response, err = checkIfLoggedIn(nil)
+	response, err = c.checkIfLoggedIn(nil)
 	if response.ResponseCode != http.StatusUnauthorized {
 		return fmt.Errorf("error, expected logged out after attempted login without verification, but got response code: %d. Error: %v", response.ResponseCode, err)
 	}
@@ -38,7 +35,7 @@ func CanRegisterAndLogin() error {
 	requestOkCount := 0
 	tooManyRecentResendVerificationRequests := 0
 	for i := 0; i < 10; i++ {
-		response, err = attemptResendVerificationCode(registeredEmail)
+		response, err = c.attemptResendVerificationCode(registeredEmail)
 		if response.ResponseCode == http.StatusOK {
 			requestOkCount++
 		} else if response.ResponseCode == http.StatusBadRequest {
@@ -50,12 +47,12 @@ func CanRegisterAndLogin() error {
 	if requestOkCount == 0 || tooManyRecentResendVerificationRequests == 0 {
 		return fmt.Errorf("error, expected at least one 200 or 400 but got: 200: %d, 400: %d", requestOkCount, tooManyRecentResendVerificationRequests)
 	}
-	waitForTooManyRecentResendVerificationCountToReset()
+	c.waitForTooManyRecentResendVerificationCountToReset()
 
 	invalidRequestCount := 0
 	tooManyRecentVerificationRequestsCount := 0
 	for i := 0; i < 10; i++ {
-		response, err = attemptVerificationWithInvalidCode(registeredEmail)
+		response, err = c.attemptVerificationWithInvalidCode(registeredEmail)
 		if response.ResponseCode == http.StatusBadRequest {
 			invalidRequestCount++
 		} else if response.ResponseCode == http.StatusForbidden {
@@ -67,83 +64,83 @@ func CanRegisterAndLogin() error {
 	if invalidRequestCount == 0 || tooManyRecentVerificationRequestsCount == 0 {
 		return fmt.Errorf("error, expected at least one of either 400 or 403 errors but got: 400: %d, 403: %d", invalidRequestCount, tooManyRecentVerificationRequestsCount)
 	}
-	waitForTooManyRecentVerificationCountToReset()
+	c.waitForTooManyRecentVerificationCountToReset()
 
-	response, err = attemptVerificationWithValidCode(registeredEmail)
+	response, err = c.attemptVerificationWithValidCode(registeredEmail)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attempting verification with valid verification code. Error: %v. Response code: %d", err, response.ResponseCode)
 	}
 	sessionCookie := response.Cookie
 
-	response, err = checkIfLoggedIn(sessionCookie)
+	response, err = c.checkIfLoggedIn(sessionCookie)
 	if err != nil || response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, expected logged in but got response code: %+v. Error: %v", response, err)
 	}
 
-	response, err = attemptLogout(sessionCookie)
+	response, err = c.attemptLogout(sessionCookie)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attempting to logout, but got response code: %d. Cookie: %+v. Error: %v", response.ResponseCode, sessionCookie, err)
 	}
 
-	response, err = checkIfLoggedIn(sessionCookie)
+	response, err = c.checkIfLoggedIn(sessionCookie)
 	if response.ResponseCode != http.StatusUnauthorized {
 		return fmt.Errorf("error, expected logged in but got response code: %d. Cookie: %+v. Error: %v", response.ResponseCode, sessionCookie, err)
 	}
 
-	err = attemptLoginWithUserThatDoesNotExist()
+	err = c.attemptLoginWithUserThatDoesNotExist()
 	if err != nil {
 		return fmt.Errorf("error, when attemptLoginWithUserThatDoesNotExist() for CanRegisterAndLogin(). Error: %v", err)
 	}
 
-	password := testConstants.ValidPassword
-	response, err = attemptLogin(registeredEmail, password)
+	password := MockValidPassword
+	response, err = c.attemptLogin(registeredEmail, password)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attemptLogin() for CanRegisterAndLogin() when attempting login after registration. Error: %v", err)
 	}
 
-	response, err = attemptLogout(response.Cookie)
+	response, err = c.attemptLogout(response.Cookie)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attempting to logout after post registration login, but got response code: %d. Cookie: %+v. Error: %v", response.ResponseCode, response.Cookie, err)
 	}
 
-	err = attemptResetPassword(registeredEmail)
+	err = c.attemptResetPassword(registeredEmail)
 	if err != nil {
 		return fmt.Errorf("error, when attempting password reset. Error: %v", err)
 	}
 
-	response, err = attemptLoginWithOldPassword(registeredEmail, password)
+	response, err = c.attemptLoginWithOldPassword(registeredEmail, password)
 	if response.ResponseCode != http.StatusBadRequest {
 		return fmt.Errorf("error, attempted login with old password and expected a 400 but got %d. Error: %v. Cookie: %+v", response.ResponseCode, err, response.Cookie)
 	}
 
-	password = testConstants.ValidNewPassword
-	response, err = attemptLogin(registeredEmail, password)
+	password = MockValidNewPassword
+	response, err = c.attemptLogin(registeredEmail, password)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attempting login after changing password. Error: %v", err)
 	}
 	sessionCookie = response.Cookie
 
-	response, err = checkIfLoggedIn(sessionCookie)
+	response, err = c.checkIfLoggedIn(sessionCookie)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, expected logged in after post reset password login but got response code: %d. Cookie: %+v. Error: %v", response.ResponseCode, sessionCookie, err)
 	}
 
-	err = service.SendNotification(fmt.Sprintf("##################\n.\n.\n.\n.\n%s\n%s\n.", registeredEmail, testConstants.ValidNewPassword))
+	err = c.SendNotification(fmt.Sprintf("##################\n.\n.\n.\n.\n%s\n%s\n.", registeredEmail, MockValidNewPassword))
 	if err != nil {
 		return fmt.Errorf("error, then attempting to public test email and test password: %v", err)
 	}
 	log.Printf("integration test EMAIL: %s", registeredEmail)
-	log.Printf("integration test PASSWORD: %s", testConstants.ValidNewPassword)
+	log.Printf("integration test PASSWORD: %s", MockValidNewPassword)
 	log.Printf("integration test Active Session Cookie: %+v", sessionCookie)
 
 	return nil
 }
 
-func attemptLoginWithOldPassword(registeredEmail, oldPassword string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptLoginWithOldPassword(registeredEmail, oldPassword string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.Login,
-		model.Credentials{
+		EndpointLogin,
+		Credentials{
 			Email:    registeredEmail,
 			Password: oldPassword,
 		},
@@ -152,13 +149,13 @@ func attemptLoginWithOldPassword(registeredEmail, oldPassword string) (*testMode
 	)
 }
 
-func attemptResetPassword(registeredEmail string) error {
-	var response *testModel.TestRequestResponse
+func (c *IntegrationTestClient) attemptResetPassword(registeredEmail string) error {
+	var response *TestRequestResponse
 	var err error
 	requestSuccessfulCount := 0
 	tooManyRecentResendResetPasswordCodeCount := 0
 	for i := 0; i < 10; i++ {
-		response, err = attemptSendResendResetCode(registeredEmail)
+		response, err = c.attemptSendResendResetCode(registeredEmail)
 		if response.ResponseCode == http.StatusOK {
 			requestSuccessfulCount++
 		} else if response.ResponseCode == http.StatusBadRequest {
@@ -171,8 +168,8 @@ func attemptResetPassword(registeredEmail string) error {
 		return fmt.Errorf("error, expected at least one of either 200 or 400 errors for resend reset password code execessive request test but got: 200: %d, 400: %d", requestSuccessfulCount, tooManyRecentResendResetPasswordCodeCount)
 	}
 
-	waitForTooManyRecentResendPasswordResetRequestsCountToReset()
-	response, err = attemptSendResendResetCode(registeredEmail)
+	c.waitForTooManyRecentResendPasswordResetRequestsCountToReset()
+	response, err = c.attemptSendResendResetCode(registeredEmail)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attempting to Resend password reset code after waiting for exausting reset attempts. Response code: %d. Error: %v", response.ResponseCode, err)
 	}
@@ -180,7 +177,7 @@ func attemptResetPassword(registeredEmail string) error {
 	requestSuccessfulCount = 0
 	tooManyRecentResetPasswordCodeCount := 0
 	for i := 0; i < 10; i++ {
-		response, err = attemptSendInvalidForgotPasswordResetCode(registeredEmail)
+		response, err = c.attemptSendInvalidForgotPasswordResetCode(registeredEmail)
 		if response.ResponseCode == http.StatusBadRequest {
 			requestSuccessfulCount++
 		} else if response.ResponseCode == http.StatusForbidden {
@@ -193,18 +190,18 @@ func attemptResetPassword(registeredEmail string) error {
 		return fmt.Errorf("error, expected at least one of either 200 or 403 errors for resend reset password code execessive request test but got: 200: %d, 403: %d", requestSuccessfulCount, tooManyRecentResendResetPasswordCodeCount)
 	}
 
-	waitForTooManyRecentPasswordResetAttemptsCountToReset()
-	response, err = attemptSendValidForgotPasswordResetCode(registeredEmail)
+	c.waitForTooManyRecentPasswordResetAttemptsCountToReset()
+	response, err = c.attemptSendValidForgotPasswordResetCode(registeredEmail)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attemptSendValidForgotPasswordResetCode() for attemptResetPassword(). Error: %v", err)
 	}
 
-	response, err = attemptToSendInvalidNewPassword(registeredEmail)
+	response, err = c.attemptToSendInvalidNewPassword(registeredEmail)
 	if response.ResponseCode != http.StatusBadRequest {
 		return fmt.Errorf("error, attempting to send an invalid new password and expected to recieve a 400 response but instead got: %d. Error: %v", response.ResponseCode, err)
 	}
 
-	response, err = attemptToSendValidNewPassword(registeredEmail)
+	response, err = c.attemptToSendValidNewPassword(registeredEmail)
 	if response.ResponseCode != http.StatusOK {
 		return fmt.Errorf("error, when attempting to send a valid new password. Expected response code 200 but got: %d. Error: %v", response.ResponsePayload, err)
 	}
@@ -212,52 +209,52 @@ func attemptResetPassword(registeredEmail string) error {
 	return nil
 }
 
-func attemptToSendValidNewPassword(registeredEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptToSendValidNewPassword(registeredEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.ForgotPasswordPrefix+constants.NewPassword,
-		model.ForgotPassword{
+		EndpointForgotPasswordPrefix+EndpointNewPassword,
+		ForgotPassword{
 			Email:       registeredEmail,
-			ResetCode:   constants.MockVerificationCode,
-			NewPassword: testConstants.ValidNewPassword,
+			ResetCode:   MockVerificationCode,
+			NewPassword: MockValidNewPassword,
 		},
 		nil,
 		nil,
 	)
 }
 
-func attemptToSendInvalidNewPassword(registeredEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptToSendInvalidNewPassword(registeredEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.ForgotPasswordPrefix+constants.NewPassword,
-		model.ForgotPassword{
+		EndpointForgotPasswordPrefix+EndpointNewPassword,
+		ForgotPassword{
 			Email:       registeredEmail,
-			ResetCode:   constants.MockVerificationCode,
-			NewPassword: testConstants.InValidPassword,
+			ResetCode:   MockVerificationCode,
+			NewPassword: MockInValidPassword,
 		},
 		nil,
 		nil,
 	)
 }
 
-func attemptSendValidForgotPasswordResetCode(registeredEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptSendValidForgotPasswordResetCode(registeredEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.ForgotPasswordPrefix+constants.ResetCode,
-		model.ForgotPassword{
+		EndpointForgotPasswordPrefix+EndpointResetCode,
+		ForgotPassword{
 			Email:     registeredEmail,
-			ResetCode: constants.MockVerificationCode,
+			ResetCode: MockVerificationCode,
 		},
 		nil,
 		nil,
 	)
 }
 
-func attemptSendResendResetCode(registeredEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptSendResendResetCode(registeredEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.ForgotPasswordPrefix+constants.Email,
-		model.ForgotPassword{
+		EndpointForgotPasswordPrefix+EndpointEmail,
+		ForgotPassword{
 			Email: registeredEmail,
 		},
 		nil,
@@ -265,24 +262,24 @@ func attemptSendResendResetCode(registeredEmail string) (*testModel.TestRequestR
 	)
 }
 
-func attemptSendInvalidForgotPasswordResetCode(registeredEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptSendInvalidForgotPasswordResetCode(registeredEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.ForgotPasswordPrefix+constants.ResetCode,
-		model.ForgotPassword{
+		EndpointForgotPasswordPrefix+EndpointResetCode,
+		ForgotPassword{
 			Email:     registeredEmail,
-			ResetCode: testConstants.InvalidVerificationCode,
+			ResetCode: MockInvalidVerificationCode,
 		},
 		nil,
 		nil,
 	)
 }
 
-func attemptLogin(registeredEmail string, validPassword string) (*testModel.TestRequestResponse, error) {
+func (c *IntegrationTestClient) attemptLogin(registeredEmail string, validPassword string) (*TestRequestResponse, error) {
 	tooManyRecentLoginAttemptsCount := 0
 	loginAttemptRejectedDueToInvalidUsernameOrPasswordCount := 0
 	for i := 0; i < 10; i++ {
-		response, err := attemptLoginWithInvalidCredentials(registeredEmail)
+		response, err := c.attemptLoginWithInvalidCredentials(registeredEmail)
 		if response.ResponseCode == http.StatusBadRequest {
 			loginAttemptRejectedDueToInvalidUsernameOrPasswordCount++
 		} else if response.ResponseCode == http.StatusUnauthorized {
@@ -295,15 +292,15 @@ func attemptLogin(registeredEmail string, validPassword string) (*testModel.Test
 		return nil, fmt.Errorf("error, expected at least one of either 400 or 401 errors for excessive login requests test but got: 400: %d, 401: %d", loginAttemptRejectedDueToInvalidUsernameOrPasswordCount, tooManyRecentLoginAttemptsCount)
 	}
 
-	waitForTooManyRecentPasswordLoginAttemptsCountToReset()
-	return attemptLoginWithValidCredentials(registeredEmail, validPassword)
+	c.waitForTooManyRecentPasswordLoginAttemptsCountToReset()
+	return c.attemptLoginWithValidCredentials(registeredEmail, validPassword)
 }
 
-func attemptLoginWithUserThatDoesNotExist() error {
+func (c *IntegrationTestClient) attemptLoginWithUserThatDoesNotExist() error {
 	tooManyRecentLoginAttemptsCount := 0
 	loginAttemptRejectedDueToInvalidUsernameOrPasswordCount := 0
 	for i := 0; i < 10; i++ {
-		response, err := attemptLoginWithInvalidCredentials("oeueounaoethusneohauneotu@gmail.com")
+		response, err := c.attemptLoginWithInvalidCredentials("oeueounaoethusneohauneotu@gmail.com")
 		if response.ResponseCode == http.StatusBadRequest {
 			loginAttemptRejectedDueToInvalidUsernameOrPasswordCount++
 		} else if response.ResponseCode == http.StatusUnauthorized {
@@ -318,24 +315,24 @@ func attemptLoginWithUserThatDoesNotExist() error {
 	return nil
 }
 
-func attemptLoginWithInvalidCredentials(registeredEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptLoginWithInvalidCredentials(registeredEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.Login,
-		model.Credentials{
+		EndpointLogin,
+		Credentials{
 			Email:    registeredEmail,
-			Password: testConstants.InValidPassword,
+			Password: MockInValidPassword,
 		},
 		nil,
 		nil,
 	)
 }
 
-func attemptLoginWithValidCredentials(registeredEmail string, validPassword string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptLoginWithValidCredentials(registeredEmail string, validPassword string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.Login,
-		model.Credentials{
+		EndpointLogin,
+		Credentials{
 			Email:    registeredEmail,
 			Password: validPassword,
 		},
@@ -344,115 +341,105 @@ func attemptLoginWithValidCredentials(registeredEmail string, validPassword stri
 	)
 }
 
-func waitForTooManyRecentResendVerificationCountToReset() {
+func (c *IntegrationTestClient) waitForTooManyRecentResendVerificationCountToReset() {
 	time.Sleep(5 * time.Second)
 }
 
-func waitForTooManyRecentPasswordResetAttemptsCountToReset() {
+func (c *IntegrationTestClient) waitForTooManyRecentPasswordResetAttemptsCountToReset() {
 	time.Sleep(5 * time.Second)
 }
 
-func waitForTooManyRecentResendPasswordResetRequestsCountToReset() {
-	time.Sleep(5 * time.Second)
-}
-func waitForTooManyRecentPasswordLoginAttemptsCountToReset() {
+func (c *IntegrationTestClient) waitForTooManyRecentResendPasswordResetRequestsCountToReset() {
 	time.Sleep(5 * time.Second)
 }
 
-func attemptResendVerificationCode(email string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(http.MethodPost, constants.ResendVerification, model.VerificationRequest{
-		Email: email,
-	}, nil, nil)
+func (c *IntegrationTestClient) waitForTooManyRecentPasswordLoginAttemptsCountToReset() {
+	time.Sleep(5 * time.Second)
 }
 
-func attemptLogout(cookie *http.Cookie) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(http.MethodPost, constants.Logout, nil, cookie, nil)
-}
-
-func checkIfLoggedIn(cookie *http.Cookie) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(http.MethodGet, constants.IsLoggedIn, nil, cookie, nil)
-}
-
-func attemptVerificationWithValidCode(validEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptResendVerificationCode(email string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.Verification, model.VerificationRequest{
-			Email: validEmail,
-			Code:  constants.MockVerificationCode,
+		EndpointResendVerification,
+		VerificationRequest{
+			Email: email,
 		},
 		nil,
 		nil,
 	)
 }
 
-func waitForTooManyRecentVerificationCountToReset() {
-	time.Sleep(5 * time.Second)
+func (c *IntegrationTestClient) attemptLogout(cookie *http.Cookie) (*TestRequestResponse, error) {
+	return c.TestRequest(
+		http.MethodPost,
+		EndpointLogout,
+		nil,
+		cookie,
+		nil,
+	)
 }
 
-func attemptVerificationWithInvalidCode(validEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) checkIfLoggedIn(cookie *http.Cookie) (*TestRequestResponse, error) {
+	return c.TestRequest(
+		http.MethodGet,
+		EndpointIsLoggedIn,
+		nil,
+		cookie,
+		nil,
+	)
+}
+
+func (c *IntegrationTestClient) attemptVerificationWithValidCode(validEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.Verification, model.VerificationRequest{
+		EndpointVerification,
+		VerificationRequest{
 			Email: validEmail,
-			Code:  testConstants.InvalidVerificationCode,
+			Code:  MockVerificationCode,
 		},
 		nil,
 		nil,
 	)
 }
 
-func registerNewUser() (string, error) {
-	response, err := attemptWithEmptyUsername(constants.Register)
-	if response == nil {
-		return "", fmt.Errorf("error, when attempt to register with empty username. Error: %s", err)
-	}
-	if response.ResponseCode != http.StatusBadRequest {
-		return "", fmt.Errorf("error, when attempt to register with empty username. Response Code: %d", response.ResponseCode)
-	}
-
-	response, err = attemptWithEmptyPassword(constants.Register)
-	if response.ResponseCode != http.StatusBadRequest {
-		return "", fmt.Errorf("error, when attempt to register with empty password. Response Code: %d. Error: %s", response.ResponseCode, err)
-	}
-
-	response, err = attemptWithInvalidEmail(constants.Register)
-	if response.ResponseCode != http.StatusBadRequest {
-		return "", fmt.Errorf("error, when attempt to register with invalid email. Response Code: %d. Error: %s", response.ResponseCode, err)
-	}
-
-	response, err = attemptWithInvalidPassword(constants.Register)
-	if response.ResponseCode != http.StatusBadRequest {
-		return "", fmt.Errorf("error, when attempt to register with invalid password. Response Code: %d. Error: %s", response.ResponseCode, err)
-	}
-
-	validEmail, responseCode, err := attemptWithValidCredentials(constants.Register)
-	if responseCode != http.StatusOK {
-		return "", fmt.Errorf("error, when attempt to register with valid credentials. Response Code: %d. Error: %s", responseCode, err)
-	}
-	return validEmail, nil
+func (c *IntegrationTestClient) waitForTooManyRecentVerificationCountToReset() {
+	time.Sleep(5 * time.Second)
 }
 
-func attemptLoginWithoutVerification(validEmail string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(
+func (c *IntegrationTestClient) attemptVerificationWithInvalidCode(validEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
 		http.MethodPost,
-		constants.Login,
-		model.Credentials{
+		EndpointVerification,
+		VerificationRequest{
+			Email: validEmail,
+			Code:  MockInvalidVerificationCode,
+		},
+		nil,
+		nil,
+	)
+}
+
+func (c *IntegrationTestClient) attemptLoginWithoutVerification(validEmail string) (*TestRequestResponse, error) {
+	return c.TestRequest(
+		http.MethodPost,
+		EndpointLogin,
+		Credentials{
 			Email:    validEmail,
-			Password: testConstants.ValidPassword,
+			Password: MockValidPassword,
 		},
 		nil,
 		nil,
 	)
 }
 
-func attemptWithValidCredentials(register string) (string, int, error) {
-	validEmail := service.GetValidEmail()
-	response, err := service.TestRequest(
+func (c *IntegrationTestClient) attemptWithValidCredentials(register string) (string, int, error) {
+	validEmail := c.GetValidEmail()
+	response, err := c.TestRequest(
 		http.MethodPost,
 		register,
-		model.Credentials{
+		Credentials{
 			Email:    validEmail,
-			Password: testConstants.ValidPassword,
+			Password: MockValidPassword,
 		},
 		nil,
 		nil,
@@ -460,30 +447,47 @@ func attemptWithValidCredentials(register string) (string, int, error) {
 	return validEmail, response.ResponseCode, err
 }
 
-func attemptWithInvalidPassword(endpoint string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(http.MethodPost, endpoint, model.Credentials{
-		Email:    service.GetValidEmail(),
-		Password: testConstants.InValidPassword,
+func (c *IntegrationTestClient) attemptWithInvalidPassword(endpoint string) (*TestRequestResponse, error) {
+	return c.TestRequest(http.MethodPost, endpoint, Credentials{
+		Email:    c.GetValidEmail(),
+		Password: MockInValidPassword,
 	}, nil, nil)
 }
 
-func attemptWithInvalidEmail(endpoint string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(http.MethodPost, endpoint, model.Credentials{
-		Email:    testConstants.InValidEmail,
-		Password: testConstants.ValidPassword,
-	}, nil, nil)
+func (c *IntegrationTestClient) attemptWithInvalidEmail(endpoint string) (*TestRequestResponse, error) {
+	return c.TestRequest(
+		http.MethodPost,
+		endpoint, Credentials{
+			Email:    MockInValidEmail,
+			Password: MockValidPassword,
+		},
+		nil,
+		nil,
+	)
 }
 
-func attemptWithEmptyPassword(endpoint string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(http.MethodPost, endpoint, model.Credentials{
-		Email:    service.GetValidEmail(),
-		Password: "",
-	}, nil, nil)
+func (c *IntegrationTestClient) attemptWithEmptyPassword(endpoint string) (*TestRequestResponse, error) {
+	return c.TestRequest(
+		http.MethodPost,
+		endpoint,
+		Credentials{
+			Email:    c.GetValidEmail(),
+			Password: "",
+		},
+		nil,
+		nil,
+	)
 }
 
-func attemptWithEmptyUsername(endpoint string) (*testModel.TestRequestResponse, error) {
-	return service.TestRequest(http.MethodPost, endpoint, model.Credentials{
-		Email:    "",
-		Password: testConstants.ValidPassword,
-	}, nil, nil)
+func (c *IntegrationTestClient) attemptWithEmptyUsername(endpoint string) (*TestRequestResponse, error) {
+	return c.TestRequest(
+		http.MethodPost,
+		endpoint,
+		Credentials{
+			Email:    "",
+			Password: MockValidPassword,
+		},
+		nil,
+		nil,
+	)
 }

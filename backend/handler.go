@@ -14,10 +14,7 @@ const (
 	EndpointResetCode            = "/resetCode"
 	EndpointNewPassword          = "/newPassword"
 
-	EndpointLogout               = "/logout"
-	EndpointReadyForNextExercise = "/readyForNextExercise"
-	EndpointCurrentExercise      = "/currentExercise"
-	EndpointShuffleExercise      = "/shuffleExercise"
+	EndpointLogout = "/logout"
 
 	EndpointGetCurrentWorkout            = "/getCurrentWorkout"
 	EndpointSwapExercise                 = "/swapExercise"
