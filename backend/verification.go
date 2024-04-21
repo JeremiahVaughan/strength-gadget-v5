@@ -68,7 +68,7 @@ func sendEmailVerification(email string, verificationCode string, isPasswordRese
 	address := host + ":" + port
 	c, err := smtp.Dial(address)
 	if err != nil {
-		return fmt.Errorf("Failed to connect: %v\n", err)
+		return fmt.Errorf("error, failed to connect: %v", err)
 	}
 	defer func(smtpClient *smtp.Client) {
 		_ = smtpClient.Close()
@@ -81,7 +81,7 @@ func sendEmailVerification(email string, verificationCode string, isPasswordRese
 	a := smtp.PlainAuth("", from, password, host)
 	e = c.Auth(a)
 	if e != nil {
-		return fmt.Errorf("error, unable to authenticate with email server. Error: %v", e)
+		return fmt.Errorf("error, unable to authenticate with email server at %s. Error: %v", address, e)
 	}
 	e = c.Mail(from)
 	if e != nil {
