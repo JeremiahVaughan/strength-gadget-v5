@@ -1,7 +1,6 @@
 import styles from './cool-button.module.scss';
 import {ReactNode} from "react";
 
-/* eslint-disable-next-line */
 export interface CoolButtonProps {
     children: ReactNode;
     onClick: () => void;

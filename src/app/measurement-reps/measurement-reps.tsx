@@ -1,6 +1,5 @@
 import styles from './measurement-reps.module.scss';
 
-/* eslint-disable-next-line */
 export interface MeasurementRepsProps {
     currentMeasurement: number
 }

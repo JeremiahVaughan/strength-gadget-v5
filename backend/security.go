@@ -349,6 +349,7 @@ func emailIsValid(email string) *Error {
 			UserFeedbackError: ErrorInvalidEmailAddress,
 		}
 	}
+
 	return nil
 }
 
@@ -368,6 +369,7 @@ func emailAlreadyExists(ctx context.Context, email string) (*bool, *Error) {
 	} else {
 		emailExists = true
 	}
+
 	return &emailExists, nil
 }
 
@@ -418,6 +420,7 @@ func logout(ctx context.Context, w http.ResponseWriter, sessionKey string) *Erro
 		Value:  "",
 		MaxAge: -1, // This deletes the cookie
 	})
+
 	return nil
 }
 
@@ -504,6 +507,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	http.SetCookie(w, cookie)
 }
 
@@ -537,6 +541,7 @@ func startNewSession(ctx context.Context, userId string) (*http.Cookie, error) {
 		Path:     "/",
 		Domain:   domain,
 	}
+
 	return cookie, nil
 }
 
@@ -559,6 +564,7 @@ func getSalt(hash string) (string, *Error) {
 			UserFeedbackError: ErrorUnexpectedTryAgain,
 		}
 	}
+
 	return fields[4], nil
 }
 
@@ -599,6 +605,7 @@ func validateForgotPasswordNewPasswordRequest(ctx context.Context, req *ForgotPa
 			UserFeedbackError: err.UserFeedbackError,
 		}
 	}
+
 	return nil
 }
 
@@ -773,6 +780,7 @@ func forgotPasswordNewPassword(ctx context.Context, req *ForgotPassword) (err *E
 			UserFeedbackError: ErrorUnexpectedTryAgain,
 		}
 	}
+
 	return nil
 }
 

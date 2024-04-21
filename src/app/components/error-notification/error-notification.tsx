@@ -1,6 +1,5 @@
 import styles from './error-notification.module.scss';
 
-/* eslint-disable-next-line */
 export interface ErrorNotificationProps {
     message: string
 }

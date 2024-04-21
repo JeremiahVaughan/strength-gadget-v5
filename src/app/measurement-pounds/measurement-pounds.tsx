@@ -1,6 +1,5 @@
 import styles from './measurement-pounds.module.scss';
 
-/* eslint-disable-next-line */
 export interface MeasurementPoundsProps {
     currentMeasurement: number
 }

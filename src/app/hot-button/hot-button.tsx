@@ -1,7 +1,6 @@
 import styles from './hot-button.module.scss';
 import {ReactNode, useEffect, useRef} from "react";
 
-/* eslint-disable-next-line */
 export interface HotButtonProps {
     children: ReactNode;
     onClick: () => void;

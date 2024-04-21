@@ -23,7 +23,6 @@ const (
 	DailyWorkoutSlotPhaseCoolDown
 )
 
-// todo address the issue where if someone is working out when the daily workout gets rotated
 type DailyWorkout struct {
 	// Cardio is done first for initial warmup
 	CardioExercises []Exercise `json:"cardioExercises"`

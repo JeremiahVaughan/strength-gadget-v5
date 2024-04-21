@@ -25,10 +25,13 @@ export function TextBox({
     const validationFeedbackContent = validationErrorMessages?.map(message => {
         return <ErrorNotification key={message} message={message}/>
     })
+
     let style = `${styles['field']}`
+
     if (validationErrorMessages && validationErrorMessages.length > 0) {
         style += ` ${styles['failed-validation']}`
     }
+
     return (
         <div>
             <div>

@@ -2,7 +2,6 @@ import styles from './form-header.module.scss';
 import Header from "../components/header/header";
 import {ReactNode} from "react";
 
-/* eslint-disable-next-line */
 export interface FormHeaderProps {
     children: ReactNode
 }

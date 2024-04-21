@@ -1,6 +1,5 @@
 import styles from './measurement-miles.module.scss';
 
-/* eslint-disable-next-line */
 export interface MeasurementMilesProps {
     currentMeasurement: number
 }

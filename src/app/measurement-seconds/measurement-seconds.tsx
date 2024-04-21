@@ -1,8 +1,7 @@
 import styles from './measurement-seconds.module.scss';
 import TimeDisplay from "../time-display/time-display";
-import React, {useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 
-/* eslint-disable-next-line */
 export interface MeasurementSecondsProps {
     currentMeasurement: number
 }
@@ -22,19 +21,18 @@ export function MeasurementSeconds({currentMeasurement}: MeasurementSecondsProps
         }
     };
 
-    // Timer value has been changed
     useEffect(() => {
         setCurrentCountDownInSeconds(currentMeasurement);
         setCountDownRunning(false)
     }, [currentMeasurement]);
 
     useEffect(() => {
-        let timer: NodeJS.Timeout;
+        let timer: NodeJS.Timeout | undefined;
         if (countDownRunning && currentCountDownInSeconds > 0) {
             timer = setInterval(() => {
                 setCurrentCountDownInSeconds((prevSeconds) => prevSeconds - 1);
             }, 1000);
-        } else { // @ts-ignore
+        } else {
             if (!countDownRunning && timer) {
                 clearInterval(timer);
             }

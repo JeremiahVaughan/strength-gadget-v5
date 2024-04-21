@@ -2,7 +2,7 @@ import {Exercise} from "./exercise";
 
 export class Workout {
     progressIndex: number[] = []
-    workoutId: string = ""
+    workoutId = ""
     warmupExercises: Exercise[] = []
     mainExercises: Exercise[] = []
     coolDownExercises: Exercise[] = []

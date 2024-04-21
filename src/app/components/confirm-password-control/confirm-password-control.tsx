@@ -1,7 +1,5 @@
-import styles from './confirm-password-control.module.scss';
 import TextBox from "../text-box/text-box";
 
-/* eslint-disable-next-line */
 export interface ConfirmPasswordControlProps {
     password: string;
     confirmPassword: string;

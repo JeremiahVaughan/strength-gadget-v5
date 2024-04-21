@@ -4,7 +4,6 @@ import ExerciseMeasurement from "../exercise-measurement/exercise-measurement";
 import HotButton from "../hot-button/hot-button";
 import {Exercise} from "../model/exercise";
 
-/* eslint-disable-next-line */
 export interface ExerciseProps {
     data: Exercise
     handleIframeLoad: () => void
@@ -31,6 +30,7 @@ export function ExerciseDisplay({
                     position: "absolute"
                 }}></div>
                 <iframe src={`https://giphy.com/embed/${data.demonstrationGiphyId}`}
+                        title="giphy-gif"
                         style={{
                             width: '100vw',
                             height: '55vh',

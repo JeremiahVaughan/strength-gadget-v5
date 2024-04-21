@@ -8,6 +8,7 @@ export type cogwheelStyle =
 export interface IconCogWheelTripleProps {
     cogwheelStyle: cogwheelStyle
 }
+
 export function IconCogWheel({cogwheelStyle}: IconCogWheelTripleProps) {
   return (
       <svg className={`${styles['spinning-cog']} ${styles[`spinning-cog-${cogwheelStyle}`]}`}

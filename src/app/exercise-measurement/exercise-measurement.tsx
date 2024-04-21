@@ -11,7 +11,6 @@ import MeasurementReps from "../measurement-reps/measurement-reps";
 import MeasurementSeconds from "../measurement-seconds/measurement-seconds";
 import MeasurementMiles from "../measurement-miles/measurement-miles";
 
-/* eslint-disable-next-line */
 export interface ExerciseMeasurementProps {
     exercise: Exercise
 }

@@ -1,7 +1,6 @@
 import styles from './header.module.scss';
 import {ReactNode} from "react";
 
-/* eslint-disable-next-line */
 export interface HeaderProps {
     children?: ReactNode,
 }

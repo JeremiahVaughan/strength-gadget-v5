@@ -7,7 +7,6 @@ export type color =
     'secondary' |
     'disabled'
 
-/* eslint-disable-next-line */
 export interface ButtonProps {
     children?: ReactNode,
     color?: color,
