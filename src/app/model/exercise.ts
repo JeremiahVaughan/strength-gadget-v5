@@ -1,6 +1,3 @@
-
-
-
 export class Exercise {
     id = "";
     name = "";
@@ -8,5 +5,5 @@ export class Exercise {
     lastCompletedMeasurement = 0;
     measurementType = "";
     exerciseType = "";
-    sourceExerciseSlotIndex: number = 0
+    sourceExerciseSlotIndex = 0
 }

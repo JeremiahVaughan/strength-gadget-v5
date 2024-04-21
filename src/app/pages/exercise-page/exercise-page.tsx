@@ -1,4 +1,4 @@
-import {AxiosError, AxiosResponse} from 'axios';
+import {AxiosError} from 'axios';
 import {useEffect, useState} from 'react';
 import styles from './exercise-page.module.scss';
 import {useNavigate} from "react-router-dom";
@@ -216,8 +216,8 @@ export function ExercisePage() {
     }
 
     function onEasier() {
-        let incrementAmount = getIncrementAmount(currentStep.measurementType);
-        let newValue = currentStep.lastCompletedMeasurement - incrementAmount;
+        const incrementAmount = getIncrementAmount(currentStep.measurementType);
+        const newValue = currentStep.lastCompletedMeasurement - incrementAmount;
         setCurrentStep({
             ...currentStep,
             lastCompletedMeasurement: newValue < 1 ?
@@ -235,7 +235,7 @@ export function ExercisePage() {
     }
 
     function getIncrementAmount(measurementType: string): number {
-        let result: number = 0
+        let result = 0
         switch (measurementType) {
             case measurementTypePounds:
                 result = 5

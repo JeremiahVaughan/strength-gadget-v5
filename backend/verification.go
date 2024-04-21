@@ -56,7 +56,7 @@ func sendEmailVerification(email string, verificationCode string, isPasswordRese
 	certPool := x509.NewCertPool()
 
 	if !certPool.AppendCertsFromPEM(decodedCert) {
-		return fmt.Errorf("Failed to append PEM.\n")
+		return fmt.Errorf("error, failed to append PEM")
 	}
 
 	tlsConfig := &tls.Config{
