@@ -324,15 +324,9 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	// todo provide the auth token back to the user for the session.
 
-	//// todo also add a way for the user to resend email verification in case they didn't receive the email or lost it
-	//// todo add a password reset mechanism
-	//// 		todo its safe to use the same technique for verification code because the email address has already been verified at this point
-	////		todo throttle the password reset mechanism to 5 attempts per 24 hours --- seams reasonable
 	//// todo add a way for users to change their email
 	//// todo add terms of service and privacy policy checkbox
-	//// todo change email so it comes from no-reply@strengthgadget.com
 	//// todo for email verification go with verification code
 	//// 		todo use all caps for ease of readability but accept caps or lowercase for the sake of user experience.
 	//// 		todo use code verification because of the silly belief that clicking links in email is evil
