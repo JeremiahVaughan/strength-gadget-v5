@@ -23,7 +23,7 @@ func sendEmailVerification(email string, verificationCode string, isPasswordRese
 	toEmailAddress := email
 	to := []string{toEmailAddress}
 
-	host := "smtp.gmail.com"
+	host := "smtp.zoho.com"
 	port := "587"
 
 	var subjectPurpose string
