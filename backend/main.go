@@ -27,7 +27,6 @@ func main() {
 	}
 
 	defer ConnectionPool.Close()
-
 	err = sentry.Init(sentry.ClientOptions{
 		Dsn: SentryEndpoint,
 		// Set TracesSampleRate to 1.0 to capture 100%

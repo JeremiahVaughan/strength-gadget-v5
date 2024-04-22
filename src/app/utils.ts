@@ -1,7 +1,7 @@
-import axios, {AxiosInstance, Method} from "axios";
-import {useLocation} from "react-router-dom";
-import {Workout} from "./model/workout";
-import {WorkoutPhase} from "./model/workout_phase";
+import axios, { AxiosInstance, Method } from "axios";
+import { useLocation } from "react-router-dom";
+import { Workout } from "./model/workout";
+import { WorkoutPhase } from "./model/workout_phase";
 
 export function getBaseApiUrlFromHostname() {
     const hostname = window.location.hostname;
@@ -62,7 +62,7 @@ export function useQuery() {
 
 export async function sendRequestWithRetry(url: string, method: Method, data: any, retryCount = 3): Promise<any> {
     try {
-        const response = await getAxiosInstance().request({url, method, data});
+        const response = await getAxiosInstance().request({ url, method, data });
         return response.data;
     } catch (err: any) {
         if (retryCount <= 0 || (err.response && err.response.status === 409)) {

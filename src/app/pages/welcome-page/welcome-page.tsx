@@ -1,7 +1,7 @@
 import styles from './welcome-page.module.scss';
 import {Link, useNavigate} from "react-router-dom";
 import Button from "../../components/button/button";
-import React, {useEffect} from 'react';
+import {useEffect} from 'react';
 import {getAxiosInstance} from "../../utils";
 import {exercise, login, register} from "../../constants/nav";
 

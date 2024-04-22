@@ -1,6 +1,5 @@
 import styles from './time-display.module.scss';
 
-/* eslint-disable-next-line */
 export interface TimeDisplayProps {
     countDownRunning: boolean;
     currentCountDownInSeconds: number;
