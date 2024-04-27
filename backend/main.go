@@ -39,11 +39,23 @@ func main() {
 	if err != nil {
 		log.Fatalf("error, sentry.Init(): %s", err)
 	}
+
 	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", Environment))
 	defer sentry.Flush(2 * time.Second)
 
 	if os.Getenv(ModeKey) == WorkoutGen {
-		err = GenerateDailyWorkout(ctx, ConnectionPool, RedisConnectionPool, Environment)
+		var dailyWorkoutKey string
+		if Environment == EnvironmentLocal {
+			// testing locally means we just need a workout for today
+			today := time.Now().Weekday()
+			dailyWorkoutKey = GetDailyWorkoutKey(today)
+		} else {
+			// generating tomorrow's workout so there is overlap
+			tomorrow := getTomorrowsWeekday(time.Now().Weekday())
+			dailyWorkoutKey = GetDailyWorkoutKey(tomorrow)
+		}
+
+		err = GenerateDailyWorkout(ctx, ConnectionPool, RedisConnectionPool, dailyWorkoutKey)
 		if err != nil {
 			log.Fatalf("error, when GenerateDailyWorkout() for main(). Error: %v", err)
 		}
@@ -83,6 +95,7 @@ func serveAthletes(ctx context.Context) error {
 
 	// The /api prefix is for the local proxy when developing locally. This proxy exists so authentication works locally.
 	r.Route(ApiPrefix, func(r chi.Router) {
+
 		// public routes
 		r.Get(EndpointHealth, HandleHealth)
 		r.Post(EndpointRegister, HandleRegister)
@@ -90,7 +103,6 @@ func serveAthletes(ctx context.Context) error {
 		r.Get(EndpointIsLoggedIn, HandleIsLoggedIn) // Currently needed for letting the browser know if it makes sense to be on the authentication pages or not.
 		r.Post(EndpointVerification, HandleVerification)
 		r.Post(EndpointResendVerification, HandleResendVerification)
-
 		r.Route(EndpointForgotPasswordPrefix, func(r chi.Router) {
 			r.Post(EndpointEmail, HandleForgotPasswordEmail)
 			r.Post(EndpointResetCode, HandleForgotPasswordResetCode)
@@ -106,6 +118,10 @@ func serveAthletes(ctx context.Context) error {
 			r.Put(EndpointSwapExercise, HandleSwapExercise)
 			r.Put(EndpointRecordIncrementedWorkoutStep, HandleRecordIncrementedWorkoutStep)
 		})
+
+		if Environment == EnvironmentLocal {
+			r.Get(EndpointRunIntegrationTests, HandleRunIntegrationTests)
+		}
 	})
 
 	log.Printf("initialization complete")
@@ -114,5 +130,6 @@ func serveAthletes(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error, when attempting to start server: %v", err)
 	}
+
 	return nil
 }

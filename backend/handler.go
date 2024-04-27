@@ -19,4 +19,5 @@ const (
 	EndpointGetCurrentWorkout            = "/getCurrentWorkout"
 	EndpointSwapExercise                 = "/swapExercise"
 	EndpointRecordIncrementedWorkoutStep = "/recordIncrementedWorkoutStep"
+	EndpointRunIntegrationTests          = "runIntegrationTests"
 )

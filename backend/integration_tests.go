@@ -53,6 +53,7 @@ func (c *IntegrationTestClient) TestRequest(
 	cookie *http.Cookie,
 	responsePayloadType any,
 ) (*TestRequestResponse, error) {
+
 	var request *http.Request
 	var err error
 	url := fmt.Sprintf("%s%s", AppUrl, endpoint)
@@ -131,10 +132,11 @@ func (c *IntegrationTestClient) TestRequest(
 		ResponsePayload: responsePayloadType,
 	}, nil
 }
-func (c *IntegrationTestClient) runIntegrationTests() {
+
+func (c *IntegrationTestClient) runIntegrationTests() error {
 	err := c.InitConfig()
 	if err != nil {
-		log.Fatalf("error, when attempting to initialize the application configurations. Error: %v", err)
+		return fmt.Errorf("error, when attempting to initialize the application configurations. Error: %v", err)
 	}
 
 	for i := 0; i < 60; i++ {
@@ -147,7 +149,7 @@ func (c *IntegrationTestClient) runIntegrationTests() {
 		time.Sleep(time.Second)
 	}
 	if err != nil {
-		log.Fatalf("health check failed after exhaustive attempts. Error: %v", err)
+		return fmt.Errorf("health check failed after exhaustive attempts. Error: %v", err)
 	}
 
 	c.initTestCases()
@@ -162,8 +164,10 @@ func (c *IntegrationTestClient) runIntegrationTests() {
 		e = fmt.Errorf("error, when sending notification. Notification Error: %v", e)
 	}
 	if err != nil || e != nil {
-		log.Fatalf("Error: %v. Notification Error: %v", err, e)
+		return fmt.Errorf("Error: %v. Notification Error: %v", err, e)
 	}
+
+	return nil
 }
 
 func (c *IntegrationTestClient) registerNewUser() (string, error) {

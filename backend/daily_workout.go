@@ -99,7 +99,7 @@ func GenerateDailyWorkout(
 	ctx context.Context,
 	db *pgxpool.Pool,
 	redisDb *redis.Client,
-	environment string,
+	dailyWorkoutKey string,
 ) error {
 	allExercises, err := fetchAllExercises(ctx, db)
 	if err != nil {
@@ -132,17 +132,6 @@ func GenerateDailyWorkout(
 	upperWorkout, err := generateDailyWorkoutValue(exerciseMap, UPPER)
 	if err != nil {
 		return fmt.Errorf("error, when generateDailyWorkoutValue(model.UPPER) for generateDailyWorkout(). Error: %v", err)
-	}
-
-	var dailyWorkoutKey string
-	if environment == EnvironmentLocal {
-		// testing locally means we just need a workout for today
-		today := time.Now().Weekday()
-		dailyWorkoutKey = GetDailyWorkoutKey(today)
-	} else {
-		// generating tomorrow's workout so there is overlap
-		tomorrow := getTomorrowsWeekday(time.Now().Weekday())
-		dailyWorkoutKey = GetDailyWorkoutKey(tomorrow)
 	}
 
 	err = redisDb.HSet(ctx, dailyWorkoutKey,
