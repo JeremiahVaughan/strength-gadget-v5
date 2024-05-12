@@ -1,5 +1,7 @@
 #!/bin/bash
-sed -i "s/\"VERSION_PLACEHOLDER\"/\"$CIRCLE_WORKFLOW_ID\"/" ./public/health.json
-echo "NX_CLOUD_ACCESS_TOKEN=$TF_VAR_nx_cloud_access_token" > nx-cloud.env
-npm i
-npx nx build --configuration=production
+echo "$TF_VAR_docker_token" | docker login -u "$TF_VAR_docker_user" --password-stdin
+docker buildx create --use
+docker buildx build --platform linux/arm64 --push \
+  -t "$TF_VAR_docker_user/strengthgadget:$CIRCLE_WORKFLOW_ID" \
+  -t "$TF_VAR_docker_user/strengthgadget:latest" \
+  .

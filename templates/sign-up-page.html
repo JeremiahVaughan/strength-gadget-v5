@@ -1,0 +1,43 @@
+{{define "styles"}}
+<style>
+    .container {
+      display: flex;
+      justify-content: center;
+      margin: 2rem;
+      height: 100vh;
+    }
+
+    .form-container {
+      width: 20rem;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .spacer {
+      height: 1.2rem;
+      width: .9rem;
+    }
+
+    .already-registered-text {
+      color: white;
+    }
+
+</style>
+{{template "text-input-styles" .}}
+{{template "button-styles" .}}
+{{template "form-header-styles" .}}
+{{end}}
+
+
+{{define "content"}}
+<div class="container">
+    <div class="form-container">
+        {{template "signUpForm" .}}
+    </div>
+</div>
+{{end}}
+

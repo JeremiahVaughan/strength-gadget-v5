@@ -1,0 +1,30 @@
+{{define "verificationForm" }}
+<form hx-post="/verification?email={{.Email.Value}}"
+      hx-swap="outerHTML"
+      hx-disabled-elt="#button-{{.Submit.Id}}"
+      hx-indicator="#button-loading-{{.Submit.Id}}"
+      class="content">
+    {{template "form-header-content" "Confirm Email"}}
+    <p class="email-sent-message">
+        Please check your inbox for <b>{{.Email.Value}}</b> 
+    </p>
+    {{template "text-input-content" .ConfirmationCode}}
+    <div class="spacer"></div>
+    <div class="buttons">
+        <div hx-trigger="click"
+             hx-target=".content"
+             hx-swap="outerHTML"
+             hx-disabled-elt="#button-{{.ResendCode.Id}}"
+             hx-indicator="#button-loading-{{.ResendCode.Id}}"
+             hx-put="/verification?email={{.Email.Value}}">
+            {{template "button-content" .ResendCode }}
+        </div>
+        <div class="spacer"></div>
+        {{template "button-content" .Submit }}
+    </div>
+    <div class="error-response-message">
+        <div>{{ .ConfirmationCode.ErrorMsg }}</div>
+    </div>
+    <div class="email-sent-message">{{ .ResentMessage }}</div>
+</form>
+{{end}}

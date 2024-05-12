@@ -1,0 +1,41 @@
+{{define "styles"}}
+<style>
+    .container {
+      display: flex;
+      justify-content: center;
+    }
+
+    .content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      width: 20rem;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: end;
+      width: 100%;
+    }
+
+    .spacer {
+      width: .9rem;
+      height: .9rem;
+    }
+
+    .email-sent-message {
+      color: #b4b4b4;
+      padding: 1rem;
+    }
+</style>
+{{template "text-input-styles" .}}
+{{template "button-styles" .}}
+{{template "form-header-styles" .}}
+{{end}}
+
+{{define "content"}}
+<div class="container">
+    {{template "verificationForm" .}}
+</div>
+{{end}}

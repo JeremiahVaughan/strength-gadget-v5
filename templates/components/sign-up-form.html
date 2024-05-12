@@ -1,0 +1,22 @@
+{{define "signUpForm" }}
+<form hx-post="/signUp"
+      hx-swap="outerHTML"
+      hx-disabled-elt="input, button">
+    {{template "form-header-content" "Sign Up"}}
+    {{template "text-input-content" .Email}}
+    {{template "text-input-content" .Password}}
+    {{template "text-input-content" .ConfirmPassword}}
+    <div class="spacer"></div>
+    <div class="buttons">
+        <a href="/login" class="already-registered-text">
+            Already have an account?
+        </a>
+        {{template "button-content" .Submit }}
+    </div>
+    <div class="error-response-message">
+        <div>{{ .Email.ErrorMsg }}</div>
+        <div>{{ .Password.ErrorMsg }}</div>
+        <div>{{ .ConfirmPassword.ErrorMsg }}</div>
+    </div>
+</form>
+{{end}}

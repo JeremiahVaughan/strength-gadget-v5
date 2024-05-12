@@ -1,0 +1,67 @@
+{{define "button-styles"}}
+<style>
+    .button-content {
+      position: relative;
+      border-radius: 2rem;
+      padding: 1.1rem;
+      font-weight: bold;
+      font-size: 1rem;
+      min-width: 6rem;
+      min-height: 3rem;
+      cursor: pointer;
+      border: none;
+    }
+
+    .button-content:disabled {
+      background-color: gray;
+      color: gray;
+      cursor: not-allowed;
+    }
+
+    .button-primary {
+      background-color: purple;
+      color: #e0e0e0;
+    }
+
+    .button-secondary {
+      background-color: pink;
+    }
+
+    .button-spinner {
+        position: absolute;
+        width: 2rem;
+        height: 2rem;
+        border: .3rem solid #fff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        animation: button-spin 1s linear infinite;
+    }
+
+    @keyframes button-spin {
+        from {
+            transform: translate(-50%, -50%) rotate(0deg);
+        }
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
+</style>
+{{end}}
+
+{{define "button-content"}}
+<button id="button-{{.Id}}"
+        class="button-content button-{{ .Color }} no-select"
+        type="{{.Type}}">
+        <div id="button-loading-{{.Id}}"
+            class="htmx-indicator">
+            <div id="spinner" class="button-spinner"></div>
+        </div>
+        <div>
+            {{ .Label }}
+        </div>
+</button>
+{{end}}
+

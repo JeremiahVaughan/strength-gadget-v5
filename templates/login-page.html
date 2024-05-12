@@ -1,0 +1,66 @@
+{{define "styles"}}
+    <style>
+    .container {
+      display: flex;
+      justify-content: center;
+      margin: 2rem;
+      height: 100vh;
+    }
+
+    .spacer {
+      height: 1.2rem;
+      width: .9rem;
+    }
+
+    .buttons {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .forgot-password-link {
+        color: white;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      color: #949292;
+    }
+
+    .divider-text {
+      flex: 1;
+      text-align: center;
+      background-color: #36393F; /* Background color behind the text */
+      padding: 0.5rem; /* Adjust padding as needed using relative units */
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 7;
+      border-top: 1px solid #949292; /* Border style and color */
+      margin: 0.5rem; /* Adjust margin as needed using relative units */
+    }
+
+    .new-account-text {
+      display: flex;
+      justify-content: center;
+      color: white;
+      margin-top: 1rem;
+    }
+</style>
+{{template "text-input-styles" .}}
+{{template "button-styles" .}}
+{{template "form-header-styles" .}}
+{{end}}
+
+
+{{define "content"}}
+<div class="container">
+    <div class="form-container">
+        {{template "loginForm" .}}
+    </div>
+</div>
+{{end}}

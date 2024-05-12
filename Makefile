@@ -1,2 +1,5 @@
-local:
-	npm run start-mobile
+test-it:
+	go test ./...
+
+do-it:
+	go run .

@@ -1,0 +1,99 @@
+{{define "styles"}}
+<style>
+    .tool-bar {
+      display: flex;
+      background-color: black;
+      justify-content: end;
+      align-items: center;
+      height: 3rem;
+    }
+
+    .authenticate-button {
+      color: white;
+      font-weight: bold;
+      padding-right: 1rem;
+      cursor: pointer;
+    }
+
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 10rem;
+    }
+
+    .spacer {
+      width: 1rem;
+    }
+
+    .loading-text {
+      scale: 2;
+      animation: tilt-n-move-shaking 0.35s infinite;
+      font-family: "Comic Sans MS", serif;
+    }
+
+    @keyframes tilt-n-move-shaking {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      25% {
+        transform: translate(.1rem, .1rem) rotate(5deg);
+      }
+      50% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      75% {
+        transform: translate(-.1rem, .1rem) rotate(-5deg);
+      }
+      100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+    }
+</style>
+{{end}}
+
+{{define "content"}}
+<div class="tool-bar">
+  <div hx-trigger="click"
+       hx-post="/logout"
+       class="authenticate-button">
+    logout
+  </div>
+</div>
+<div class"container">
+    {loading ? <LoadingMessage/> :
+        workoutComplete ? <div class"workout-complete-text">
+                <div>Workout Complete</div>
+            </div> :
+            <div>
+                {!iframeLoaded && <LoadingMessage/>}
+                <div style={{display: iframeLoaded ? "block" : "none"}}>
+                    <ExerciseDisplay
+                        data={currentStep}
+                        onEasier={onEasier}
+                        onHarder={onHarder}
+                        handleIframeLoad={handleIframeLoad}
+                        selectionMode={selectionMode}
+                    />
+                    {!asyncLoading && <div class"buttons">
+                        {selectionMode ? <Button color="secondary"
+                                                 loading={loading}
+                                                 onClick={onSwapExercise}>
+                            No
+                        </Button> : <div class"spacer">}
+                        <Button triggerFromEnter={true} loading={loading}
+                                onClick={() => onCompleteExercise()}>
+                            {selectionMode ? "Yes" : "Complete"}
+                        </Button>
+                    </div>}
+                </div>
+            </div>
+    }
+</div>
+</div>
+<div class="loading-container"
+     class="htmx-indicator">
+    <div class="spacer">
+    <div class="loading-text">... Loading ...</div>
+</div>
+{{end}}

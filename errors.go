@@ -1,0 +1,27 @@
+package main
+
+const (
+	ErrorUserPasswordAndMatchPasswordDidNotMatch     userErr = "password fields do not match"
+	ErrorUserFeedbackAccessDenied                    userErr = "access denied"
+	ErrorUserFeedbackWrongPasswordOrUsername         userErr = "incorrect username or password"
+	ErrorEmailVerificationRateLimitReached           userErr = "too many email verifications have been sent recently, please try again later"
+	ErrorPasswordResetCodeRateLimitReached           userErr = "too many password reset codes have been sent recently, please try again later"
+	ErrorLoginAttemptRateLimitReached                userErr = "too many login attempts were made recently, please try again later"
+	ErrorEmailAlreadyExists                          userErr = "An account with this email already exists."
+	ErrorEmailDoesNotExists                          userErr = "Could not find an account with this email."
+	ErrorMissingEmailAddress                         userErr = "email address not provided"
+	ErrorInvalidEmailAddress                         userErr = "invalid email address format"
+	ErrorUnverifiedEmailAddress                      userErr = "you must verify your email address before logging in"
+	ErrorUserNotLoggedIn                             userErr = "you must login to access this functionality"
+	ErrorPasswordMustBeAtLeastTwelveCharsLong        userErr = "your password must contain at least 12 characters"
+	ErrorPasswordCannotContainAllNumbers             userErr = "your password cannot contain all numbers"
+	ErrorPasswordWasNotProvided                      userErr = "must provide a password"
+	ErrorVerificationCodeHasExpired                  userErr = "verification code expired."
+	ErrorVerificationCodeAlreadyVerified             userErr = "user has already been verified"
+	ErrorVerificationCodeIsInvalid                   userErr = "Invalid verification code. Please try again."
+	ErrorPasswordResetCodeIsInvalid                  userErr = "Invalid password reset code. Please try again."
+	ErrorMissingResetCode                            userErr = "reset code is required"
+	ErrorVerificationNoLongerRequired                userErr = "This email is already verified"
+	ErrorLimitReachedOnVerificationAttempts          userErr = "Too many recent attempts, please try again tomorrow"
+	ErrorTooManyRecentResendVerificationCodeAttempts userErr = "Too many codes sent, please try again later"
+)
