@@ -87,3 +87,4 @@ localhost.pem
 localhost-key.pem
 
 nx-cloud.env
+.env

@@ -49,6 +49,7 @@
         transform: translate(0, 0) rotate(0deg);
       }
     }
+    {{template "button-styles" .}}
 </style>
 {{end}}
 
@@ -68,23 +69,44 @@
             <div>
                 {!iframeLoaded && <LoadingMessage/>}
                 <div style={{display: iframeLoaded ? "block" : "none"}}>
-                    <ExerciseDisplay
-                        data={currentStep}
-                        onEasier={onEasier}
-                        onHarder={onHarder}
-                        handleIframeLoad={handleIframeLoad}
-                        selectionMode={selectionMode}
-                    />
+                    <div className={styles['gif-container']}>
+                                <div className={styles['gif']}>
+                                    <div style={{
+                                        top: 0,
+                                        left: 0,
+                                        width: '100vw',
+                                        height: '55vh',
+                                        position: "absolute"
+                                    }}></div>
+                                    <iframe src={`https://giphy.com/embed/${data.demonstrationGiphyId}`}
+                                            title="giphy-gif"
+                                            style={{
+                                                width: '100vw',
+                                                height: '55vh',
+                                            }}
+                                            frameBorder="0"
+                                            className="giphy-embed"
+                                            onLoad={handleIframeLoad}
+                                            allowFullScreen>
+                                    </iframe>
+                                </div>
+                                <p className={styles['giphy-link']}>
+                                    <a href={`https://giphy.com/gifs/${data.demonstrationGiphyId}`}
+                                       style={{color: "white"}}>
+                                        via GIPHY
+                                    </a>
+                                </p>
+                                {!selectionMode && <div className={styles['buttons']}>
+                                    {{template "button-content" .Cool }}
+                                    {{template "button-content" .Hot }}
+                                    <ExerciseMeasurement exercise={data}/>
+                                    <div className={styles['button-spacer']}/>
+                                </div>}
+                            </div>
                     {!asyncLoading && <div class"buttons">
-                        {selectionMode ? <Button color="secondary"
-                                                 loading={loading}
-                                                 onClick={onSwapExercise}>
-                            No
-                        </Button> : <div class"spacer">}
-                        <Button triggerFromEnter={true} loading={loading}
-                                onClick={() => onCompleteExercise()}>
-                            {selectionMode ? "Yes" : "Complete"}
-                        </Button>
+                        {{template "button-content" .No }}
+                        {{template "button-content" .Yes }}
+                        {{template "button-content" .Complete }}
                     </div>}
                 </div>
             </div>
