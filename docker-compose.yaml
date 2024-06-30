@@ -31,10 +31,12 @@ services:
       - "${TF_VAR_server_port}:443"
     network_mode: host
     restart: always
-  dbkey: 
+  keydb: 
     image: "eqalpha/keydb"
     ports:
       - "${TF_VAR_redis_port}:6379"
+    volumes:
+      - "./keydb.conf:/etc/keydb/keydb.conf"
     network_mode: host
     restart: always
 
