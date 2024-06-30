@@ -72,10 +72,11 @@ func serveAthletes(ctx context.Context) error {
 	// todo add a 404 not found page for invalid addresses
 	mux := http.NewServeMux()
 
-    // todo add middleware for login pages to redirect if logged in already
+	// todo add middleware for login pages to redirect if logged in already
 
 	// endpoints key is endpoint address
 	endpoints := map[string]http.HandlerFunc{
+		LandingPage:          HandleLandingPage,
 		EndpointHealth:       HandleHealth,
 		EndpontSignUp:        HandleSignUp,
 		EndpointLogin:        HandleLogin,
@@ -118,7 +119,6 @@ func serveAthletes(ctx context.Context) error {
 	cachingAdded := setCacheControl(fileServerStripPrefix, 86400*7) // Cache for one week
 	mux.Handle("/static/", cachingAdded)
 
-	mux.HandleFunc(LandingPage, HandleLandingPage)
 	HttpServer.Handler = mux
 
 	log.Printf("initialization complete")

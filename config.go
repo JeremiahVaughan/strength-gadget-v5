@@ -43,10 +43,10 @@ var (
 	WindowLengthInSecondsForTheNumberOfAllowedVerificationEmailsBeforeLockout int
 	WindowLengthInSecondsForTheNumberOfAllowedLoginAttemptsBeforeLockout      int
 
-    // WorkoutSessionExpiration should the workout expire before they complete it, then
-    // they will need to complete the same workout routine again. This 48 hours ensures
-    // they have had enough rest to do so.
-    WorkoutSessionExpiration = time.Duration(time.Hour * 48)
+	// WorkoutSessionExpiration should the workout expire before they complete it, then
+	// they will need to complete the same workout routine again. This 48 hours ensures
+	// they have had enough rest to do so.
+	WorkoutSessionExpiration = time.Duration(time.Hour * 48)
 
 	NumberOfExerciseInSuperset = 3
 
@@ -64,9 +64,9 @@ var (
 
 	AllowedIpRanges []*net.IPNet
 
-	lowerWorkout    AvailableWorkoutExercises
-	coreWorkout     AvailableWorkoutExercises
-	upperWorkout    AvailableWorkoutExercises
+	lowerWorkout AvailableWorkoutExercises
+	coreWorkout  AvailableWorkoutExercises
+	upperWorkout AvailableWorkoutExercises
 )
 
 func InitConfig(ctx context.Context) error {
@@ -222,6 +222,8 @@ func initAllowedIpRanges() ([]*net.IPNet, error) {
 		blocksSlice = []string{
 			"127.0.0.1/32", // ipv4 loop-back
 			"::1/128",      // ipv6 loop-back
+			"10.0.0.8/32",  // Jeremiah's Iphone
+			"10.0.0.24/32", // Jeremiah's Macbook
 		}
 	} else {
 		blocksSlice, err = fetchAllowedIpRanges()
@@ -329,33 +331,33 @@ func connectToRedisDatabase(connectionString string, password string) (*redis.Cl
 		Password: password,
 	}
 	// Load client cert
-	clientCert, clientKey, err := getClientCertAndKey()
-	if err != nil {
-		return nil, fmt.Errorf("error, when getClientCertAndKey() for connectToRedisDatabase(). Error: %v", err)
-	}
-	cert, err := tls.X509KeyPair(clientCert, clientKey)
-	if err != nil {
-		return nil, fmt.Errorf("error, when attempting set LoadX509KeyPair() for connectToRedisDatabase(). Error: %v", err) // Ye don't want to sail without a map!
-	}
+	// clientCert, clientKey, err := getClientCertAndKey()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error, when getClientCertAndKey() for connectToRedisDatabase(). Error: %v", err)
+	// }
+	// cert, err := tls.X509KeyPair(clientCert, clientKey)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error, when attempting set LoadX509KeyPair() for connectToRedisDatabase(). Error: %v", err) // Ye don't want to sail without a map!
+	// }
 
-	caCert, err := getCaCert()
-	if err != nil {
-		return nil, fmt.Errorf("error, when getCaCert() for connectToRedisDatabase(). Error: %v", err)
-	}
+	// caCert, err := getCaCert()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error, when getCaCert() for connectToRedisDatabase(). Error: %v", err)
+	// }
 
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	// caCertPool := x509.NewCertPool()
+	// caCertPool.AppendCertsFromPEM(caCert)
 
-	// Create TLS configuration
-	tlsConfig := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
-		RootCAs:            caCertPool,
-		InsecureSkipVerify: false,
-		// Remember, settin' InsecureSkipVerify to true is like sailin' without a lookout!
-		// InsecureSkipVerify: true, // Only for development or testing!
-	}
+	// // Create TLS configuration
+	// tlsConfig := &tls.Config{
+	// 	Certificates:       []tls.Certificate{cert},
+	// 	RootCAs:            caCertPool,
+	// 	InsecureSkipVerify: false,
+	// 	// Remember, settin' InsecureSkipVerify to true is like sailin' without a lookout!
+	// 	// InsecureSkipVerify: true, // Only for development or testing!
+	// }
 
-	options.TLSConfig = tlsConfig
+	// options.TLSConfig = tlsConfig
 	return redis.NewClient(&options), nil
 }
 

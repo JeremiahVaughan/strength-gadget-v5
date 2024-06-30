@@ -30,3 +30,6 @@ services:
       - "443:443"
     network_mode: host
     restart: always
+  dbkey: "eqalpha/keydb"
+
+
