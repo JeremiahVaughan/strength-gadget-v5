@@ -90,62 +90,62 @@ workflows:
           context:
             - context-production
             - context-docker-hub
-      - build:
+      - build-production:
           filters:
             branches:
               only: master
           context:
             - context-production
             - context-docker-hub
-      - infra:
+      - infra-production:
           filters:
             branches:
               only: master
           context:
             - context-production
             - context-docker-hub
-      - statuscake:
+      - statuscake-production:
           filters:
             branches:
               only: master
           context:
             - context-production
-      - deploy:
+      - deploy-production:
           filters:
             branches:
               only: master
           context:
             - context-production
           requires:
-            - build
-      - build:
+            - build-production
+      - build-staging:
           filters:
             branches:
               only: staging
           context:
             - context-staging
             - context-docker-hub
-      - infra:
+      - infra-staging:
           filters:
             branches:
               only: staging
           context:
             - context-staging
             - context-docker-hub
-      - statuscake:
+      - statuscake-staging:
           filters:
             branches:
               only: staging
           context:
             - context-staging
-      - deploy:
+      - deploy-staging:
           filters:
             branches:
               only: staging
           context:
             - context-staging
           requires:
-            - build
+            - build-staging
 
 
 
