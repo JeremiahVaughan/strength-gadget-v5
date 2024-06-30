@@ -1,23 +1,7 @@
 version: 2.1
 
 jobs:
-  daily-workout-generation:
-    docker:
-      - image: piegarden/strengthgadget:latest
-        auth:
-          username: $TF_VAR_docker_user
-          password: $TF_VAR_docker_token
-    environment:
-      MODE: "workout_gen"
-    resource_class: arm.medium  # Specify ARM resource class
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            /app
-  backend-build:
+  build:
     docker:
       - image: cimg/base:current
         auth:
@@ -30,8 +14,8 @@ jobs:
           docker_layer_caching: true
       - run:
           command: |
-            cd ./backend && ./deploy.sh
-  backend-deploy:
+            ./deploy.sh
+  deploy:
     docker:
       - image: piegarden/file_mover:8.2
         auth:
@@ -47,7 +31,7 @@ jobs:
             echo "$TF_VAR_backend_deployment_ssh_private_key" | base64 -d > .key && chmod 600 .key
             echo "$TF_VAR_backend_deployment_ssh_public_known_host" | base64 -d > ~/.ssh/known_hosts
             ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'mkdir -p strengthgadget'
-            scp -i ./.key backend/docker-compose.yaml "piegarden@$TF_VAR_backend_public_ip:strengthgadget"
+            scp -i ./.key docker-compose.yaml "piegarden@$TF_VAR_backend_public_ip:strengthgadget"
             printenv > .env
             scp -i ./.key .env "piegarden@$TF_VAR_backend_public_ip:strengthgadget"
             ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'cd strengthgadget && sudo docker compose down || true && sudo docker compose up -d'
@@ -63,20 +47,6 @@ jobs:
           docker_layer_caching: true
       - run:
           command: cd ./infrastructure/terraform/live/staging/raspberry_pi && ../deploy.sh
-  frontend-build:
-    docker:
-      - image: piegarden/strengthgadget-frontend-agent:0.0.1
-        auth:
-          username: $TF_VAR_docker_user
-          password: $TF_VAR_docker_token
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            ./deploy.sh &&
-            cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
   statuscake:
     docker:
       - image: alpine/terragrunt
@@ -93,41 +63,36 @@ jobs:
 
 
 workflows:
-  daily-workout-generation:
-    triggers:
-      - schedule:
-          cron: "0 18 * * *" # This is the cron syntax for every day at 6pm central time. Want to simulate this change when I am working out, so I can tell if something breaks.
-          filters:
-            branches:
-              only:
-                - master
-    jobs:
-      - daily-workout-generation:
-          context:
-            - context-staging
-            - context-docker-hub
   deploy:
     jobs:
-      - backend-build:
+      - build:
+          filters:
+            branches:
+              only: master
           context:
-            - context-staging
+            - context-production
             - context-docker-hub
       - infra:
+          filters:
+            branches:
+              only: master
           context:
-            - context-staging
-            - context-docker-hub
-      - frontend-build:
-          context:
-            - context-staging
+            - context-production
             - context-docker-hub
       - statuscake:
+          filters:
+            branches:
+              only: master
           context:
-            - context-staging
-      - backend-deploy:
+            - context-production
+      - deploy:
+          filters:
+            branches:
+              only: master
           context:
-            - context-staging
+            - context-production
           requires:
-            - backend-build
+            - build
 
 
 
