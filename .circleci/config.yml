@@ -15,6 +15,24 @@ jobs:
       - run:
           command: |
             ./deploy.sh
+  reverse-proxy:
+    docker:
+      - image: piegarden/file_mover:8.2
+        auth:
+          username: $TF_VAR_docker_user
+          password: $TF_VAR_docker_token
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Deploy reverse proxy
+          command: |
+            echo "$TF_VAR_backend_deployment_ssh_private_key" | base64 -d > .key && chmod 600 .key
+            echo "$TF_VAR_backend_deployment_ssh_public_known_host" | base64 -d > ~/.ssh/known_hosts
+            ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'mkdir -p reverse-proxy'
+            scp -i ./.key reverse-proxy/docker-compose.yaml reverse-proxy/nginx.conf "piegarden@$TF_VAR_backend_public_ip:reverse-proxy"
+            ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'cd reverse-proxy && sudo docker compose down || true && sudo docker compose up -d'
   deploy:
     docker:
       - image: piegarden/file_mover:8.2
@@ -65,6 +83,13 @@ jobs:
 workflows:
   deploy:
     jobs:
+      - reverse-proxy:
+          filters:
+            branches:
+              only: master
+          context:
+            - context-production
+            - context-docker-hub
       - build:
           filters:
             branches:

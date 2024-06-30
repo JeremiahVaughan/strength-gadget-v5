@@ -10,6 +10,7 @@ services:
       TF_VAR_registration_email_from_password: "${TF_VAR_registration_email_from_password}"
       TF_VAR_database_connection_string: "${TF_VAR_database_connection_string}"
       TF_VAR_redis_connection_string: "${TF_VAR_redis_connection_string}"
+      TF_VAR_redis_port: "${TF_VAR_redis_port}"
       TF_VAR_version: "${CIRCLE_WORKFLOW_ID}"
       TF_VAR_database_root_ca: "${TF_VAR_database_root_ca}"
       TF_VAR_email_root_ca: "${TF_VAR_email_root_ca}"
@@ -27,9 +28,14 @@ services:
       TF_VAR_sentry_end_point: "${TF_VAR_sentry_end_point}"
       TF_VAR_allowed_verification_resend_code_attempts_within_one_hour: "${TF_VAR_allowed_verification_resend_code_attempts_within_one_hour}"
     ports:
-      - "443:443"
+      - "${TF_VAR_server_port}:443"
     network_mode: host
     restart: always
-  dbkey: "eqalpha/keydb"
+  dbkey: 
+    image: "eqalpha/keydb"
+    ports:
+      - "${TF_VAR_redis_port}:6379"
+    network_mode: host
+    restart: always
 
 

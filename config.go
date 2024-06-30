@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -138,6 +139,10 @@ func InitConfig(ctx context.Context) error {
 		errorMsgs = append(errorMsgs, "TF_VAR_redis_connection_string")
 	}
 
+    redisPort := os.Getenv("TF_VAR_redis_port")
+    if redisPort == "" {
+    }
+
 	redisPassword := os.Getenv("TF_VAR_redis_password")
 	if redisPassword == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_redis_password")
@@ -188,7 +193,7 @@ func InitConfig(ctx context.Context) error {
 		return fmt.Errorf("error, when initAllowedIpRanges() for InitConfig(). Error: %v", err)
 	}
 
-	RedisConnectionPool, err = connectToRedisDatabase(redisConnectionString, redisPassword)
+	RedisConnectionPool, err = connectToRedisDatabase(redisPort)
 	if err != nil {
 		return fmt.Errorf("error, when connectToRedisDatabase() for InitConfig(). Error: %v", err)
 	}
@@ -316,19 +321,24 @@ func initHttpServer() (*http.Server, error) {
 		Certificates: []tls.Certificate{cert},
 	}
 
+    serverPort := os.Getenv("TF_VAR_server_port")
+    if serverPort == "" {
+        return nil, errors.New("error, TF_VAR_server_port env var is required, but was not provided")
+    }
+
 	// Create a custom server with TLSConfig
 	server := &http.Server{
-		Addr:      ":443",
+		Addr:      ":" + serverPort,
 		TLSConfig: tlsConfig,
 	}
 	return server, nil
 }
 
-func connectToRedisDatabase(connectionString string, password string) (*redis.Client, error) {
+func connectToRedisDatabase(redisPort string) (*redis.Client, error) {
 	options := redis.Options{
-		Addr:     connectionString,
+        Addr:     "127.0.0.1:" + redisPort,
 		DB:       0, // use default DB
-		Password: password,
+		// Password: password,
 	}
 	// Load client cert
 	// clientCert, clientKey, err := getClientCertAndKey()
