@@ -1,6 +1,7 @@
 package main
 
 type MuscleGroup struct {
-	Id   string
+	Id   int
 	Name string
+    Routine RoutineType
 }

@@ -61,14 +61,19 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := startNewSession(r.Context(), user.Id)
+	authCookie, workoutCookie, err := startNewSession(r.Context(), user.Id)
 	if err != nil {
 		err = fmt.Errorf("error, when persisting session key upon login: %v", err)
 		HandleUnexpectedError(w, err)
 		return
 	}
 
-	http.SetCookie(w, cookie)
+    // this cookie holds the auth session id use for authentication
+	http.SetCookie(w, authCookie)
+
+    // this cookie holds the userId so the workout session can be retrieved
+	http.SetCookie(w, workoutCookie)
+
 	w.Header().Set("HX-Redirect", EndpointExercise)
 }
 

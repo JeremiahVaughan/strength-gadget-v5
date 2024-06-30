@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -67,4 +68,28 @@ func TestGetNextRoutine(t *testing.T) {
 	if result := UPPER.GetNextRoutine(); result != LOWER {
 		t.Errorf("expected %d, but got %d", LOWER, result)
 	}
+}
+
+func Test_serializeWorkoutPhase(t *testing.T) {
+	var err error
+	t.Run("unmarshal 0", func(t *testing.T) {
+		toUnmarshal := "0"
+		got := WorkoutProgressIndex{}
+		got, err = got.demarshal(toUnmarshal)
+		if err != nil {
+			t.Errorf("error, did not want error: %v", err)
+		}
+		want := WorkoutProgressIndex{0}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("erro, wanted %v but got %v", want, got)
+		}
+	})
+	t.Run("marshal 0", func(t *testing.T) {
+		toMarshal := WorkoutProgressIndex{0}
+		got := toMarshal.marshal()
+		want := "0"
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("erro, wanted %v but got %v", want, got)
+		}
+	})
 }

@@ -1,183 +1,134 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"time"
-
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
-type DailyWorkoutSlotPhase int
-
-const (
-	DailyWorkoutSlotPhaseWarmup DailyWorkoutSlotPhase = iota
-	DailyWorkoutSlotPhaseMainFocused
-	DailyWorkoutSlotPhaseMainFiller
-	DailyWorkoutSlotPhaseCoolDown
-)
-
-type DailyWorkout struct {
+type AvailableWorkoutExercises struct {
 	// Cardio is done first for initial warmup
-	CardioExercises []Exercise `json:"cardioExercises"`
+	CardioExercises []Exercise
+
 	// outer slice is for each target muscle group, inner slice is for
-	// applicable muscle groups for the corresponding target muscle group
-	MuscleCoverageMainExercises [][]Exercise `json:"muscleCoverageExercises"`
-	// AllMainExercises is to be used by filler exercises to reach 3 full super sets
-	AllMainExercises []Exercise `json:"allExercises"`
+	// applicable exercises for the corresponding target muscle group
+	MainExercises [][]Exercise
 
 	// CoolDownExercises is used for stretching
-	CoolDownExercises [][]Exercise `json:"coolDownExercises"`
+	CoolDownExercises [][]Exercise
 }
 
-func (dw *DailyWorkout) FromRedis(ctx context.Context, client *redis.Client, key string, weekday time.Weekday) error {
-	workoutJson, err := client.HGet(ctx, GetDailyWorkoutKey(weekday), key).Result()
-	if err != nil {
-		return fmt.Errorf("error retrieving DailyWorkout from Redis. Error: %v", err)
-	}
-
-	// Check if key exists (but expired or never set)
-	if workoutJson == "" {
-		return fmt.Errorf("error, DailyWorkout key expired or never set")
-	}
-
-	// Unmarshal
-	err = json.Unmarshal([]byte(workoutJson), dw)
-	if err != nil {
-		return fmt.Errorf("error unmarshalling DailyWorkout. Error: %v", err)
-	}
-
-	return nil
+// DailyWorkoutOffsets used by the user to change exercises
+type DailyWorkoutOffsets struct {
+	CardioExercise int   `json:"cardioExercises"`
+	MainExercises  []int `json:"mainExercises"`
 }
 
-func (d *DailyWorkout) ShuffleCardioExercises() {
-	rand.Shuffle(len(d.CardioExercises), func(i, j int) {
+// DailyWorkoutRandomIndices all exercises in a random order to help with variety
+type DailyWorkoutRandomIndices struct {
+	CardioExercises []int `json:"cardioExercises"`
+	// MainMuscleGroups represents the randomness of MainExercises outer slice
+	MainMuscleGroups []int `json:"mainMuscleGroups"`
+	// MainExercises outerslice is not random, inner slices are
+	MainExercises [][]int `json:"mainExercises"`
+	// CoolDownMuscleGroups represents the randomness of CoolDownExercises outer slice
+	CoolDownMuscleGroups []int `json:"coolDownMuscleGroups"`
+	// CoolDownExercises outerslice is not random, inner slices are
+	CoolDownExercises [][]int `json:"coolDownExercises"`
+}
+
+func (d *DailyWorkoutRandomIndices) ShuffleCardioExercises(
+	r *rand.Rand,
+	dailyWorkout AvailableWorkoutExercises,
+	newWorkout WorkoutSession,
+) {
+	d.CardioExercises = make([]int, len(dailyWorkout.CardioExercises))
+	for i := range d.CardioExercises {
+		d.CardioExercises[i] = i
+	}
+
+	r.Shuffle(len(d.CardioExercises), func(i, j int) {
 		d.CardioExercises[i], d.CardioExercises[j] = d.CardioExercises[j], d.CardioExercises[i]
 	})
 }
 
-func (d *DailyWorkout) ShuffleMuscleCoverageMainExercises() {
+func (d *DailyWorkoutRandomIndices) ShuffleMuscleCoverageMainExercises(
+	r *rand.Rand,
+	dailyWorkout AvailableWorkoutExercises,
+	newWorkout WorkoutSession,
+) {
+	d.MainMuscleGroups = make([]int, len(dailyWorkout.MainExercises))
+	for i := range d.MainMuscleGroups {
+		d.MainMuscleGroups[i] = i
+	}
+
 	// Shuffle the outer slice
-	rand.Shuffle(len(d.MuscleCoverageMainExercises), func(i, j int) {
-		d.MuscleCoverageMainExercises[i], d.MuscleCoverageMainExercises[j] = d.MuscleCoverageMainExercises[j], d.MuscleCoverageMainExercises[i]
+	r.Shuffle(len(d.MainMuscleGroups), func(i, j int) {
+		d.MainMuscleGroups[i], d.MainMuscleGroups[j] = d.MainMuscleGroups[j], d.MainMuscleGroups[i]
 	})
 
 	// Shuffle each inner slice
-	for _, exercises := range d.MuscleCoverageMainExercises {
-		rand.Shuffle(len(exercises), func(i, j int) {
-			exercises[i], exercises[j] = exercises[j], exercises[i]
+	d.MainExercises = make([][]int, len(dailyWorkout.MainExercises))
+	for i := range d.MainExercises {
+		d.MainExercises[i] = make([]int, len(dailyWorkout.MainExercises[i]))
+		for j := range d.MainExercises[i] {
+			d.MainExercises[i][j] = j
+		}
+		r.Shuffle(len(d.MainExercises[i]), func(a, b int) {
+			d.MainExercises[i][b], d.MainExercises[i][a] = d.MainExercises[i][a], d.MainExercises[i][b]
 		})
 	}
 }
 
-func (d *DailyWorkout) ShuffleCoolDownExercises() {
+func (d *DailyWorkoutRandomIndices) ShuffleCoolDownExercises(
+	r *rand.Rand,
+	dailyWorkout AvailableWorkoutExercises,
+	newWorkout WorkoutSession,
+) {
+	d.CoolDownMuscleGroups = make([]int, len(dailyWorkout.CoolDownExercises))
+	for i := range d.CoolDownMuscleGroups {
+		d.CoolDownMuscleGroups[i] = i
+	}
+
 	// Shuffle the outer slice
-	rand.Shuffle(len(d.CoolDownExercises), func(i, j int) {
-		d.CoolDownExercises[i], d.CoolDownExercises[j] = d.CoolDownExercises[j], d.CoolDownExercises[i]
+	r.Shuffle(len(d.CoolDownMuscleGroups), func(i, j int) {
+		d.CoolDownMuscleGroups[i], d.CoolDownMuscleGroups[j] = d.CoolDownMuscleGroups[j], d.CoolDownMuscleGroups[i]
 	})
 
 	// Shuffle each inner slice
-	for _, exercises := range d.CoolDownExercises {
-		rand.Shuffle(len(exercises), func(i, j int) {
-			exercises[i], exercises[j] = exercises[j], exercises[i]
+	d.CoolDownExercises = make([][]int, len(dailyWorkout.CoolDownExercises))
+	for i := range d.CoolDownExercises {
+		d.CoolDownExercises[i] = make([]int, len(dailyWorkout.CoolDownExercises[i]))
+		for j := range d.CoolDownExercises[i] {
+			d.CoolDownExercises[i][j] = j
+		}
+		r.Shuffle(len(d.CoolDownExercises[i]), func(a, b int) {
+			d.CoolDownExercises[i][b], d.CoolDownExercises[i][a] = d.CoolDownExercises[i][a], d.CoolDownExercises[i][b]
 		})
 	}
-}
-func (d *DailyWorkout) ShuffleMainExercises() {
-	rand.Shuffle(len(d.AllMainExercises), func(i, j int) {
-		d.AllMainExercises[i], d.AllMainExercises[j] = d.AllMainExercises[j], d.AllMainExercises[i]
-	})
-}
-
-func GenerateDailyWorkout(
-	ctx context.Context,
-	db *pgxpool.Pool,
-	redisDb *redis.Client,
-	dailyWorkoutKey string,
-) error {
-	allExercises, err := fetchAllExercises(ctx, db)
-	if err != nil {
-		return fmt.Errorf("error, when fetchAllExercises() for generateDailyWorkout(). Error: %v", err)
-	}
-
-	// third key is muscle group id, the value is the exercises that target the muscle group
-	exerciseMap := make(map[RoutineType]map[ExerciseType]map[string][]Exercise)
-	for _, exercise := range allExercises {
-		// Initialize nested maps and slices if they do not exist yet
-		if exerciseMap[exercise.RoutineType] == nil {
-			exerciseMap[exercise.RoutineType] = make(map[ExerciseType]map[string][]Exercise)
-		}
-		if exerciseMap[exercise.RoutineType][exercise.ExerciseType] == nil {
-			exerciseMap[exercise.RoutineType][exercise.ExerciseType] = make(map[string][]Exercise)
-		}
-
-		// Categorize the exercise
-		exerciseMap[exercise.RoutineType][exercise.ExerciseType][exercise.MuscleGroupId] = append(exerciseMap[exercise.RoutineType][exercise.ExerciseType][exercise.MuscleGroupId], exercise)
-	}
-
-	lowerWorkout, err := generateDailyWorkoutValue(exerciseMap, LOWER)
-	if err != nil {
-		return fmt.Errorf("error, when generateDailyWorkoutValue(model.LOWER) for generateDailyWorkout(). Error: %v", err)
-	}
-	coreWorkout, err := generateDailyWorkoutValue(exerciseMap, CORE)
-	if err != nil {
-		return fmt.Errorf("error, when generateDailyWorkoutValue(model.CORE) for generateDailyWorkout(). Error: %v", err)
-	}
-	upperWorkout, err := generateDailyWorkoutValue(exerciseMap, UPPER)
-	if err != nil {
-		return fmt.Errorf("error, when generateDailyWorkoutValue(model.UPPER) for generateDailyWorkout(). Error: %v", err)
-	}
-
-	err = redisDb.HSet(ctx, dailyWorkoutKey,
-		getDailyWorkoutHashKey(LOWER), lowerWorkout,
-		getDailyWorkoutHashKey(CORE), coreWorkout,
-		getDailyWorkoutHashKey(UPPER), upperWorkout,
-	).Err()
-	if err != nil {
-		return fmt.Errorf("error, when attempting to create daily_workout redis hash. Error: %v", err)
-	}
-
-	err = redisDb.Expire(ctx, dailyWorkoutKey, 72*time.Hour).Err()
-	if err != nil {
-		return fmt.Errorf("error, then attempting to set expiration for daily_workout redis hash. Error: %v", err)
-	}
-
-	healthPushUrl := os.Getenv("TF_VAR_daily_workout_generated_push_health")
-	if healthPushUrl != "" {
-		err = updateHealthCheck(healthPushUrl)
-		if err != nil {
-			return fmt.Errorf("error, when updateHealthCheck() for generateDailyWorkout(). Error: %v", err)
-		}
-	}
-	return nil
 }
 
 func getTomorrowsWeekday(today time.Weekday) time.Weekday {
 	return (today + 1) % 7
 }
 
-func generateDailyWorkoutValue(exerciseMap map[RoutineType]map[ExerciseType]map[string][]Exercise, rt RoutineType) ([]byte, error) {
-	dailyWorkout := DailyWorkout{}
+func generateWorkoutExercises(exerciseMap map[RoutineType]map[ExerciseType]map[int][]Exercise, rt RoutineType) AvailableWorkoutExercises {
+	dailyWorkout := AvailableWorkoutExercises{}
 	var cardioExercises []Exercise
 	cardioExercises = []Exercise{}
 	targetRoutine := exerciseMap[rt]
-	for _, v := range exerciseMap[ALL][Cardio] {
+	for _, v := range exerciseMap[ALL][ExerciseTypeCardio] {
 		cardioExercises = append(cardioExercises, v...)
 	}
 	dailyWorkout.CardioExercises = cardioExercises
-	dailyWorkout.ShuffleCardioExercises()
 
-	weightLiftingExercises := targetRoutine[Weightlifting]
-	calisthenicExercises := targetRoutine[Calisthenics]
-	combinedExercises := make(map[string][]Exercise)
+	weightLiftingExercises := targetRoutine[ExerciseTypeWeightlifting]
+	calisthenicExercises := targetRoutine[ExerciseTypeCalisthenics]
+
+	combinedExercises := make(map[int][]Exercise)
 	// First, copy everything from weightLiftingExercises to combinedExercises
 	for key, exercises := range weightLiftingExercises {
 		combinedExercises[key] = append(combinedExercises[key], exercises...)
@@ -186,34 +137,17 @@ func generateDailyWorkoutValue(exerciseMap map[RoutineType]map[ExerciseType]map[
 	for key, exercises := range calisthenicExercises {
 		combinedExercises[key] = append(combinedExercises[key], exercises...)
 	}
-	for _, exercises := range combinedExercises {
-		dailyWorkout.MuscleCoverageMainExercises = append(dailyWorkout.MuscleCoverageMainExercises, exercises)
-	}
-	dailyWorkout.ShuffleMuscleCoverageMainExercises()
 
-	// key is exercise id
-	allExercisesMap := make(map[string]Exercise)
 	for _, exercises := range combinedExercises {
-		for _, e := range exercises {
-			allExercisesMap[e.Id] = e
-		}
+		dailyWorkout.MainExercises = append(dailyWorkout.MainExercises, exercises)
 	}
-	for _, exercise := range allExercisesMap {
-		dailyWorkout.AllMainExercises = append(dailyWorkout.AllMainExercises, exercise)
-	}
-	dailyWorkout.ShuffleMainExercises()
 
-	coolDownExercises := targetRoutine[CoolDown]
+	coolDownExercises := targetRoutine[ExerciseTypeCoolDown]
 	for _, exercises := range coolDownExercises {
 		dailyWorkout.CoolDownExercises = append(dailyWorkout.CoolDownExercises, exercises)
 	}
-	dailyWorkout.ShuffleCoolDownExercises()
 
-	bytes, err := json.Marshal(dailyWorkout)
-	if err != nil {
-		return nil, fmt.Errorf("error, when marshalling daily workout to json. Error: %v", err)
-	}
-	return bytes, nil
+	return dailyWorkout
 }
 
 // GetDailyWorkoutKey is a function that takes a weekday as input and returns a string key for the daily workout.
@@ -260,40 +194,6 @@ func updateHealthCheck(url string) error {
 
 	return nil
 
-}
-
-func fetchAllExercises(ctx context.Context, db *pgxpool.Pool) (exercises []Exercise, err error) {
-	var rows pgx.Rows
-	rows, err = db.Query(
-		ctx,
-		"SELECT e.id, e.name, e.demonstration_giphy_id, measurement_type_id, emg.muscle_group_id, e.exercise_type_id, mg.workout_routine\nFROM exercise e\nJOIN exercise_muscle_group emg on e.id = emg.exercise_id\nJOIN muscle_group mg on emg.muscle_group_id = mg.id",
-	)
-	defer func() {
-		err = rows.Err()
-		if err != nil {
-			err = fmt.Errorf("error, when iterating through database rows: %v", err)
-		}
-		rows.Close()
-	}()
-
-	for rows.Next() {
-		var exercise Exercise
-		err = rows.Scan(
-			&exercise.Id,
-			&exercise.Name,
-			&exercise.DemonstrationGiphyId,
-			&exercise.MeasurementType,
-			&exercise.MuscleGroupId,
-			&exercise.ExerciseType,
-			&exercise.RoutineType,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error, when scanning database rows: %v", err)
-		}
-		exercises = append(exercises, exercise)
-	}
-
-	return exercises, nil
 }
 
 func getDailyWorkoutHashKey(rt RoutineType) string {

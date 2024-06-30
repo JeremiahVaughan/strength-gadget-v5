@@ -88,3 +88,4 @@ localhost-key.pem
 
 nx-cloud.env
 .env
+bin

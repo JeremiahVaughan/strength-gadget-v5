@@ -54,7 +54,7 @@ func TestGenerateQueryForExerciseUserData(t *testing.T) {
 			exerciseUserData: map[string]ExerciseUserData{
 				"exer1": {Measurement: 100},
 			},
-			user: &User{Id: "1"},
+			user: &User{Id: 1},
 			wantSQL: `
 		INSERT INTO last_completed_measurement (user_id, exercise_id, measurement)
 		VALUES 
@@ -71,7 +71,7 @@ func TestGenerateQueryForExerciseUserData(t *testing.T) {
 				"exer2": {Measurement: 150},
 				"exer3": {Measurement: 150},
 			},
-			user: &User{Id: "1"},
+			user: &User{Id: 1},
 			wantSQL: `
 		INSERT INTO last_completed_measurement (user_id, exercise_id, measurement)
 		VALUES 
@@ -149,44 +149,44 @@ func TestValidateRecordIncrementedWorkoutStepRequest(t *testing.T) {
 		{
 			name: "Empty ExerciseId",
 			req: &RecordIncrementedWorkoutStepRequest{
-				IncrementedProgressIndex: WorkoutProgressIndex{2},
-				ExerciseId:               "",
-				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
+				ProgressIndex: WorkoutProgressIndex{2},
+				ExerciseId:    "",
+				WorkoutId:     "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Invalid ProgressIndex",
 			req: &RecordIncrementedWorkoutStepRequest{
-				IncrementedProgressIndex: WorkoutProgressIndex{},
-				ExerciseId:               "exerciseId1",
-				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
+				ProgressIndex: WorkoutProgressIndex{},
+				ExerciseId:    "exerciseId1",
+				WorkoutId:     "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Valid Request",
 			req: &RecordIncrementedWorkoutStepRequest{
-				IncrementedProgressIndex: WorkoutProgressIndex{3},
-				ExerciseId:               "exerciseId1",
-				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
+				ProgressIndex: WorkoutProgressIndex{3},
+				ExerciseId:    "exerciseId1",
+				WorkoutId:     "86cf4fea-8a25-45a2-82fe-d9065537f9fb",
 			},
 			wantErr: false,
 		},
 		{
 			name: "Missing workout UUID",
 			req: &RecordIncrementedWorkoutStepRequest{
-				IncrementedProgressIndex: WorkoutProgressIndex{3},
-				ExerciseId:               "exerciseId1",
+				ProgressIndex: WorkoutProgressIndex{3},
+				ExerciseId:    "exerciseId1",
 			},
 			wantErr: true,
 		},
 		{
 			name: "Invalid workout UUID",
 			req: &RecordIncrementedWorkoutStepRequest{
-				IncrementedProgressIndex: WorkoutProgressIndex{3},
-				ExerciseId:               "exerciseId1",
-				WorkoutId:                "86cf4fea-8a25-45a2-82fe-d9065537f9f",
+				ProgressIndex: WorkoutProgressIndex{3},
+				ExerciseId:    "exerciseId1",
+				WorkoutId:     "86cf4fea-8a25-45a2-82fe-d9065537f9f",
 			},
 			wantErr: true,
 		},

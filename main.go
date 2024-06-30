@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -58,28 +57,9 @@ func main() {
 		log.Fatalf("error, when registerTemplates() for main(). Error: %v", err)
 	}
 
-	if os.Getenv(ModeKey) == WorkoutGen {
-		var dailyWorkoutKey string
-		if Environment == EnvironmentLocal {
-			// testing locally means we just need a workout for today
-			today := time.Now().Weekday()
-			dailyWorkoutKey = GetDailyWorkoutKey(today)
-		} else {
-			// generating tomorrow's workout so there is overlap
-			tomorrow := getTomorrowsWeekday(time.Now().Weekday())
-			dailyWorkoutKey = GetDailyWorkoutKey(tomorrow)
-		}
-
-		err = GenerateDailyWorkout(ctx, ConnectionPool, RedisConnectionPool, dailyWorkoutKey)
-		if err != nil {
-			log.Fatalf("error, when GenerateDailyWorkout() for main(). Error: %v", err)
-		}
-		log.Printf("finished generating daily workout")
-	} else {
-		err = serveAthletes(ctx)
-		if err != nil {
-			log.Fatalf("error, when serveAthletes() for main(). Error: %v", err)
-		}
+	err = serveAthletes(ctx)
+	if err != nil {
+		log.Fatalf("error, when serveAthletes() for main(). Error: %v", err)
 	}
 }
 
@@ -92,33 +72,35 @@ func serveAthletes(ctx context.Context) error {
 	// todo add a 404 not found page for invalid addresses
 	mux := http.NewServeMux()
 
+    // todo add middleware for login pages to redirect if logged in already
+
 	// endpoints key is endpoint address
 	endpoints := map[string]http.HandlerFunc{
-		EndpointExercise:     HandleExercisePage,
 		EndpointHealth:       HandleHealth,
-		EndpointIsLoggedIn:   HandleIsLoggedIn,
 		EndpontSignUp:        HandleSignUp,
 		EndpointLogin:        HandleLogin,
 		EndpointVerification: HandleVerification,
 		EndpointEmail:        HandleForgotPasswordEmail,
 		EndpointResetCode:    HandleForgotPasswordResetCode,
 		EndpointNewPassword:  HandleForgotPasswordNewPassword,
+		EndpointExercise:     HandleExercisePage,
+		EndpointLogout:       HandleLogout,
 	}
 	for k, v := range endpoints {
 		mux.Handle(k, IpFilterMiddleware(v))
 	}
 
 	// endpointsRequiringAuth key is endpoint address
-	endpointsRequiringAuth := map[string]http.HandlerFunc{
-		EndpointGetCurrentWorkout:            HandleGetCurrentWorkout,
-		EndpointLogout:                       HandleLogout,
-		EndpointSwapExercise:                 HandleSwapExercise,
-		EndpointRecordIncrementedWorkoutStep: HandleRecordIncrementedWorkoutStep,
-	}
+	// endpointsRequiringAuth := map[string]http.HandlerFunc{
+	// 	EndpointLogout:       HandleLogout,
+	// 	EndpointSwapExercise: HandleSwapExercise,
+	// 	// EndpointRecordIncrementedWorkoutStep: HandleRecordIncrementedWorkoutStep,
+	// 	EndpointExercise: HandleExercisePage,
+	// }
 
-	for k, v := range endpointsRequiringAuth {
-		mux.Handle(k, IpFilterMiddleware(Authenticate(v)))
-	}
+	// for k, v := range endpointsRequiringAuth {
+	// 	mux.Handle(k, IpFilterMiddleware(Authenticate(v)))
+	// }
 
 	// if Environment == EnvironmentLocal {
 	// 	 todo get this working

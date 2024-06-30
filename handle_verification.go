@@ -83,7 +83,7 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user *User
-	fields, user, err = handleVerificationAttempt(w, r, fields)
+	fields, user, err = handleVerificationAttempt(r, fields)
 	if err != nil {
 		err = fmt.Errorf("error, when handleVerificationAttempt() for HandleVerification(). Error: %v", err)
 		HandleUnexpectedError(w, err)
@@ -96,20 +96,21 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
-
+		return
 	}
-
-	cookie, err := startNewSession(r.Context(), user.Id)
+	authCookie, workoutCookie, err := startNewSession(r.Context(), user.Id)
 	if err != nil {
 		err = fmt.Errorf("error, when persisting session key upon verification completion: %v", err)
 		HandleUnexpectedError(w, err)
+		return
 	}
 
-	http.SetCookie(w, cookie)
+	http.SetCookie(w, authCookie)
+	http.SetCookie(w, workoutCookie)
 	w.Header().Set("HX-Redirect", EndpointExercise)
 }
 
-func handleVerificationAttempt(w http.ResponseWriter, r *http.Request, fields *VerificationFields) (*VerificationFields, *User, error) {
+func handleVerificationAttempt(r *http.Request, fields *VerificationFields) (*VerificationFields, *User, error) {
 	err := r.ParseForm()
 	if err != nil {
 		return nil, nil, fmt.Errorf("error, when attempting to parse form for handleVerificationAttempt(). Error: %v", err)

@@ -11,10 +11,10 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v4"
 	"golang.org/x/crypto/argon2"
 )
@@ -25,10 +25,18 @@ const (
 	MockVerificationCode = "ABCDEF"
 )
 
+// const (
+// 	PasswordResetAttemptType = "14cb4661-74e5-49e8-8532-ebe93d1e806a"
+// 	LoginAttemptType         = "288e1dae-5865-4707-b242-ce818ee8145f"
+// 	VerificationAttemptType  = "ca33f4f1-e2ba-49e1-8222-be982a57c231"
+// )
+
+type AccessAttemptType int
+
 const (
-	PasswordResetAttemptType = "14cb4661-74e5-49e8-8532-ebe93d1e806a"
-	LoginAttemptType         = "288e1dae-5865-4707-b242-ce818ee8145f"
-	VerificationAttemptType  = "ca33f4f1-e2ba-49e1-8222-be982a57c231"
+	PasswordResetAttemptType AccessAttemptType = iota
+	LoginAttemptType
+	VerificationAttemptType
 )
 
 // todo validate the length of input so it can't crash your stuff
@@ -41,17 +49,49 @@ type VerificationCode struct {
 	Id      string
 	Code    string
 	Expires uint64
-	UserId  string
 }
 
 type UserSession struct {
-	UserId        string
-	SessionKey    string
+	UserId        int64
 	Authenticated bool
+
+	WorkoutSessionExists bool
+	WorkoutSession       WorkoutSession
+}
+
+type WorkoutSession struct {
+	// CurrentWorkoutSeed is the concatenation of the current year, julian day, and UserId this ensures a unique workout per user, per day
+	// We don't want all users to have the same workout because then they would bottleneck in the gym on the same equipment.
+	// We don't want the users getting bored either, so we are giving them a different workout everyday.
+	CurrentWorkoutSeed    int64                     `json:"currentWorkoutSeed"`
+	CurrentWorkoutRoutine RoutineType               `json:"currentWorkoutRoutine"`
+	RandomizedIndices     DailyWorkoutRandomIndices `json:"randomizedIndices"`
+	ProgressIndex         int                       `json:"progressIndex"`
+
+	// todo delete this if its not needed
+	// CurrentOffsets are determined during exercise selection
+	CurrentOffsets DailyWorkoutOffsets `json:"currentOffsets"`
+
+	// CurrentExerciseMeasurements are fetched once exercise selection has been completed
+	CurrentExerciseMeasurements ExerciseUserDataMap `json:"currentExerciseMeasurements"`
+}
+
+func (w *WorkoutSession) saveToRedis(ctx context.Context, userId int64) error {
+	bytes, err := json.Marshal(w)
+	if err != nil {
+		return fmt.Errorf("error, when marshalling the new workout session to json. Error: %v", err)
+	}
+
+	key := strconv.FormatInt(userId, 10)
+	err = RedisConnectionPool.Set(ctx, key, string(bytes), WorkoutSessionExpiration).Err()
+	if err != nil {
+		return fmt.Errorf("error, when attempting to persist the users workout session in redis. Error: %v", err)
+	}
+	return nil
 }
 
 type User struct {
-	Id            string
+	Id            int64
 	Email         string
 	EmailVerified bool
 	PasswordHash  string
@@ -64,7 +104,7 @@ type UserService struct {
 type userErr string
 
 func (us *UserService) FetchFromContext(ctx context.Context) (*User, error) {
-	user, ok := ctx.Value(SessionKey).(*User)
+	user, ok := ctx.Value(AuthSessionKey).(*User)
 	if !ok {
 		return nil, fmt.Errorf("error, could not locate the user in session context")
 	}
@@ -73,8 +113,11 @@ func (us *UserService) FetchFromContext(ctx context.Context) (*User, error) {
 
 type ContextKey string
 
-// SessionKey use for both locating the user session ID from the http cookie and locating the user struct in context
-const SessionKey ContextKey = "session_key"
+// AuthSessionKey use for both locating the user session ID from the http cookie and locating the user struct in context
+const AuthSessionKey ContextKey = "auth_session_key"
+
+// WorkoutSessionKey (also userId) workout data is seperated from auth session data so that the user may logout without losing their workout progress
+const WorkoutSessionKey ContextKey = "workout_session_key"
 
 type ForgotPassword struct {
 	Email       string `json:"email"`
@@ -96,7 +139,7 @@ func emailIsValid(email string) userErr {
 
 func emailAlreadyExists(ctx context.Context, email string) (*bool, error) {
 	var emailExists bool
-	row := ConnectionPool.QueryRow(ctx, "SELECT email FROM \"user\" WHERE email = $1", email)
+	row := ConnectionPool.QueryRow(ctx, "SELECT email FROM athlete WHERE email = $1", email)
 	queryErr := row.Scan(&email)
 	if queryErr != nil {
 		if queryErr.Error() == pgx.ErrNoRows.Error() {
@@ -112,7 +155,7 @@ func emailAlreadyExists(ctx context.Context, email string) (*bool, error) {
 }
 
 func validateLogoutRequest(r *http.Request) (string, error) {
-	cookie, err := r.Cookie(string(SessionKey))
+	cookie, err := r.Cookie(string(AuthSessionKey))
 	if err != nil {
 		return "", fmt.Errorf("error, no session_key provided in request when attempting to logout. Error: %v", err)
 	}
@@ -147,7 +190,7 @@ func logout(ctx context.Context, w http.ResponseWriter, sessionKey string) error
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:   string(SessionKey),
+		Name:   string(AuthSessionKey),
 		Value:  "",
 		MaxAge: -1, // This deletes the cookie
 	})
@@ -157,29 +200,29 @@ func logout(ctx context.Context, w http.ResponseWriter, sessionKey string) error
 
 // todo add if this account exists, you will get an email
 
-func startNewSession(ctx context.Context, userId string) (*http.Cookie, error) {
+func startNewSession(ctx context.Context, userId int64) (*http.Cookie, *http.Cookie, error) {
 	// The extra twelve hours is to ensure the user isn't being prompted to, login will in the middle of using the app.
 	// For example without the extra twelve hours, if they were to log in to use the app at 0930 am on sunday, then
 	// started using the app immediately. The following week they would be logged off at 0930. This means the user is likely
 	// to be using the app at this time as it may be part of their schedule. The offset of twelve hours ensures less disruption.
 	hoursInOneWeekPlusTwelve := 180 * time.Hour
-	sessionLength := hoursInOneWeekPlusTwelve
-	sessionKey := GenerateSessionKey()
+	authSessionLength := hoursInOneWeekPlusTwelve
+	authSessionKey := GenerateSessionKey()
 	// purposely using a string as the storage type for sessions because expiring the hash is done in a separate command. If the expiry command were to fail, then this would mean an immortal session was just created.
-	err := RedisConnectionPool.Set(ctx, sessionKey, userId, sessionLength).Err()
+	err := RedisConnectionPool.Set(ctx, authSessionKey, userId, authSessionLength).Err()
 	if err != nil {
-		return nil, fmt.Errorf("error, when persisting the session when startNewSession(). Error: %v", err)
+		return nil, nil, fmt.Errorf("error, when persisting the session when startNewSession(). Error: %v", err)
 	}
-	expirationTime := time.Now().Add(sessionLength)
+	expirationTime := time.Now().Add(authSessionLength)
 	var domain string
 	if Environment == EnvironmentLocal {
 		domain = "localhost"
 	} else {
 		domain = ".strengthgadget.com"
 	}
-	cookie := &http.Cookie{
-		Name:     string(SessionKey),
-		Value:    sessionKey,
+	authCookie := &http.Cookie{
+		Name:     string(AuthSessionKey),
+		Value:    authSessionKey,
 		HttpOnly: true,
 		Secure:   true,
 		Expires:  expirationTime,
@@ -188,7 +231,13 @@ func startNewSession(ctx context.Context, userId string) (*http.Cookie, error) {
 		Domain:   domain,
 	}
 
-	return cookie, nil
+	uid := strconv.FormatInt(userId, 10)
+	workoutCookie := &http.Cookie{
+		Name:  string(WorkoutSessionKey),
+		Value: uid,
+	}
+
+	return authCookie, workoutCookie, nil
 }
 
 func verifyValidUserProvidedPassword(hashedInput string, userHash string) userErr {
@@ -206,29 +255,6 @@ func getSalt(hash string) (string, error) {
 	}
 
 	return fields[4], nil
-}
-
-func HandleIsLoggedIn(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "error, only GET method is supported", http.StatusMethodNotAllowed)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-
-	loggedIn, err := isLoggedIn(r)
-	if err != nil {
-		HandleUnexpectedError(w, fmt.Errorf("error, when attempting to check if user is logged in. Error: %v", err))
-	}
-
-	if loggedIn {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-	}
-}
-
-func isLoggedIn(r *http.Request) (bool, error) {
-	return IsAuthenticated(r)
 }
 
 type ForgotPasswordFields struct {
@@ -263,10 +289,10 @@ func GetUser(ctx context.Context, email string) (*User, userErr, error) {
                 email,
                 (SELECT EXISTS(SELECT 1
                 FROM access_attempt
-                WHERE user_id = "user".id
+                WHERE user_id = athlete.id
                     AND type = $1
                     AND access_granted = true)) as email_verified
-        FROM "user"
+        FROM athlete
         WHERE email = $2`,
 		VerificationAttemptType,
 		email,
@@ -311,39 +337,6 @@ func GenerateSecureHash(password, salt string) (*string, error) {
 	// making the hash format align with: https://github.com/P-H-C/phc-winner-argon2#command-line-utility
 	encodedHash := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d,l=%d$%s$%s", argon2.Version, memory, time, threads, keyLen, salt, encodedHashedPassword)
 	return &encodedHash, nil
-}
-
-func Authenticate(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := checkForValidActiveSession(r)
-		if err != nil {
-			HandleUnexpectedError(w, err)
-			// todo user feedback
-			return
-		}
-
-		if !session.Authenticated {
-			HandleUnexpectedError(w, fmt.Errorf("user attempted to access a protected resource without being authenticated"))
-			// todo user feedback
-			return
-		}
-
-		user := &User{Id: session.UserId}
-
-		// attach the user to the context
-		ctx := context.WithValue(r.Context(), SessionKey, user)
-
-		// and call the next handler with the new context
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-func IsAuthenticated(r *http.Request) (bool, error) {
-	session, err := checkForValidActiveSession(r)
-	if err != nil {
-		return false, fmt.Errorf("error when checkForValidActiveSession() for IsAuthenticated(). Error: %v", err)
-	}
-	return session.Authenticated, nil
 }
 
 func PasswordIsAcceptable(password string) (userErr, error) {
@@ -408,25 +401,28 @@ func HasLoginAttemptRateLimitBeenReached(ctx context.Context, email string) (boo
 }
 
 func PersistNewUser(ctx context.Context, email string, hashedPassword *string) error {
-	userId := uuid.New().String()
 	tx, e := ConnectionPool.Begin(ctx)
 	if e != nil {
 		return fmt.Errorf("an error has occurred when attempting to create transaction: %v", e)
 	}
 
 	e = func(tx pgx.Tx) error {
-		_, e = tx.Exec(
+		var id int64
+		err := tx.QueryRow(
 			ctx,
-			"INSERT INTO \"user\" (id, email, password_hash) VALUES ($1, $2, $3)",
-			userId,
+			`INSERT INTO athlete (email, password_hash) 
+            VALUES ($1, $2)
+            RETURNING id`,
 			email,
 			hashedPassword,
+		).Scan(
+			&id,
 		)
-		if e != nil {
-			return fmt.Errorf("an error has occurred when attempting to insert a new user: %s. Error: %v", email, e)
+		if err != nil {
+			return fmt.Errorf("error, when attempting to execute sql statement: %v", err)
 		}
 
-		e = GenerateNewVerificationCode(ctx, tx, userId, email, false)
+		e = GenerateNewVerificationCode(ctx, tx, id, email, false)
 		if e != nil {
 			return fmt.Errorf("error, when generateNewVerificationCode() for registration handler: %v", e)
 		}
@@ -447,7 +443,7 @@ func PersistNewUser(ctx context.Context, email string, hashedPassword *string) e
 }
 
 func UpdateUserPassword(ctx context.Context, user *User, passwordHash *string) error {
-	_, err := ConnectionPool.Exec(ctx, "UPDATE \"user\" SET password_hash = $1 WHERE id = $2", passwordHash, user.Id)
+	_, err := ConnectionPool.Exec(ctx, `UPDATE athlete SET password_hash = $1 WHERE id = $2`, passwordHash, user.Id)
 	if err != nil {
 		return fmt.Errorf("an error has occurred when attempting to update user password: %v", err)
 	}

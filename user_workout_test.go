@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -80,49 +81,60 @@ func TestDeserializeUniqueMember(t *testing.T) {
 }
 
 func TestGetNextAvailableExercise(t *testing.T) {
-	exercisePool := []Exercise{{Id: "ex1"}, {Id: "ex2"}, {Id: "ex3"}, {Id: "ex4"}}
+	exercisePool := []Exercise{{Id: 1}, {Id: 2}, {Id: 3}, {Id: 4}}
 	testCases := []struct {
 		name                    string
-		startingExercise        uint16
+		startingOffset          int
+		randomPool              []int
 		alreadySlottedExercises ExerciseUserDataMap
-		want                    uint16
+		want                    Exercise
 	}{
 		{
 			name:                    "no_exercise_taken",
-			startingExercise:        3,
+			startingOffset:          0,
+			randomPool:              []int{0, 1, 2, 3},
 			alreadySlottedExercises: ExerciseUserDataMap{},
-			want:                    3, // As no exercise is taken it will start from first
+			want:                    Exercise{Id: 1}, // As no exercise is taken it will start from first
 		},
 		{
 			name:                    "first_exercise_taken",
-			startingExercise:        0,
-			alreadySlottedExercises: ExerciseUserDataMap{"ex1": ExerciseUserData{}},
-			want:                    1, // As the first exercise is taken it will start from second
+			startingOffset:          0,
+			randomPool:              []int{0, 1, 2, 3},
+			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}},
+			want:                    Exercise{Id: 2}, // As the first exercise is taken it will start from second
 		},
 		{
 			name:                    "first_and_second_exercise_taken",
-			startingExercise:        0,
-			alreadySlottedExercises: ExerciseUserDataMap{"ex1": ExerciseUserData{}, "ex2": ExerciseUserData{}},
-			want:                    2, // As the first and second exercises are taken it will start from third
+			startingOffset:          0,
+			randomPool:              []int{0, 1, 2, 3},
+			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}, 2: ExerciseUserData{}},
+			want:                    Exercise{Id: 3}, // As the first and second exercises are taken it will start from third
 		},
 		{
 			name:                    "all_exercises_taken",
-			startingExercise:        0,
-			alreadySlottedExercises: ExerciseUserDataMap{"ex1": ExerciseUserData{}, "ex2": ExerciseUserData{}, "ex3": ExerciseUserData{}, "ex4": ExerciseUserData{}},
-			want:                    0, // As all exercise are taken it will start from first
+			startingOffset:          0,
+			randomPool:              []int{0, 1, 2, 3},
+			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}, 2: ExerciseUserData{}, 3: ExerciseUserData{}, 4: ExerciseUserData{}},
+			want:                    Exercise{Id: 1}, // As all exercise are taken so we will keep what we have
 		},
 		{
 			name:                    "available_exercise_is_before_starting_exercise",
-			startingExercise:        1,
-			alreadySlottedExercises: ExerciseUserDataMap{"ex2": ExerciseUserData{}, "ex3": ExerciseUserData{}, "ex4": ExerciseUserData{}},
-			want:                    0, // As all exercise are taken it will start from first
+			startingOffset:          1,
+			randomPool:              []int{0, 1, 2, 3},
+			alreadySlottedExercises: ExerciseUserDataMap{2: ExerciseUserData{}, 3: ExerciseUserData{}, 4: ExerciseUserData{}},
+			want:                    Exercise{Id: 1}, // As all exercise are taken it will start from first
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, _ := getNextAvailableExercise(tc.startingExercise, exercisePool, tc.alreadySlottedExercises, 5, 5)
-			if got != tc.want {
-				t.Errorf("getNextAvailableExercise() = %v; want %v", got, tc.want)
+			got, _ := getNextAvailableExercise(
+				tc.startingOffset,
+				tc.randomPool,
+				exercisePool,
+				tc.alreadySlottedExercises,
+			)
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("getNextAvailableExercise() got: %v; want: %v", got, tc.want)
 			}
 		})
 	}

@@ -100,7 +100,7 @@ func resetUserPassword(r *http.Request, fields *ForgotPasswordFields) (*ForgotPa
 
 	err = SendForgotPasswordEmail(r.Context(), user)
 	if err != nil {
-		return nil, fmt.Errorf("error, failed to send forgot password email: %v", e)
+		return nil, fmt.Errorf("error, failed to send forgot password email: %v", err)
 	}
 
 	fields.ValidForm = true

@@ -3,8 +3,10 @@
       hx-swap="outerHTML"
       hx-disabled-elt="input, button">
     {{template "form-header-content" "Login"}}
-    {{template "text-input-content" .Email}}
-    {{template "text-input-content" .Password}}
+    <div class="text-fields">
+        {{template "text-input-content" .Email}}
+        {{template "text-input-content" .Password}}
+    </div>
     <div class="spacer"></div>
     <div class="buttons">
         <a href="/forgotPassword/email" class="forgot-password-link">

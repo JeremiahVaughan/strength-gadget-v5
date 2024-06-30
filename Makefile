@@ -1,5 +1,6 @@
 test-it:
 	go test ./...
 
-do-it:
+include .env
+b:
 	go run .

@@ -1,0 +1,11 @@
+drop table last_completed_measurement;
+drop table set_type;
+drop table exercise_muscle_group;
+drop table exercise;
+drop table measurement_type;
+drop table exercise_type;
+drop table muscle_group;
+drop table verification_code;
+drop table access_attempt;
+drop table access_attempt_type;
+drop table "user";

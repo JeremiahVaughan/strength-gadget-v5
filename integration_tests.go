@@ -109,7 +109,7 @@ func (c *IntegrationTestClient) TestRequest(
 	}
 	var authCookie *http.Cookie
 	for _, c := range response.Cookies() {
-		if c.Name == string(SessionKey) {
+		if c.Name == string(AuthSessionKey) {
 			authCookie = c
 		}
 	}

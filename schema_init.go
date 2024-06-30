@@ -80,7 +80,15 @@ func createInitTable(ctx context.Context) error {
 	}
 
 	err = func() error {
-		_, err = tx.Exec(ctx, "create table init\n(\n    id                  SERIAL not null\n        constraint init_pk\n            primary key,\n    migration_file_name text   not null\n)")
+		_, err = tx.Exec(ctx, `create table init
+                        (
+                            id  SERIAL not null
+                                constraint init_pk 
+                                    primary key,
+                            migration_file_name text   not null
+                                constraint init_migration_file_name_uindex
+                                    unique
+                        )`)
 		if err != nil {
 			return fmt.Errorf("error, when executing query to create init table: %v", err)
 		}
@@ -88,11 +96,6 @@ func createInitTable(ctx context.Context) error {
 		_, err = tx.Exec(ctx, "comment on table init is 'This table is for tracking which schema migration scripts have been applied already'")
 		if err != nil {
 			return fmt.Errorf("error, when attempting to add a comment to the init table: %v", err)
-		}
-
-		_, err = tx.Exec(ctx, "create unique index init_migration_file_name_uindex\n    on init (migration_file_name)")
-		if err != nil {
-			return fmt.Errorf("error, when attempting to create a unique index for the init table")
 		}
 		return nil
 	}()

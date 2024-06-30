@@ -43,6 +43,11 @@ var (
 	WindowLengthInSecondsForTheNumberOfAllowedVerificationEmailsBeforeLockout int
 	WindowLengthInSecondsForTheNumberOfAllowedLoginAttemptsBeforeLockout      int
 
+    // WorkoutSessionExpiration should the workout expire before they complete it, then
+    // they will need to complete the same workout routine again. This 48 hours ensures
+    // they have had enough rest to do so.
+    WorkoutSessionExpiration = time.Duration(time.Hour * 48)
+
 	NumberOfExerciseInSuperset = 3
 
 	NumberOfSetsInSuperSet = 4
@@ -58,9 +63,20 @@ var (
 	HttpServer *http.Server
 
 	AllowedIpRanges []*net.IPNet
+
+	lowerWorkout    AvailableWorkoutExercises
+	coreWorkout     AvailableWorkoutExercises
+	upperWorkout    AvailableWorkoutExercises
 )
 
 func InitConfig(ctx context.Context) error {
+
+	exerciseMap := generateExerciseMap()
+
+	lowerWorkout = generateWorkoutExercises(exerciseMap, LOWER)
+	coreWorkout = generateWorkoutExercises(exerciseMap, CORE)
+	upperWorkout = generateWorkoutExercises(exerciseMap, UPPER)
+
 	var err error
 	var errorMsgs []string
 	Environment = os.Getenv("TF_VAR_environment")

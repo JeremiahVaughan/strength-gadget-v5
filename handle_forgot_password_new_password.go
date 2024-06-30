@@ -71,13 +71,14 @@ func HandleForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookie, err := startNewSession(r.Context(), user.Id)
+	authCookie, workoutCookie, err := startNewSession(r.Context(), user.Id)
 	if err != nil {
 		err = fmt.Errorf("error, when persisting session key upon login: %v", err)
 		HandleUnexpectedError(w, err)
 	}
 
-	http.SetCookie(w, cookie)
+	http.SetCookie(w, authCookie)
+	http.SetCookie(w, workoutCookie)
 	w.Header().Set("HX-Redirect", EndpointExercise)
 }
 

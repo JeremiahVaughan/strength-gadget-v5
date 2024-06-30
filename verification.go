@@ -122,7 +122,7 @@ func generateEmailVerificationCode() (string, error) {
 	return string(result), nil
 }
 
-func GenerateNewVerificationCode(ctx context.Context, tx pgx.Tx, userId string, email string, isPasswordReset bool) error {
+func GenerateNewVerificationCode(ctx context.Context, tx pgx.Tx, userId int64, email string, isPasswordReset bool) error {
 	err := IncrementVerificationAttemptCount(ctx, email)
 	if err != nil {
 		return fmt.Errorf("error, when incrementing email rate limit: %v", err)
@@ -166,7 +166,7 @@ func IsVerificationCodeValid(
 	ctx context.Context,
 	user *User,
 	providedCode string,
-	verificationAttemptType string,
+	verificationAttemptType AccessAttemptType,
 ) (userErr, error) {
 	count, err := getRecentVerificationCount(ctx, user)
 	if err != nil {
@@ -202,7 +202,7 @@ func IsVerificationCodeValid(
 	return "", nil
 }
 
-func RecordAccessAttempt(ctx context.Context, user *User, successfulAttempt bool, accessAttemptType string) error {
+func RecordAccessAttempt(ctx context.Context, user *User, successfulAttempt bool, accessAttemptType AccessAttemptType) error {
 	retryBackoffLimit := 3
 	var err error
 	for i := 0; i < retryBackoffLimit; i++ {
@@ -215,12 +215,17 @@ func RecordAccessAttempt(ctx context.Context, user *User, successfulAttempt bool
 		time.Sleep(time.Second * 3)
 	}
 	if err != nil {
-		return fmt.Errorf("error, when after exausting retries to persistAccessAttemptInDatabase() for user: %s. Access type:  %s. Error: %v", user.Email, accessAttemptType, err)
+		return fmt.Errorf(
+			"error, when after exausting retries to persistAccessAttemptInDatabase() for user: %s. Access type: %d. Error: %v",
+			user.Email,
+			accessAttemptType,
+			err,
+		)
 	}
 	return nil
 }
 
-func persistAccessAttemptInDatabase(ctx context.Context, user *User, successfulAttempt bool, accessAttemptType string) error {
+func persistAccessAttemptInDatabase(ctx context.Context, user *User, successfulAttempt bool, accessAttemptType AccessAttemptType) error {
 	_, err := ConnectionPool.Exec(
 		ctx,
 		"INSERT INTO access_attempt (time, access_granted, type, user_id)\nVALUES ($1, $2, $3, $4)",
@@ -253,12 +258,15 @@ func getMostRecentVerificationCode(ctx context.Context, user *User) (*Verificati
 	var verificationCode VerificationCode
 	err := ConnectionPool.QueryRow(
 		ctx,
-		"SELECT id,\n       code,\n       user_id,\n       expires\nFROM verification_code\nWHERE user_id = $1\nORDER BY expires DESC\nLIMIT 1",
+		`SELECT code,
+                expires
+        FROM verification_code
+        WHERE user_id = $1
+        ORDER BY expires DESC
+        LIMIT 1`,
 		user.Id,
 	).Scan(
-		&verificationCode.Id,
 		&verificationCode.Code,
-		&verificationCode.UserId,
 		&verificationCode.Expires,
 	)
 	if err != nil {
@@ -276,7 +284,11 @@ func getRecentVerificationCount(ctx context.Context, user *User) (*int, error) {
 	startOfVerificationLimitWindow := getEarlierTime(currentTime, VerificationExcessiveRetryAttemptLockoutDurationInSeconds)
 	row := ConnectionPool.QueryRow(
 		ctx,
-		"SELECT count(1)\nFROM access_attempt\nWHERE $1 < time\n  AND type = $2\n  AND user_id = (SELECT id FROM \"user\" WHERE email = $3)",
+		`SELECT count(1)
+        FROM access_attempt
+        WHERE $1 < time
+        AND type = $2
+        AND user_id = (SELECT id FROM athlete WHERE email = $3)`,
 		startOfVerificationLimitWindow,
 		VerificationAttemptType,
 		user.Email,

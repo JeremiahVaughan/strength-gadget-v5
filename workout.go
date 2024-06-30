@@ -1,16 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
-)
-
-const (
-	WorkoutPhaseWarmUp = iota
-	WorkoutPhaseMain
-	WorkoutPhaseCoolDown
-	WorkoutPhaseCompleted
+	"strconv"
+	"strings"
 )
 
 // WorkoutProgressIndex Outer slice is the workout phase (e.g., warmup, main, cool-down).
@@ -21,13 +14,34 @@ func (w WorkoutProgressIndex) IsValid() bool {
 	return len(w) >= 1 && len(w) <= 4
 }
 
+func (w WorkoutProgressIndex) marshal() string {
+	var theStrings []string
+	for _, i := range w {
+		theStrings = append(theStrings, strconv.Itoa(i))
+	}
+	return strings.Join(theStrings, ",")
+}
+
+func (w WorkoutProgressIndex) demarshal(index string) (WorkoutProgressIndex, error) {
+	theStrings := strings.Split(index, ",")
+	var result WorkoutProgressIndex
+	for _, s := range theStrings {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, fmt.Errorf("error, invalid string. Error: %v", err)
+		}
+		result = append(result, i)
+	}
+	return result, nil
+}
+
 type RecordIncrementedWorkoutStepRequest struct {
-	IncrementedProgressIndex WorkoutProgressIndex `json:"incrementedProgressIndex"`
-	ExerciseId               string               `json:"exerciseId"`
-	LastCompletedMeasurement int                  `json:"lastCompletedMeasurement"`
+	ProgressIndex            WorkoutProgressIndex
+	ExerciseId               string
+	LastCompletedMeasurement int
 
 	// WorkoutId is used to help prevent client and server sync issues
-	WorkoutId string `json:"workoutId"`
+	WorkoutId string
 }
 
 type RoutineType byte // Declare an alias for more descriptive code
@@ -41,37 +55,4 @@ const (
 
 func (r RoutineType) GetNextRoutine() RoutineType {
 	return (r + 1) % 3
-}
-
-func HandleGetCurrentWorkout(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "error, only GET method is supported", http.StatusMethodNotAllowed)
-		return
-	}
-
-	result, err := GetCurrentWorkout(
-		r.Context(),
-		RedisConnectionPool,
-		ConnectionPool,
-		NumberOfSetsInSuperSet,
-		NumberOfExerciseInSuperset,
-		GetSuperSetExpiration(),
-	)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("error, failed to perform get current workout handler action: %v", err), http.StatusInternalServerError)
-		return
-	}
-	responseData, err := json.Marshal(result)
-	if err != nil {
-		http.Error(w, "error, failed to create JSON response", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(responseData)
-	if err != nil {
-		http.Error(w, "error, failed to write response", http.StatusInternalServerError)
-		return
-	}
 }
