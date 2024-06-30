@@ -146,7 +146,7 @@ workflows:
           context:
             - context-staging
       - deploy:
-          name: "deploy staging
+          name: "deploy staging"
           filters:
             branches:
               only: staging
