@@ -336,7 +336,7 @@ func initHttpServer() (*http.Server, error) {
 
 func connectToRedisDatabase(redisPort string) (*redis.Client, error) {
 	options := redis.Options{
-        Addr:     "redis://127.0.0.1:" + redisPort,
+        Addr:     "127.0.0.1:" + redisPort,
 		DB:       0, // use default DB
 		// Password: password,
 	}
