@@ -167,6 +167,14 @@ workflows:
             - context-staging
           requires:
             - "build staging"
+      - frontend-build:
+          name: "destroy"
+          filters:
+            branches:
+              only: staging
+          context:
+            - context-staging
+            - context-docker-hub
 
 
 
