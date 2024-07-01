@@ -7,6 +7,4 @@ terragrunt init \
     -backend-config=secret_key=$TF_VAR_terraform_state_bucket_secret \
     -backend-config=region=$TF_VAR_terraform_state_bucket_region
 
-# terragrunt apply -auto-approve
-terragrunt destroy -auto-approve
-# todo uncomment
+terragrunt apply -auto-approve

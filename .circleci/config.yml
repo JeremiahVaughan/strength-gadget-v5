@@ -19,19 +19,6 @@ jobs:
             ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" 'mkdir -p reverse-proxy'
             scp -i ./.key reverse-proxy/docker-compose.yaml reverse-proxy/nginx.conf "piegarden@$TF_VAR_backend_public_ip:reverse-proxy"
             ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" "cd reverse-proxy && sudo docker compose down || true && sudo docker compose up -d"
-  frontend-build:
-    docker:
-      - image: piegarden/strengthgadget-frontend-agent:0.0.1
-        auth:
-          username: $TF_VAR_docker_user
-          password: $TF_VAR_docker_token
-    steps:
-      - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - run:
-          command: |
-            cd ./infrastructure/terraform/live/staging/cloudfront && ../deploy.sh
   build:
     docker:
       - image: cimg/base:current
@@ -167,14 +154,3 @@ workflows:
             - context-staging
           requires:
             - "build staging"
-      - frontend-build:
-          name: "destroy"
-          filters:
-            branches:
-              only: staging
-          context:
-            - context-staging
-            - context-docker-hub
-
-
-
