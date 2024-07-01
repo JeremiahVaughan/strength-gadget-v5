@@ -1,2 +1,6 @@
-local:
-	npm run start-mobile
+test-it:
+	go test ./...
+
+include .env
+b:
+	go run .

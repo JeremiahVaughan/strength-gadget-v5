@@ -1,0 +1,32 @@
+{{define "form-header-styles"}}
+<style>
+    @keyframes form-header-fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .error-response-message {
+        color: red;
+        font-weight: bold;
+        font-size: 1.2rem;
+        width: 20rem;
+        margin-top: 2rem;
+        animation: form-header-fadeOut 1s 4s forwards; 
+        word-wrap: break-word;
+    }
+        
+    .form-header-container {
+      padding-bottom: 1rem;
+      display: flex;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+</style>
+{{end}}
+
+{{define "form-header-content"}}
+    <div class="form-header-container">
+        <h2>{{.}}</h2>
+    </div>
+{{end}}

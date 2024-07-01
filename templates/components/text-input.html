@@ -1,0 +1,57 @@
+{{define "text-input-styles"}}
+<style>
+    .text-input-field {
+      border: .15rem #c0c0c0 solid;
+      padding: .9rem;
+      border-radius: .4rem;
+      background-color: #7f7f7f;
+      color: white;
+      font-weight: bold;
+      font-size: 1.3rem;
+
+    }
+
+    .text-input-field:focus {
+        border-color: #0556a6;
+        outline: #002b88;
+    }
+
+    @keyframes text-input-fadeColor {
+        from {
+            border-color: red;
+        }
+        to {
+            border-color: #0556a6;
+        }
+    }
+
+    .text-input-invalid {
+        border-color: red;
+        animation: text-input-fadeColor 1s 4s forwards; 
+    }
+
+    input::placeholder {
+      color: #c0c0c0;
+    }
+
+    .text-input-spacer {
+      height: .7rem;
+      width: .4rem;
+    }
+</style>
+{{end}}
+
+{{define "text-input-content"}}
+<div>
+    <input
+        type="{{ .Type }}"
+        name="{{ .Id }}"
+        {{if .Disabled}}disabled{{end}}
+        class="text-input-field {{if ne .ErrorMsg ""}}text-input-invalid{{end}}"
+        placeholder="{{ .Placeholder }}"
+        required
+        value="{{ .Value }}"
+    />
+    <div class="text-input-spacer"></div>
+</div>
+{{end}}

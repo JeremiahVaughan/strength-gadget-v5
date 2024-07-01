@@ -1,0 +1,30 @@
+{{define "loginForm" }}
+<form hx-post="/login"
+      hx-swap="outerHTML"
+      hx-disabled-elt="input, button">
+    {{template "form-header-content" "Login"}}
+    <div class="text-fields">
+        {{template "text-input-content" .Email}}
+        {{template "text-input-content" .Password}}
+    </div>
+    <div class="spacer"></div>
+    <div class="buttons">
+        <a href="/forgotPassword/email" class="forgot-password-link">
+            Forgot password?
+        </a>
+        <div class="spacer"></div>
+        {{template "button-content" .Submit }}
+    </div>
+    <div class="spacer"></div>
+    <div class="divider">
+        <span class="divider-text">or</span>
+    </div>
+    <a href="/signUp" class="new-account-text">
+        Create new account
+    </a>
+    <div class="error-response-message">
+        <div>{{ .Email.ErrorMsg }}</div>
+        <div>{{ .Password.ErrorMsg }}</div>
+    </div>
+</form>
+{{end}}

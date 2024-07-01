@@ -3,7 +3,7 @@ locals {
 }
 
 data "cloudflare_zone" "this" {
-  name = var.domain_name
+  name = "strengthgadget.com"
 }
 
 resource "cloudflare_record" "this" {

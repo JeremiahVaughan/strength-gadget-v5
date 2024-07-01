@@ -1,3 +1,7 @@
+# For CDN integrity checks I did this:
+```wget https://unpkg.com/hyperscript.org@0.9.12 -O h.js```
+```openssl dgst -sha384 -binary h.js | openssl base64 -A```
+
 # Development Getting Started
 ### Prerequisite
 1. Install mkcert<br>
