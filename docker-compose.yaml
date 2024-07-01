@@ -1,6 +1,8 @@
 services:
   webserver:
     image: "piegarden/strengthgadget:${CIRCLE_WORKFLOW_ID}"
+    depends_on:
+      - keydb
     environment:
       TF_VAR_cloudflare_origin_cert: "${TF_VAR_cloudflare_origin_cert}"
       TF_VAR_cloudflare_origin_cert_key: "${TF_VAR_cloudflare_origin_cert_key}"
