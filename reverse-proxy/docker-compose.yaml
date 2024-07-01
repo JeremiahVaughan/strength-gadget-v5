@@ -1,5 +1,5 @@
 services:
-  reverseProxy:
+  reverse-proxy:
     image: "nginx"
     ports:
       - "443:443"
