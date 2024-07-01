@@ -321,14 +321,9 @@ func initHttpServer() (*http.Server, error) {
 		Certificates: []tls.Certificate{cert},
 	}
 
-	serverPort := os.Getenv("TF_VAR_server_port")
-	if serverPort == "" {
-		return nil, errors.New("error, TF_VAR_server_port env var is required, but was not provided")
-	}
-
 	// Create a custom server with TLSConfig
 	server := &http.Server{
-		Addr:      ":" + serverPort,
+		Addr:      ":443",
 		TLSConfig: tlsConfig,
 	}
 	return server, nil
