@@ -1,5 +1,5 @@
 locals {
-  domain_name = var.domain_name
+  domain_name = "strengthgadget.com"
   ui_dir      = "${var.workspace_dir}/dist/ui"
   mime_types = {
     "html" = "text/html",
