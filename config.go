@@ -139,9 +139,9 @@ func InitConfig(ctx context.Context) error {
 		errorMsgs = append(errorMsgs, "TF_VAR_redis_connection_string")
 	}
 
-    redisPort := os.Getenv("TF_VAR_redis_port")
-    if redisPort == "" {
-    }
+	redisPort := os.Getenv("TF_VAR_redis_port")
+	if redisPort == "" {
+	}
 
 	redisPassword := os.Getenv("TF_VAR_redis_password")
 	if redisPassword == "" {
@@ -321,10 +321,10 @@ func initHttpServer() (*http.Server, error) {
 		Certificates: []tls.Certificate{cert},
 	}
 
-    serverPort := os.Getenv("TF_VAR_server_port")
-    if serverPort == "" {
-        return nil, errors.New("error, TF_VAR_server_port env var is required, but was not provided")
-    }
+	serverPort := os.Getenv("TF_VAR_server_port")
+	if serverPort == "" {
+		return nil, errors.New("error, TF_VAR_server_port env var is required, but was not provided")
+	}
 
 	// Create a custom server with TLSConfig
 	server := &http.Server{
@@ -336,8 +336,8 @@ func initHttpServer() (*http.Server, error) {
 
 func connectToRedisDatabase(redisPort string) (*redis.Client, error) {
 	options := redis.Options{
-        Addr:     "127.0.0.1:" + redisPort,
-		DB:       0, // use default DB
+		Addr: "keydb:" + redisPort,
+		DB:   0, // use default DB
 		// Password: password,
 	}
 	// Load client cert

@@ -31,8 +31,8 @@ services:
     restart: always
   keydb: 
     image: "eqalpha/keydb"
-    ports:
-      - "${TF_VAR_redis_port}:6379"
+    # ports:
+    #   - "${TF_VAR_redis_port}:6379"
     volumes:
       - "./keydb.conf:/etc/keydb/keydb.conf"
     restart: always
