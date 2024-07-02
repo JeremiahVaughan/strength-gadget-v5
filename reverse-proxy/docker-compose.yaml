@@ -13,9 +13,10 @@ services:
     #   - NET_BIND_SERVICE
     networks:
       - default
-      - shared
+      - shared-network
 
 networks:
   default:
-  shared:
+  shared-network:
+    name: shared-network
     driver: bridge
