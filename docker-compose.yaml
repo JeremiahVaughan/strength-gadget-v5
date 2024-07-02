@@ -27,8 +27,6 @@ services:
       TF_VAR_redis_ca: "${TF_VAR_redis_ca}"
       TF_VAR_sentry_end_point: "${TF_VAR_sentry_end_point}"
       TF_VAR_allowed_verification_resend_code_attempts_within_one_hour: "${TF_VAR_allowed_verification_resend_code_attempts_within_one_hour}"
-    ports:
-      - "${TF_VAR_server_port}:443"
     restart: always
     networks:
       - default
