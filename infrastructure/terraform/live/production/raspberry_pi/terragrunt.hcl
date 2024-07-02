@@ -14,6 +14,6 @@ include "env" {
 
 inputs = {
   environment = local.env_name
-  domain_name = "staging.strengthgadget.com"
+  domain_name = "strengthgadget.com"
   static_ip = "173.197.226.162"
 }

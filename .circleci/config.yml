@@ -64,7 +64,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          command: cd ./infrastructure/terraform/live/staging/raspberry_pi && ../deploy.sh
+          command: cd "./infrastructure/terraform/live/${TF_VAR_environment}/raspberry_pi" && ../deploy.sh
   statuscake:
     docker:
       - image: alpine/terragrunt
@@ -76,7 +76,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          command: cd ./infrastructure/terraform/live/staging/statuscake && ../deploy.sh
+          command: cd "./infrastructure/terraform/live/${TF_VAR_environment}/statuscake" && ../deploy.sh
 
 
 
