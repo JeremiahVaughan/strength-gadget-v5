@@ -5,6 +5,7 @@ services:
     volumes:
       - "./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
     restart: always
+    user: root
     sysctls:
       - net.ipv4.ip_unprivileged_port_start=0
     cap_add:
