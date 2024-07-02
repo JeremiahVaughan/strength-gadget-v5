@@ -8,12 +8,10 @@ include "root" {
 }
 
 include "env" {
-  path = "${get_terragrunt_dir()}/../../_env/raspberry_pi.hcl"
+  path = "${get_terragrunt_dir()}/../../_env/statuscake.hcl"
 }
 
 
 inputs = {
-  environment = local.env_name
-  domain_name = "staging.strengthgadget.com"
-  static_ip = "173.197.226.162"
+  env = local.env_name
 }
