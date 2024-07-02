@@ -32,7 +32,7 @@ services:
     restart: always
     networks:
       - default
-      - reverse-proxy_shared
+      - shared-network
   keydb: 
     image: "eqalpha/keydb"
     volumes:
@@ -43,5 +43,5 @@ services:
 
 networks:
   default:
-  reverse-proxy_shared:
+  shared-network:
     external: true
