@@ -1,12 +1,21 @@
 services:
   haproxy:
     image: "haproxy:latest"
-    network_mode: "host"
+    ports: 
+      - "443:443"
     volumes:
       - "./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg"
     restart: always
-    user: root
-    sysctls:
-      - net.ipv4.ip_unprivileged_port_start=0
-    cap_add:
-      - NET_BIND_SERVICE
+    # user: root
+    # sysctls:
+    #   - net.ipv4.ip_unprivileged_port_start=0
+    # cap_add:
+    #   - NET_BIND_SERVICE
+    networks:
+      - default
+      - shared
+
+networks:
+  default:
+  shared:
+    external: true
