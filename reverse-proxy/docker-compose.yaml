@@ -18,4 +18,3 @@ services:
 networks:
   default:
   shared:
-    external: true
