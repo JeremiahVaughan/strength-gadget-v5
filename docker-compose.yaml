@@ -30,10 +30,18 @@ services:
     ports:
       - "${TF_VAR_server_port}:443"
     restart: always
+    networks:
+      - default
+      - shared
   keydb: 
     image: "eqalpha/keydb"
     volumes:
       - "./keydb.conf:/etc/keydb/keydb.conf"
     restart: always
+    networks:
+      - default
 
-
+networks:
+  default:
+  shared:
+    external: true
