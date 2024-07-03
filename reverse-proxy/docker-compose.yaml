@@ -9,8 +9,8 @@ services:
     # user: root
     # sysctls:
     #   - net.ipv4.ip_unprivileged_port_start=0
-    # cap_add:
-    #   - NET_BIND_SERVICE
+    cap_add:
+      - NET_BIND_SERVICE
     networks:
       - default
       - shared
