@@ -1,6 +1,7 @@
 services:
   webserver:
     image: "piegarden/strengthgadget:${CIRCLE_WORKFLOW_ID}"
+    container_name: "${TF_VAR_environment}"
     depends_on:
       - keydb
     environment:
@@ -33,6 +34,7 @@ services:
       - shared
   keydb: 
     image: "eqalpha/keydb"
+    container_name: "keydb"
     volumes:
       - "./keydb.conf:/etc/keydb/keydb.conf"
     restart: always
