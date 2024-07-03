@@ -34,7 +34,6 @@ services:
       - shared
   keydb: 
     image: "eqalpha/keydb"
-    container_name: "keydb"
     volumes:
       - "./keydb.conf:/etc/keydb/keydb.conf"
     restart: always
