@@ -52,7 +52,7 @@ jobs:
             scp -i ./.key docker-compose.yaml keydb.conf "piegarden@${TF_VAR_backend_public_ip}:${TF_VAR_domain_name}"
             printenv > .env
             scp -i ./.key .env "piegarden@${TF_VAR_backend_public_ip}:${TF_VAR_domain_name}"
-            ssh -i ./.key "piegarden@${TF_VAR_backend_public_ip}" "cd ${TF_VAR_domain_name} && sudo docker compose down || true && sudo docker compose up -d"
+            ssh -i ./.key "piegarden@${TF_VAR_backend_public_ip}" "cd ${TF_VAR_domain_name} && sudo docker compose -p "${TF_VAR_environment}" down || true && sudo docker compose -p "${TF_VAR_environment}" up -d"
   infra:
     docker:
       - image: alpine/terragrunt
