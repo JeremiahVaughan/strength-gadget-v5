@@ -30,7 +30,7 @@ services:
     restart: always
     networks:
       - default
-      - shared-network
+      - shared
   keydb: 
     image: "eqalpha/keydb"
     volumes:
@@ -41,5 +41,5 @@ services:
 
 networks:
   default:
-  shared-network:
+  shared:
     external: true
