@@ -37,6 +37,7 @@ services:
     image: "eqalpha/keydb"
     volumes:
       - "./keydb.conf:/etc/keydb/keydb.conf"
+      - "./session_data:/data"
     restart: always
     networks:
       - default
