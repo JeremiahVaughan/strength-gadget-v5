@@ -88,7 +88,8 @@ func serveAthletes(ctx context.Context) error {
 		EndpointLogout:       HandleLogout,
 	}
 	for k, v := range endpoints {
-		mux.Handle(k, IpFilterMiddleware(v))
+		// mux.Handle(k, IpFilterMiddleware(v)) // todo cloudflare IPs are not working, I think some are not whitelisted that should be.
+		mux.Handle(k, v)
 	}
 
 	// endpointsRequiringAuth key is endpoint address
