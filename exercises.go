@@ -1025,7 +1025,8 @@ type ExerciseDisplay struct {
 	NextProgressIndex int
 	WorkoutCompleted  bool
 
-	Exercise Exercise
+	Exercise    Exercise
+	TimeOptions []TimeOption
 }
 
 func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, count int) bool {

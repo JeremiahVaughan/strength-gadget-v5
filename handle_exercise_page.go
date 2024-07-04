@@ -272,12 +272,20 @@ func getIncrementedProgressIndex(currentWorkout *UserWorkoutDto) WorkoutProgress
 	return progressIndex
 }
 
+func getTimeLabel(time int) string {
+	minute := time / 60
+	seconds := time % 60
+	return fmt.Sprintf("%d:%d", minute, seconds)
+}
+
 func getNextExercise(
 	ctx context.Context,
 	userSession *UserSession,
 ) (ExerciseDisplay, error) {
 	var workoutExercises AvailableWorkoutExercises
 	var err error
+	timeSelectionCap := 180
+	timeInterval := 5
 	exercise := ExerciseDisplay{
 		NextProgressIndex: userSession.WorkoutSession.ProgressIndex + 1,
 		SelectMode:        true,
@@ -299,18 +307,13 @@ func getNextExercise(
 			Color: SecondaryButtonColor,
 			Type:  ButtonTypeSubmit,
 		},
-		Hot: Button{
-			Id:    "+",
-			Label: "+",
-			Color: OrangeButtonColor,
-			Type:  ButtonTypeRegular,
-		},
-		Cool: Button{
-			Id:    "-",
-			Label: "-",
-			Color: BlueButtonColor,
-			Type:  ButtonTypeRegular,
-		},
+	}
+	exercise.TimeOptions = make(TimeOptions, timeSelectionCap/timeInterval)
+	for i := timeInterval; i <= timeSelectionCap; i += timeInterval {
+		exercise.TimeOptions[i] = TimeOption{
+			Label: getTimeLabel(i),
+			Value: i,
+		}
 	}
 	switch userSession.WorkoutSession.CurrentWorkoutRoutine {
 	case LOWER:
