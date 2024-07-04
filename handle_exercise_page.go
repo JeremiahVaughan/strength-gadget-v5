@@ -35,7 +35,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	progressIndexString := r.URL.Query().Get("progressIndex")
 	if progressIndexString == "" {
 		// not having the progress index in the URL makes interactions too complex, so just always requiring it.
-		redirectToExercisePage(w, r, userSession)
+		redirectToExercisePage(w, r, userSession, true)
 		return
 	} else {
 		userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
@@ -473,7 +473,12 @@ func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {
 }
 
 // todo a session expiration will cause the workout to get restarted, need to fix this
-func redirectToExercisePage(w http.ResponseWriter, r *http.Request, userSession *UserSession) {
+func redirectToExercisePage(
+	w http.ResponseWriter,
+	r *http.Request,
+	userSession *UserSession,
+	samePage bool,
+) {
 	var err error
 	if userSession == nil {
 		userSession, err = FetchUserSession(r)
@@ -489,6 +494,10 @@ func redirectToExercisePage(w http.ResponseWriter, r *http.Request, userSession 
 	}
 
 	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
-	// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
-	http.Redirect(w, r, url, http.StatusSeeOther)
+	if samePage {
+		// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
+		http.Redirect(w, r, url, http.StatusSeeOther)
+	} else {
+		w.Header().Set("HX-Redirect", url)
+	}
 }
