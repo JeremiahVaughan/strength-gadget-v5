@@ -325,13 +325,7 @@ func getNextExercise(
 			Type:  ButtonTypeSubmit,
 		},
 	}
-	exercise.TimeOptions = make(TimeOptions, timeSelectionCap/timeInterval)
-	for i := timeInterval; i <= timeSelectionCap; i += timeInterval {
-		exercise.TimeOptions[i] = TimeOption{
-			Label: getTimeLabel(i),
-			Value: i,
-		}
-	}
+	exercise.TimeOptions = generateTimeOptions(timeInterval, timeSelectionCap)
 	switch userSession.WorkoutSession.CurrentWorkoutRoutine {
 	case LOWER:
 		workoutExercises = lowerWorkout
