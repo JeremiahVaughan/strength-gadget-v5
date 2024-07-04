@@ -38,7 +38,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	if progressIndexString == "" {
 		// setting the url explicitly to reduce the likely hood of the user being redirected since both put and post require it
 		url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, userSession.WorkoutSession.ProgressIndex)
-		w.Header().Set("HX-Replace-Url", url)
+		w.Header().Set("HX-Push-Url", url)
 		if r.Method != http.MethodGet {
 			// mutations always require a progressIndex to be provided by the client to avoid changing the wrong resource
 			httpMethod = http.MethodGet
