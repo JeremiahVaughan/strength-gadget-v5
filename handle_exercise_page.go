@@ -474,7 +474,8 @@ func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {
 
 // todo a session expiration will cause the workout to get restarted, need to fix this
 func redirectToExercisePage(w http.ResponseWriter, r *http.Request, progressIndex int) {
-	url := fmt.Sprintf("https://%s%s?progressIndex=%d", DomainName, EndpointExercise, progressIndex)
-	http.Redirect(w, r, url, http.StatusNotFound)
+	// url := fmt.Sprintf("https://%s%s?progressIndex=%d", DomainName, EndpointExercise, progressIndex)
+	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
+	http.Redirect(w, r, url, http.StatusFound)
 	// w.Header().Set("HX-Redirect", url)
 }
