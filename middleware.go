@@ -41,6 +41,7 @@ func CheckForActiveSession(next http.Handler) http.Handler {
 			return
 		}
 
+        
 		redirectToExercisePage(w, r, userSession, false)
 	})
 }

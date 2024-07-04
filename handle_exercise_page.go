@@ -494,10 +494,11 @@ func redirectToExercisePage(
 	}
 
 	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
-	if samePage {
-		// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
-		http.Redirect(w, r, url, http.StatusSeeOther)
-	} else {
-		w.Header().Set("HX-Redirect", url)
-	}
+	http.Redirect(w, r, url, http.StatusSeeOther)
+	// if samePage {
+	// 	// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
+	// 	http.Redirect(w, r, url, http.StatusSeeOther)
+	// } else {
+	// 	w.Header().Set("HX-Redirect", url)
+	// }
 }
