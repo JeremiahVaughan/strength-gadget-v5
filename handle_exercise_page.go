@@ -19,7 +19,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	}
 	if !userSession.Authenticated {
 		// HX-Redirect only works if the page has already been loaded so we have to use full redirect instead
-		http.Redirect(w, r, EndpointLogin, http.StatusFound)
+		http.Redirect(w, r, EndpointLogin, http.StatusSeeOther)
 		return
 	}
 
@@ -35,7 +35,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	progressIndexString := r.URL.Query().Get("progressIndex")
 	if progressIndexString == "" {
 		// not having the progress index in the URL makes interactions too complex, so just always requiring it.
-		redirectToExercisePage(w, r, userSession.WorkoutSession.ProgressIndex)
+		redirectToExercisePage(w, r, userSession)
 		return
 	} else {
 		userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
@@ -473,9 +473,22 @@ func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {
 }
 
 // todo a session expiration will cause the workout to get restarted, need to fix this
-func redirectToExercisePage(w http.ResponseWriter, r *http.Request, progressIndex int) {
-	// url := fmt.Sprintf("https://%s%s?progressIndex=%d", DomainName, EndpointExercise, progressIndex)
+func redirectToExercisePage(w http.ResponseWriter, r *http.Request, userSession *UserSession) {
+	var err error
+	if userSession == nil {
+		userSession, err = FetchUserSession(r)
+		if err != nil {
+			err = fmt.Errorf("error, when FetchUserSession() for HandleExercisePage(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
+	}
+	var progressIndex int
+	if userSession.WorkoutSessionExists {
+		progressIndex = userSession.WorkoutSession.ProgressIndex
+	}
+
 	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
-	http.Redirect(w, r, url, http.StatusFound)
-	// w.Header().Set("HX-Redirect", url)
+	// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
+	http.Redirect(w, r, url, http.StatusSeeOther)
 }

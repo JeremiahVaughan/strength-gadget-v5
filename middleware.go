@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -27,7 +28,22 @@ func IpFilterMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// func EnsureProgressIndex
+func CheckForActiveSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userSession, err := FetchUserSession(r)
+		if err != nil {
+			err = fmt.Errorf("error, when FetchUserSession() for HandleExercisePage(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
+		if !userSession.Authenticated {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		redirectToExercisePage(w, r, userSession)
+	})
+}
 
 func setCacheControl(handler http.Handler, maxAge int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

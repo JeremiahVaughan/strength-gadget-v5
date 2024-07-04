@@ -80,7 +80,7 @@ func HandleForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, authCookie)
 	http.SetCookie(w, workoutCookie)
 
-    redirectToExercisePage(w, r, 0)
+    redirectToExercisePage(w, r, nil)
 }
 
 func returnForgotPasswordNewPasswordForm(w http.ResponseWriter, fields *ForgotPasswordFields) error {

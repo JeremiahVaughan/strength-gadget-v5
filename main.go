@@ -76,14 +76,7 @@ func serveAthletes(ctx context.Context) error {
 
 	// endpoints key is endpoint address
 	endpoints := map[string]http.HandlerFunc{
-		LandingPage:          HandleLandingPage,
 		EndpointHealth:       HandleHealth,
-		EndpontSignUp:        HandleSignUp,
-		EndpointLogin:        HandleLogin,
-		EndpointVerification: HandleVerification,
-		EndpointEmail:        HandleForgotPasswordEmail,
-		EndpointResetCode:    HandleForgotPasswordResetCode,
-		EndpointNewPassword:  HandleForgotPasswordNewPassword,
 		EndpointExercise:     HandleExercisePage,
 		EndpointLogout:       HandleLogout,
 	}
@@ -92,6 +85,20 @@ func serveAthletes(ctx context.Context) error {
 		mux.Handle(k, v)
 	}
 
+    authEndPoints := map[string]http.HandlerFunc{
+		LandingPage:          HandleLandingPage,
+		EndpontSignUp:        HandleSignUp,
+		EndpointLogin:        HandleLogin,
+		EndpointVerification: HandleVerification,
+		EndpointEmail:        HandleForgotPasswordEmail,
+		EndpointResetCode:    HandleForgotPasswordResetCode,
+		EndpointNewPassword:  HandleForgotPasswordNewPassword,
+    }
+
+	for k, v := range authEndPoints {
+		// mux.Handle(k, IpFilterMiddleware(v)) // todo cloudflare IPs are not working, I think some are not whitelisted that should be.
+		mux.Handle(k, CheckForActiveSession(v))
+	}
 	// endpointsRequiringAuth key is endpoint address
 	// endpointsRequiringAuth := map[string]http.HandlerFunc{
 	// 	EndpointLogout:       HandleLogout,
