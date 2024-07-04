@@ -108,7 +108,7 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, authCookie)
 	http.SetCookie(w, workoutCookie)
 
-    redirectToExercisePage(w, 0)
+	redirectToExercisePage(w, r, 0)
 }
 
 func handleVerificationAttempt(r *http.Request, fields *VerificationFields) (*VerificationFields, *User, error) {
