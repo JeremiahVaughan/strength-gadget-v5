@@ -32,12 +32,10 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	httpMethod := r.Method
 	progressIndexString := r.URL.Query().Get("progressIndex")
-
 	if progressIndexString == "" {
 		// not having the progress index in the URL makes interactions too complex, so just always requiring it.
-		redirectToExercisePage(w, userSession.WorkoutSession.ProgressIndex)
+		redirectToExercisePage(w, r, userSession.WorkoutSession.ProgressIndex)
 		return
 	} else {
 		userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
@@ -49,7 +47,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var nextExercise ExerciseDisplay
-	switch httpMethod {
+	switch r.Method {
 	case http.MethodGet:
 		nextExercise, err = getNextExercise(
 			ctx,
@@ -474,7 +472,9 @@ func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {
 	return startingValue, nil
 }
 
-func redirectToExercisePage(w http.ResponseWriter, progressIndex int) {
+// todo a session expiration will cause the workout to get restarted, need to fix this
+func redirectToExercisePage(w http.ResponseWriter, r *http.Request, progressIndex int) {
 	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
-	w.Header().Set("HX-Redirect", url)
+	http.Redirect(w, r, url, http.StatusNotFound)
+	// w.Header().Set("HX-Redirect", url)
 }

@@ -27,6 +27,8 @@ func IpFilterMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// func EnsureProgressIndex
+
 func setCacheControl(handler http.Handler, maxAge int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Set the Cache-Control header
