@@ -275,7 +275,24 @@ func getIncrementedProgressIndex(currentWorkout *UserWorkoutDto) WorkoutProgress
 func getTimeLabel(time int) string {
 	minute := time / 60
 	seconds := time % 60
-	return fmt.Sprintf("%d:%d", minute, seconds)
+	s := strconv.Itoa(seconds)
+	if len(s) == 1 {
+		s = fmt.Sprintf("%s%s", "0", s)
+	}
+	return fmt.Sprintf("%d:%s", minute, s)
+}
+
+func generateTimeOptions(timeInterval, timeSelectionCap int) TimeOptions {
+	timeOptions := make(TimeOptions, timeSelectionCap/timeInterval)
+	j := 0
+	for i := timeInterval; i <= timeSelectionCap; i += timeInterval {
+		timeOptions[j] = TimeOption{
+			Label: getTimeLabel(i),
+			Value: i,
+		}
+		j++
+	}
+	return timeOptions
 }
 
 func getNextExercise(
