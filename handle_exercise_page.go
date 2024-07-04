@@ -498,7 +498,7 @@ func redirectToExercisePage(
 	// if samePage {
 	// 	// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
 	w.Header().Set("HX-Redirect", url)
-	http.Redirect(w, r, url, http.StatusSeeOther)
+	// http.Redirect(w, r, url, http.StatusSeeOther)
 	// } else {
 	// }
 }
