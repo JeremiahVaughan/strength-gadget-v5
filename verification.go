@@ -32,7 +32,7 @@ func sendEmailVerification(email string, verificationCode string, isPasswordRese
 	} else {
 		subjectPurpose = "Email Verification"
 	}
-	subject := fmt.Sprintf("strengthgadget.com %s", subjectPurpose)
+	subject := fmt.Sprintf("%s %s", DomainName, subjectPurpose)
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	// generating html body with: https://premailer.dialect.ca/
 
@@ -40,10 +40,10 @@ func sendEmailVerification(email string, verificationCode string, isPasswordRese
 	var enterCodeLink string
 	if isPasswordReset {
 		bodyPurpose = "password reset"
-		enterCodeLink = fmt.Sprintf("%s/forgotPassword/resetCode?email=%s", TrustedUiOrigins[0], email)
+        enterCodeLink = fmt.Sprintf("https://%s/forgotPassword/resetCode?email=%s", DomainName, email)
 	} else {
 		bodyPurpose = "email verification"
-		enterCodeLink = fmt.Sprintf("%s/verification?email=%s", TrustedUiOrigins[0], email)
+        enterCodeLink = fmt.Sprintf("https://%s/verification?email=%s", DomainName, email)
 	}
 	body := fmt.Sprintf("<div>Your %s code is: %s</div>"+
 		"<div>Enter the code here: %s</div>", bodyPurpose, verificationCode, enterCodeLink)

@@ -56,6 +56,8 @@ var (
 	// the superset is assumed to be aborted regardless of the progress made in that superset.
 	CurrentSupersetExpirationTimeInHours = 6
 
+    DomainName string
+
 	Version             string
 	ConnectionPool      *pgxpool.Pool
 	RedisConnectionPool *redis.Client
@@ -103,6 +105,10 @@ func InitConfig(ctx context.Context) error {
 	if RegistrationEmailFromPassword == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_registration_email_from_password")
 	}
+    DomainName = os.Getenv("TF_VAR_domain_name")
+    if DomainName == "" {
+        errorMsgs = append(errorMsgs, "TF_VAR_domain_name")
+    }
 	databaseConnectionString := os.Getenv("TF_VAR_database_connection_string")
 	if databaseConnectionString == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_database_connection_string")
@@ -114,12 +120,6 @@ func InitConfig(ctx context.Context) error {
 	databaseRootCa := os.Getenv("TF_VAR_database_root_ca")
 	if databaseRootCa == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_database_root_ca")
-	}
-	trustedUiOriginsString := os.Getenv("TF_VAR_trusted_ui_origin")
-	if trustedUiOriginsString == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_trusted_ui_origin")
-	} else {
-		TrustedUiOrigins = strings.Split(trustedUiOriginsString, ",")
 	}
 	EmailRootCa = os.Getenv("TF_VAR_email_root_ca")
 	if EmailRootCa == "" {
