@@ -23,6 +23,16 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !userSession.WorkoutSessionExists { // todo also handle the case where the user clicks the button to start a new workout
+		userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId)
+		if err != nil {
+			err = fmt.Errorf("error, when createNewWorkout() for HandleExercisePage(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
+	}
+
+	httpMethod := r.Method
 	progressIndexString := r.URL.Query().Get("progressIndex")
 	if progressIndexString != "" {
 		userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
@@ -31,31 +41,20 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
+	} else if r.Method != http.MethodGet {
+		// mutations always require a progressIndex to be provided by the client to avoid changing the wrong resource
+		httpMethod = http.MethodGet
 	}
 
 	var nextExercise ExerciseDisplay
-	switch r.Method {
+	switch httpMethod {
 	case http.MethodGet:
-		if !userSession.WorkoutSessionExists { // todo also handle the case where the user clicks the button to start a new workout
-			userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId)
-			if err != nil {
-				err = fmt.Errorf("error, when createNewWorkout() for HandleExercisePage(). Error: %v", err)
-				HandleUnexpectedError(w, err)
-				return
-			}
-		}
 		nextExercise, err = getNextExercise(
 			ctx,
 			userSession,
 		)
 		if err != nil {
 			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage(). Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
-		}
-		nextExercise.Exercise.LastCompletedMeasurement, err = getDefaultCompletedMeasurement(nextExercise.Exercise)
-		if err != nil {
-			err = fmt.Errorf("error, when applyDefaultStartingValues() for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
@@ -104,8 +103,10 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
-		if err != nil {
-			err = fmt.Errorf("error, when unmarshalling the progress index for HandleExercisePage(). Error: %v", err)
+
+		exerciseId := r.FormValue("exerciseId")
+		if exerciseId == "" {
+			err = fmt.Errorf("error, must provide exercise id for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
@@ -139,8 +140,19 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	nextExercise.Exercise.LastCompletedMeasurement, err = getDefaultCompletedMeasurement(nextExercise.Exercise)
+	if err != nil {
+		err = fmt.Errorf("error, when applyDefaultStartingValues() for HandleExercisePage(). Error: %v", err)
+		HandleUnexpectedError(w, err)
+		return
+	}
+
+	// setting the url explicitly to reduce the likely hood of redirects since put and post both require it
+	pushUrl := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, userSession.WorkoutSession.ProgressIndex)
+	w.Header().Set("HX-Push-Url", pushUrl)
+
 	switch r.Header.Get("HX-Trigger") {
-	case nextExercise.Yes.Id:
+	case nextExercise.Yes.Id, nextExercise.Complete.Id:
 		err = templateMap["exercise-page.html"].ExecuteTemplate(w, "content", nextExercise)
 		if err != nil {
 			err = fmt.Errorf("error, when executing exercise page template for HandleExercisePage(). Error: %v", err)
@@ -301,8 +313,6 @@ func getNextExercise(
 ) (ExerciseDisplay, error) {
 	var workoutExercises AvailableWorkoutExercises
 	var err error
-	timeSelectionCap := 180
-	timeInterval := 5
 	exercise := ExerciseDisplay{
 		NextProgressIndex: userSession.WorkoutSession.ProgressIndex + 1,
 		SelectMode:        true,
@@ -324,8 +334,9 @@ func getNextExercise(
 			Color: SecondaryButtonColor,
 			Type:  ButtonTypeSubmit,
 		},
+		TimeOptions: DefaultExerciseTimeOptions,
 	}
-	exercise.TimeOptions = generateTimeOptions(timeInterval, timeSelectionCap)
+
 	switch userSession.WorkoutSession.CurrentWorkoutRoutine {
 	case LOWER:
 		workoutExercises = lowerWorkout

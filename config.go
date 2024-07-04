@@ -21,6 +21,8 @@ import (
 )
 
 var (
+	DefaultExerciseTimeOptions = generateDefaultTimeOptions()
+
 	Environment string
 
 	SentryEndpoint string
@@ -56,7 +58,7 @@ var (
 	// the superset is assumed to be aborted regardless of the progress made in that superset.
 	CurrentSupersetExpirationTimeInHours = 6
 
-    DomainName string
+	DomainName string
 
 	Version             string
 	ConnectionPool      *pgxpool.Pool
@@ -70,6 +72,12 @@ var (
 	coreWorkout  AvailableWorkoutExercises
 	upperWorkout AvailableWorkoutExercises
 )
+
+func generateDefaultTimeOptions() TimeOptions {
+	timeSelectionCap := 180
+	timeInterval := 5
+	return generateTimeOptions(timeInterval, timeSelectionCap)
+}
 
 func InitConfig(ctx context.Context) error {
 
@@ -105,10 +113,10 @@ func InitConfig(ctx context.Context) error {
 	if RegistrationEmailFromPassword == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_registration_email_from_password")
 	}
-    DomainName = os.Getenv("TF_VAR_domain_name")
-    if DomainName == "" {
-        errorMsgs = append(errorMsgs, "TF_VAR_domain_name")
-    }
+	DomainName = os.Getenv("TF_VAR_domain_name")
+	if DomainName == "" {
+		errorMsgs = append(errorMsgs, "TF_VAR_domain_name")
+	}
 	databaseConnectionString := os.Getenv("TF_VAR_database_connection_string")
 	if databaseConnectionString == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_database_connection_string")

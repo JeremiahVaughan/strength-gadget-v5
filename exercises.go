@@ -1017,8 +1017,6 @@ type Exercise struct {
 
 type ExerciseDisplay struct {
 	SelectMode        bool
-	Cool              Button
-	Hot               Button
 	Yes               Button
 	No                Button
 	Complete          Button

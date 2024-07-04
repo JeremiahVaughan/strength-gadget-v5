@@ -165,9 +165,11 @@
     </div>
     <div class="lower-buttons">
         <div class="spacer"></div>
-        <form hx-post="/exercise" hx-push-url="true" hx-target="body">
+        <form id="{{.Complete.Id}}"
+              hx-post="/exercise?progressIndex={{.NextProgressIndex}}" 
+              hx-push-url="true" 
+              hx-target="body">
             <input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
-            <input type="hidden" name="progressIndex" value="{{.NextProgressIndex}}">
             {{template "button-content" .Complete }}
         </form>
     </div>
