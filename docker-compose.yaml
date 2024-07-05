@@ -1,5 +1,5 @@
 services:
-  webserver:
+  app:
     image: "piegarden/strengthgadget:${CIRCLE_WORKFLOW_ID}"
     container_name: "${TF_VAR_environment}"
     depends_on:
