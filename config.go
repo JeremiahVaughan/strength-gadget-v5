@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -21,6 +22,8 @@ import (
 )
 
 var (
+	DefaultExerciseTimeOptions = generateDefaultTimeOptions()
+
 	Environment string
 
 	SentryEndpoint string
@@ -33,7 +36,6 @@ var (
 	AllowedVerificationAttemptsWithTheExcessiveRetryLockoutWindow int
 	VerificationCodeValidityWindowInMin                           int
 	EmailRootCa                                                   string
-	TrustedUiOrigins                                              []string
 
 	AllowedVerificationResendCodeAttemptsWithinOneHour int
 
@@ -56,6 +58,8 @@ var (
 	// the superset is assumed to be aborted regardless of the progress made in that superset.
 	CurrentSupersetExpirationTimeInHours = 6
 
+	DomainName string
+
 	Version             string
 	ConnectionPool      *pgxpool.Pool
 	RedisConnectionPool *redis.Client
@@ -68,6 +72,12 @@ var (
 	coreWorkout  AvailableWorkoutExercises
 	upperWorkout AvailableWorkoutExercises
 )
+
+func generateDefaultTimeOptions() TimeOptions {
+	timeSelectionCap := 180
+	timeInterval := 5
+	return generateTimeOptions(timeInterval, timeSelectionCap)
+}
 
 func InitConfig(ctx context.Context) error {
 
@@ -103,6 +113,10 @@ func InitConfig(ctx context.Context) error {
 	if RegistrationEmailFromPassword == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_registration_email_from_password")
 	}
+	DomainName = os.Getenv("TF_VAR_domain_name")
+	if DomainName == "" {
+		errorMsgs = append(errorMsgs, "TF_VAR_domain_name")
+	}
 	databaseConnectionString := os.Getenv("TF_VAR_database_connection_string")
 	if databaseConnectionString == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_database_connection_string")
@@ -115,36 +129,9 @@ func InitConfig(ctx context.Context) error {
 	if databaseRootCa == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_database_root_ca")
 	}
-	trustedUiOriginsString := os.Getenv("TF_VAR_trusted_ui_origin")
-	if trustedUiOriginsString == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_trusted_ui_origin")
-	} else {
-		TrustedUiOrigins = strings.Split(trustedUiOriginsString, ",")
-	}
 	EmailRootCa = os.Getenv("TF_VAR_email_root_ca")
 	if EmailRootCa == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_email_root_ca")
-	}
-	webServerCertKey := os.Getenv("TF_VAR_cloudflare_origin_cert_key")
-	if webServerCertKey == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_cloudflare_origin_cert_key")
-	}
-	webServerCert := os.Getenv("TF_VAR_cloudflare_origin_cert")
-	if webServerCert == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_cloudflare_origin_cert")
-	}
-	redisConnectionString := os.Getenv("TF_VAR_redis_connection_string")
-	if redisConnectionString == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_redis_connection_string")
-	}
-
-	redisPort := os.Getenv("TF_VAR_redis_port")
-	if redisPort == "" {
-	}
-
-	redisPassword := os.Getenv("TF_VAR_redis_password")
-	if redisPassword == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_redis_password")
 	}
 
 	toParse := os.Getenv("TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds")
@@ -192,7 +179,7 @@ func InitConfig(ctx context.Context) error {
 		return fmt.Errorf("error, when initAllowedIpRanges() for InitConfig(). Error: %v", err)
 	}
 
-	RedisConnectionPool, err = connectToRedisDatabase(redisPort)
+	RedisConnectionPool, err = connectToRedisDatabase()
 	if err != nil {
 		return fmt.Errorf("error, when connectToRedisDatabase() for InitConfig(). Error: %v", err)
 	}
@@ -226,8 +213,6 @@ func initAllowedIpRanges() ([]*net.IPNet, error) {
 		blocksSlice = []string{
 			"127.0.0.1/32", // ipv4 loop-back
 			"::1/128",      // ipv6 loop-back
-			"10.0.0.8/32",  // Jeremiah's Iphone
-			"10.0.0.24/32", // Jeremiah's Macbook
 		}
 	} else {
 		blocksSlice, err = fetchAllowedIpRanges()
@@ -298,12 +283,18 @@ func fetchAllowedIpRanges() ([]string, error) {
 
 func initHttpServer() (*http.Server, error) {
 	certPem := os.Getenv("TF_VAR_cloudflare_origin_cert")
+	if certPem == "" {
+		return nil, errors.New("error, must provide TF_VAR_cloudflare_origin_cert env var")
+	}
 	certPemBytes, err := base64.StdEncoding.DecodeString(certPem)
 	if err != nil {
 		return nil, fmt.Errorf("error, when attempting to decode the webserver cert: %v", err)
 	}
 
 	keyPem := os.Getenv("TF_VAR_cloudflare_origin_cert_key")
+	if keyPem == "" {
+		return nil, errors.New("error, must provide TF_VAR_cloudflare_origin_cert_key env var")
+	}
 	keyPemBytes, err := base64.StdEncoding.DecodeString(keyPem)
 	if err != nil {
 		return nil, fmt.Errorf("error, when attempting to decode the webserver cert key: %v", err)
@@ -328,63 +319,12 @@ func initHttpServer() (*http.Server, error) {
 	return server, nil
 }
 
-func connectToRedisDatabase(redisPort string) (*redis.Client, error) {
+func connectToRedisDatabase() (*redis.Client, error) {
 	options := redis.Options{
 		Addr: "keydb:6379",
 		DB:   0, // use default DB
-		// Password: password,
 	}
-	// Load client cert
-	// clientCert, clientKey, err := getClientCertAndKey()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error, when getClientCertAndKey() for connectToRedisDatabase(). Error: %v", err)
-	// }
-	// cert, err := tls.X509KeyPair(clientCert, clientKey)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error, when attempting set LoadX509KeyPair() for connectToRedisDatabase(). Error: %v", err) // Ye don't want to sail without a map!
-	// }
-
-	// caCert, err := getCaCert()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error, when getCaCert() for connectToRedisDatabase(). Error: %v", err)
-	// }
-
-	// caCertPool := x509.NewCertPool()
-	// caCertPool.AppendCertsFromPEM(caCert)
-
-	// // Create TLS configuration
-	// tlsConfig := &tls.Config{
-	// 	Certificates:       []tls.Certificate{cert},
-	// 	RootCAs:            caCertPool,
-	// 	InsecureSkipVerify: false,
-	// 	// Remember, settin' InsecureSkipVerify to true is like sailin' without a lookout!
-	// 	// InsecureSkipVerify: true, // Only for development or testing!
-	// }
-
-	// options.TLSConfig = tlsConfig
 	return redis.NewClient(&options), nil
-}
-
-func getClientCertAndKey() ([]byte, []byte, error) {
-	clientCert, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_user_crt"))
-	if err != nil {
-		return nil, nil, fmt.Errorf("error, when decoding clientCert. Error: %v", err)
-	}
-
-	clientKey, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_user_private_key"))
-	if err != nil {
-		return nil, nil, fmt.Errorf("error, when decoding clientKey. Error: %v", err)
-	}
-
-	return clientCert, clientKey, nil
-}
-
-func getCaCert() ([]byte, error) {
-	result, err := base64.StdEncoding.DecodeString(os.Getenv("TF_VAR_redis_ca"))
-	if err != nil {
-		return nil, fmt.Errorf("error, when decoding CA cert. Error: %v", err)
-	}
-	return result, nil
 }
 
 func connectToDatabase(ctx context.Context, connectionString, databaseRootCa string) (*pgxpool.Pool, error) {

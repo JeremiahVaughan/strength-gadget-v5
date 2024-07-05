@@ -48,10 +48,9 @@ jobs:
           command: |
             echo "$TF_VAR_backend_deployment_ssh_private_key" | base64 -d > .key && chmod 600 .key
             echo "$TF_VAR_backend_deployment_ssh_public_known_host" | base64 -d > ~/.ssh/known_hosts
-            ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" "mkdir -p ${TF_VAR_domain_name}"
-            scp -i ./.key docker-compose.yaml keydb.conf "piegarden@${TF_VAR_backend_public_ip}:${TF_VAR_domain_name}"
+            ssh -i ./.key "piegarden@$TF_VAR_backend_public_ip" "mkdir -p ${TF_VAR_domain_name}/session_data"
             printenv > .env
-            scp -i ./.key .env "piegarden@${TF_VAR_backend_public_ip}:${TF_VAR_domain_name}"
+            scp -i ./.key docker-compose.yaml keydb.conf .env "piegarden@${TF_VAR_backend_public_ip}:${TF_VAR_domain_name}"
             ssh -i ./.key "piegarden@${TF_VAR_backend_public_ip}" "cd ${TF_VAR_domain_name} && sudo docker compose -p "${TF_VAR_environment}" down || true && sudo docker compose -p "${TF_VAR_environment}" up -d"
   infra:
     docker:

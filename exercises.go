@@ -1017,15 +1017,14 @@ type Exercise struct {
 
 type ExerciseDisplay struct {
 	SelectMode        bool
-	Cool              Button
-	Hot               Button
 	Yes               Button
 	No                Button
 	Complete          Button
 	NextProgressIndex int
 	WorkoutCompleted  bool
 
-	Exercise Exercise
+	Exercise    Exercise
+	TimeOptions []TimeOption
 }
 
 func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, count int) bool {

@@ -1,9 +1,11 @@
 services:
   webserver:
-    image: "piegarden/strengthgadget:${CIRCLE_WORKFLOW_ID}"
+    image: scratch
     container_name: "${TF_VAR_environment}"
     depends_on:
       - keydb
+    volumes:
+      - "./app:/app"
     environment:
       TF_VAR_allowed_login_attempts_before_triggering_lockout: "${TF_VAR_allowed_login_attempts_before_triggering_lockout}"
       TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window: "${TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window}"
@@ -20,7 +22,7 @@ services:
       TF_VAR_sentry_end_point: "${TF_VAR_sentry_end_point}"
       TF_VAR_verification_code_validity_window_in_min: "${TF_VAR_verification_code_validity_window_in_min}"
       TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds: "${TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds}"
-      TF_VAR_version: "${CIRCLE_WORKFLOW_ID}"
+      TF_VAR_version: "local"
       TF_VAR_window_length_in_seconds_for_the_number_of_allowed_login_attempts_before_lockout: "${TF_VAR_window_length_in_seconds_for_the_number_of_allowed_login_attempts_before_lockout}"
       TF_VAR_window_length_in_seconds_for_the_number_of_allowed_verification_emails_before_lockout: "${TF_VAR_window_length_in_seconds_for_the_number_of_allowed_verification_emails_before_lockout}"
     restart: always

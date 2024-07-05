@@ -35,7 +35,7 @@
 
     .exercise-measurement-time {
       height: 3.5rem;
-      width: 6rem;
+      width: 10rem;
       font-size: 2rem;
       border-radius: 1.5rem;
       border-width: .2rem;
@@ -153,28 +153,23 @@
     </div>
 {{ else }}
     <div class="upper-buttons">
-        {{template "button-content" .Cool }}
-        <input class="exercise-measurement-text"
-               name="lastCompletedMeasurement" 
-               type="number"
-               _="on focus call me.select()
-                  on blur call me.blur()"
-               value="{{.Exercise.LastCompletedMeasurement}}">
+        <div class="button-spacer"></div>
         <select class="exercise-measurement-time"
                name="lastCompletedMeasurement" 
                value="{{.Exercise.LastCompletedMeasurement}}">
-            <option>3:48</option>
-            <option>2:39</option>
-            <option>2:47</option>
+            {{range .TimeOptions}}
+            <option value="{{.Value}}">{{.Label}}</option>
+            {{end}}
         </select>
         <div class="button-spacer"></div>
-        {{template "button-content" .Hot }}
     </div>
     <div class="lower-buttons">
         <div class="spacer"></div>
-        <form hx-post="/exercise" hx-push-url="true" hx-target="body">
+        <form id="{{.Complete.Id}}"
+              hx-post="/exercise?progressIndex={{.NextProgressIndex}}" 
+              hx-push-url="true" 
+              hx-target="body">
             <input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
-            <input type="hidden" name="progressIndex" value="{{.NextProgressIndex}}">
             {{template "button-content" .Complete }}
         </form>
     </div>

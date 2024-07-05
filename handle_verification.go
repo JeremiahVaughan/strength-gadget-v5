@@ -107,7 +107,8 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, authCookie)
 	http.SetCookie(w, workoutCookie)
-	w.Header().Set("HX-Redirect", EndpointExercise)
+
+	redirectToExercisePage(w, r, nil, false)
 }
 
 func handleVerificationAttempt(r *http.Request, fields *VerificationFields) (*VerificationFields, *User, error) {

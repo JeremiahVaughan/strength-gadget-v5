@@ -19,12 +19,25 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	}
 	if !userSession.Authenticated {
 		// HX-Redirect only works if the page has already been loaded so we have to use full redirect instead
-		http.Redirect(w, r, EndpointLogin, http.StatusFound)
+		http.Redirect(w, r, EndpointLogin, http.StatusSeeOther)
 		return
 	}
 
+	if !userSession.WorkoutSessionExists { // todo also handle the case where the user clicks the button to start a new workout
+		userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId)
+		if err != nil {
+			err = fmt.Errorf("error, when createNewWorkout() for HandleExercisePage(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
+	}
+
 	progressIndexString := r.URL.Query().Get("progressIndex")
-	if progressIndexString != "" {
+	if progressIndexString == "" {
+		// not having the progress index in the URL makes interactions too complex, so just always requiring it.
+		redirectToExercisePage(w, r, userSession, true)
+		return
+	} else {
 		userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
 		if err != nil {
 			err = fmt.Errorf("error, when parsing progress index for HandleExercisePage(). Error: %v", err)
@@ -36,26 +49,12 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	var nextExercise ExerciseDisplay
 	switch r.Method {
 	case http.MethodGet:
-		if !userSession.WorkoutSessionExists { // todo also handle the case where the user clicks the button to start a new workout
-			userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId)
-			if err != nil {
-				err = fmt.Errorf("error, when createNewWorkout() for HandleExercisePage(). Error: %v", err)
-				HandleUnexpectedError(w, err)
-				return
-			}
-		}
 		nextExercise, err = getNextExercise(
 			ctx,
 			userSession,
 		)
 		if err != nil {
 			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage(). Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
-		}
-		nextExercise.Exercise.LastCompletedMeasurement, err = getDefaultCompletedMeasurement(nextExercise.Exercise)
-		if err != nil {
-			err = fmt.Errorf("error, when applyDefaultStartingValues() for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
@@ -104,8 +103,10 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
-		if err != nil {
-			err = fmt.Errorf("error, when unmarshalling the progress index for HandleExercisePage(). Error: %v", err)
+
+		exerciseId := r.FormValue("exerciseId")
+		if exerciseId == "" {
+			err = fmt.Errorf("error, must provide exercise id for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
@@ -139,8 +140,15 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	nextExercise.Exercise.LastCompletedMeasurement, err = getDefaultCompletedMeasurement(nextExercise.Exercise)
+	if err != nil {
+		err = fmt.Errorf("error, when applyDefaultStartingValues() for HandleExercisePage(). Error: %v", err)
+		HandleUnexpectedError(w, err)
+		return
+	}
+
 	switch r.Header.Get("HX-Trigger") {
-	case nextExercise.Yes.Id:
+	case nextExercise.Yes.Id, nextExercise.Complete.Id:
 		err = templateMap["exercise-page.html"].ExecuteTemplate(w, "content", nextExercise)
 		if err != nil {
 			err = fmt.Errorf("error, when executing exercise page template for HandleExercisePage(). Error: %v", err)
@@ -272,6 +280,29 @@ func getIncrementedProgressIndex(currentWorkout *UserWorkoutDto) WorkoutProgress
 	return progressIndex
 }
 
+func getTimeLabel(time int) string {
+	minute := time / 60
+	seconds := time % 60
+	s := strconv.Itoa(seconds)
+	if len(s) == 1 {
+		s = fmt.Sprintf("%s%s", "0", s)
+	}
+	return fmt.Sprintf("%d:%s", minute, s)
+}
+
+func generateTimeOptions(timeInterval, timeSelectionCap int) TimeOptions {
+	timeOptions := make(TimeOptions, timeSelectionCap/timeInterval)
+	j := 0
+	for i := timeInterval; i <= timeSelectionCap; i += timeInterval {
+		timeOptions[j] = TimeOption{
+			Label: getTimeLabel(i),
+			Value: i,
+		}
+		j++
+	}
+	return timeOptions
+}
+
 func getNextExercise(
 	ctx context.Context,
 	userSession *UserSession,
@@ -299,19 +330,9 @@ func getNextExercise(
 			Color: SecondaryButtonColor,
 			Type:  ButtonTypeSubmit,
 		},
-		Hot: Button{
-			Id:    "+",
-			Label: "+",
-			Color: OrangeButtonColor,
-			Type:  ButtonTypeRegular,
-		},
-		Cool: Button{
-			Id:    "-",
-			Label: "-",
-			Color: BlueButtonColor,
-			Type:  ButtonTypeRegular,
-		},
+		TimeOptions: DefaultExerciseTimeOptions,
 	}
+
 	switch userSession.WorkoutSession.CurrentWorkoutRoutine {
 	case LOWER:
 		workoutExercises = lowerWorkout
@@ -449,4 +470,36 @@ func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {
 		}
 	}
 	return startingValue, nil
+}
+
+// todo a session expiration will cause the workout to get restarted, need to fix this
+func redirectToExercisePage(
+	w http.ResponseWriter,
+	r *http.Request,
+	userSession *UserSession,
+	samePage bool,
+) {
+	var err error
+	if userSession == nil {
+		userSession, err = FetchUserSession(r)
+		if err != nil {
+			err = fmt.Errorf("error, when FetchUserSession() for HandleExercisePage(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
+	}
+	var progressIndex int
+	if userSession.WorkoutSessionExists {
+		progressIndex = userSession.WorkoutSession.ProgressIndex
+	}
+
+	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
+	// http.Redirect(w, r, url, http.StatusSeeOther)
+	// if samePage {
+	// 	// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
+	// w.Header().Set("HX-Redirect", url)
+	w.Header().Set("Hx-Refresh", url)
+	http.Redirect(w, r, url, http.StatusSeeOther)
+	// } else {
+	// }
 }
