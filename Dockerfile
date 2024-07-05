@@ -10,6 +10,6 @@ COPY . .
 # Use the ARG for GOARCH here
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app .
 
-FROM public.ecr.aws/docker/library/alpine:3.19.0
+FROM public.ecr.aws/docker/library/alpine:3.20.1
 COPY --from=builder /app /app
 ENTRYPOINT ["/app"]
