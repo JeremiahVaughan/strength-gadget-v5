@@ -44,8 +44,6 @@ spec:
               value: "bm90X2FfcmVhbF9wYXNzd29yZF9kb19ub3RfdXNlX2luX3Byb2R1Y3Rpb24="
             - name: LOCAL_DEVELOPMENT
               value: "true"
-            - name: TF_VAR_trusted_ui_origin
-              value: "http://localhost,http://192.168.1.117:4200"
             - name: TF_VAR_redis_connection_string
               value: "redis:6379"
             - name: TF_VAR_redis_password

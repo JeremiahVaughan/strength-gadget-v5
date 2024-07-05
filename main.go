@@ -72,20 +72,18 @@ func serveAthletes(ctx context.Context) error {
 	// todo add a 404 not found page for invalid addresses
 	mux := http.NewServeMux()
 
-	// todo add middleware for login pages to redirect if logged in already
-
 	// endpoints key is endpoint address
 	endpoints := map[string]http.HandlerFunc{
-		EndpointHealth:       HandleHealth,
-		EndpointExercise:     HandleExercisePage,
-		EndpointLogout:       HandleLogout,
+		EndpointHealth:   HandleHealth,
+		EndpointExercise: HandleExercisePage,
+		EndpointLogout:   HandleLogout,
 	}
 	for k, v := range endpoints {
 		// mux.Handle(k, IpFilterMiddleware(v)) // todo cloudflare IPs are not working, I think some are not whitelisted that should be.
 		mux.Handle(k, v)
 	}
 
-    authEndPoints := map[string]http.HandlerFunc{
+	authEndPoints := map[string]http.HandlerFunc{
 		LandingPage:          HandleLandingPage,
 		EndpontSignUp:        HandleSignUp,
 		EndpointLogin:        HandleLogin,
@@ -93,28 +91,12 @@ func serveAthletes(ctx context.Context) error {
 		EndpointEmail:        HandleForgotPasswordEmail,
 		EndpointResetCode:    HandleForgotPasswordResetCode,
 		EndpointNewPassword:  HandleForgotPasswordNewPassword,
-    }
+	}
 
 	for k, v := range authEndPoints {
 		// mux.Handle(k, IpFilterMiddleware(v)) // todo cloudflare IPs are not working, I think some are not whitelisted that should be.
 		mux.Handle(k, CheckForActiveSession(v))
 	}
-	// endpointsRequiringAuth key is endpoint address
-	// endpointsRequiringAuth := map[string]http.HandlerFunc{
-	// 	EndpointLogout:       HandleLogout,
-	// 	EndpointSwapExercise: HandleSwapExercise,
-	// 	// EndpointRecordIncrementedWorkoutStep: HandleRecordIncrementedWorkoutStep,
-	// 	EndpointExercise: HandleExercisePage,
-	// }
-
-	// for k, v := range endpointsRequiringAuth {
-	// 	mux.Handle(k, IpFilterMiddleware(Authenticate(v)))
-	// }
-
-	// if Environment == EnvironmentLocal {
-	// 	 todo get this working
-	// 	 r.Get(EndpointRunIntegrationTests, HandleRunIntegrationTests)
-	// }
 
 	static, err := fs.Sub(staticFiles, "static")
 	if err != nil {
