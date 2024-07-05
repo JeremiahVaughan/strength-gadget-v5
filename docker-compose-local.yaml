@@ -2,6 +2,7 @@ services:
   app:
     image: "public.ecr.aws/docker/library/alpine:3.20.1"
     container_name: "local"
+    entrypoint: ["/app"]
     depends_on:
       - keydb
     volumes:
