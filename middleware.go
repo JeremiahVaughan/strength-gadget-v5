@@ -36,13 +36,13 @@ func CheckForActiveSession(next http.Handler) http.Handler {
 			HandleUnexpectedError(w, err)
 			return
 		}
-		if !userSession.Authenticated {
-			next.ServeHTTP(w, r)
+
+		if userSession.Authenticated {
+			alreadyAuthRedirect(w, r)
 			return
 		}
 
-        
-		redirectToExercisePage(w, r, userSession, false)
+		next.ServeHTTP(w, r)
 	})
 }
 

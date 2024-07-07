@@ -35,7 +35,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	progressIndexString := r.URL.Query().Get("progressIndex")
 	if progressIndexString == "" {
 		// not having the progress index in the URL makes interactions too complex, so just always requiring it.
-		redirectToExercisePage(w, r, userSession, true)
+		alreadyAuthRedirect(w, r)
 		return
 	} else {
 		userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
@@ -49,53 +49,27 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	var nextExercise ExerciseDisplay
 	switch r.Method {
 	case http.MethodGet:
-		nextExercise, err = getNextExercise(
-			ctx,
+		nextExercise, err = getExercise(
 			userSession,
+			false,
+			0,
 		)
 		if err != nil {
-			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage(). Error: %v", err)
+			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when get. Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
 	case http.MethodPut:
-		err = r.ParseForm()
+		nextExercise, err = getExercise(
+			userSession,
+			true,
+			0,
+		)
 		if err != nil {
-			err = fmt.Errorf("error, when parsing form after no button was clicked. Error: %v", err)
+			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when put. Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
-		req := swapExerciseRequest{
-			ExerciseId: r.FormValue("exerciseId"),
-			WorkoutId:  r.FormValue("workoutId"),
-		}
-		err = validateSwapExerciseRequest(&req)
-		if err != nil {
-			err = fmt.Errorf("error, when validating request for swapping exercise. Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
-		}
-		// currentWorkout, err = SwapExercise(
-		// 	r.Context(),
-		// 	RedisConnectionPool,
-		// 	ConnectionPool,
-		// 	req.ExerciseId,
-		// 	req.WorkoutId,
-		// 	NumberOfSetsInSuperSet,
-		// 	NumberOfExerciseInSuperset,
-		// 	CurrentSupersetExpirationTimeInHours,
-		// )
-		// if err != nil {
-		// 	err = fmt.Errorf("error, when validating request for swapping exercise. Error: %v", err)
-		// 	HandleUnexpectedError(w, err)
-		// 	return
-		// }
-		// nextExercise, err = getNextExercise(currentWorkout)
-		// if err != nil {
-		// 	err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage(). Error: %v", err)
-		// 	HandleUnexpectedError(w, err)
-		// 	return
-		// }
 	case http.MethodPost:
 		err = r.ParseForm()
 		if err != nil {
@@ -103,34 +77,29 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
-
-		exerciseId := r.FormValue("exerciseId")
-		if exerciseId == "" {
-			err = fmt.Errorf("error, must provide exercise id for HandleExercisePage(). Error: %v", err)
+		lastCompletedMeasurement := r.FormValue("lastCompletedMeasurement")
+		if lastCompletedMeasurement == "" {
+			err = fmt.Errorf("error, must provide lastCompletedMeasurement for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
-		// var lcm int
-		// lcm, err = strconv.Atoi(r.FormValue("lastCompletedMeasurement"))
-		// if err != nil {
-		// 	err = fmt.Errorf("error, when parsing lastCompletedMeasurement form value for HandleExercisePage(). Error: %v", err)
-		// 	HandleUnexpectedError(w, err)
-		// 	return
-		// }
-		// _ = RecordIncrementedWorkoutStepRequest{
-		// 	ProgressIndex:            progressIndex,
-		// 	ExerciseId:               r.FormValue("exerciseId"),
-		// 	LastCompletedMeasurement: lcm,
-
-		// 	// WorkoutId is used to help prevent client and server sync issues
-		// 	WorkoutId: r.FormValue("workoutId"),
-		// }
-		// nextExercise, err = incrementExerciseProgressIndex(r.Context(), req)
-		// if err != nil {
-		// 	err = fmt.Errorf("error, when incrementExerciseProgressIndex() for HandleExercisePage(). Error: %v", err)
-		// 	HandleUnexpectedError(w, err)
-		// 	return
-		// }
+		var lcm int
+		lcm, err = strconv.Atoi(lastCompletedMeasurement)
+		if err != nil {
+			err = fmt.Errorf("error, when converting lastCompletedMeasurement string to int. Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
+		nextExercise, err = getExercise(
+			userSession,
+			false,
+			lcm,
+		)
+		if err != nil {
+			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when post. Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
 	}
 
 	err = userSession.WorkoutSession.saveToRedis(ctx, userSession.UserId)
@@ -190,7 +159,6 @@ func createNewWorkout(ctx context.Context, userId int64) (WorkoutSession, error)
 	newWorkout.RandomizedIndices = dr
 
 	newWorkout.CurrentOffsets = generateStartingOffsets(newWorkout.RandomizedIndices.MainMuscleGroups)
-	newWorkout.CurrentExerciseMeasurements = make(ExerciseUserDataMap)
 
 	err = newWorkout.saveToRedis(ctx, userId)
 	if err != nil {
@@ -303,13 +271,15 @@ func generateTimeOptions(timeInterval, timeSelectionCap int) TimeOptions {
 	return timeOptions
 }
 
-func getNextExercise(
-	ctx context.Context,
+func getExercise(
 	userSession *UserSession,
+	shuffle bool,
+	lastCompletedMeasurement int,
 ) (ExerciseDisplay, error) {
 	var workoutExercises AvailableWorkoutExercises
 	var err error
 	exercise := ExerciseDisplay{
+		ProgressIndex:     userSession.WorkoutSession.ProgressIndex,
 		NextProgressIndex: userSession.WorkoutSession.ProgressIndex + 1,
 		SelectMode:        true,
 		Yes: Button{
@@ -344,86 +314,97 @@ func getNextExercise(
 		return ExerciseDisplay{}, fmt.Errorf("error, unexpected workout routine type: %v", userSession.WorkoutSession.CurrentWorkoutRoutine)
 	}
 
+	// CurrentExerciseMeasurements are fetched once exercise selection has been completed
+	currentExerciseMeasurements := make(ExerciseUserDataMap)
+
 	counter := 0
+	if userSession.WorkoutSession.ProgressIndex == counter && shuffle {
+		userSession.WorkoutSession.CurrentOffsets.CardioExercise++
+	}
+	exercise.Exercise, err = getNextAvailableExercise(
+		userSession.WorkoutSession.CurrentOffsets.CardioExercise,
+		userSession.WorkoutSession.RandomizedIndices.CardioExercises,
+		workoutExercises.CardioExercises,
+		currentExerciseMeasurements,
+	)
+	if err != nil {
+		return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during cardio selection mode. Error: %v", err)
+	}
+
 	if userSession.WorkoutSession.ProgressIndex == counter {
-		exercise.Exercise, userSession.WorkoutSession.CurrentExerciseMeasurements, err = getNextAvailableExercise(
-			userSession.WorkoutSession.CurrentOffsets.CardioExercise,
-			userSession.WorkoutSession.RandomizedIndices.CardioExercises,
-			workoutExercises.CardioExercises,
-			userSession.WorkoutSession.CurrentExerciseMeasurements,
-		)
-		if err != nil {
-			return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during cardio selection mode. Error: %v", err)
-		}
 		return exercise, nil
 	}
 
 	for i, r := range userSession.WorkoutSession.RandomizedIndices.MainMuscleGroups {
 		counter++
+		if userSession.WorkoutSession.ProgressIndex == counter && shuffle {
+			userSession.WorkoutSession.CurrentOffsets.MainExercises[i]++
+		}
+		exercise.Exercise, err = getNextAvailableExercise(
+			userSession.WorkoutSession.CurrentOffsets.MainExercises[i],
+			userSession.WorkoutSession.RandomizedIndices.MainExercises[r],
+			workoutExercises.MainExercises[r],
+			currentExerciseMeasurements,
+		)
+		if err != nil {
+			return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during main selection mode. Error: %v", err)
+		}
 		if userSession.WorkoutSession.ProgressIndex == counter {
-			exercise.Exercise, userSession.WorkoutSession.CurrentExerciseMeasurements, err = getNextAvailableExercise(
-				userSession.WorkoutSession.CurrentOffsets.MainExercises[i],
-				userSession.WorkoutSession.RandomizedIndices.MainExercises[r],
-				workoutExercises.MainExercises[r],
-				userSession.WorkoutSession.CurrentExerciseMeasurements,
-			)
-			if err != nil {
-				return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during main selection mode. Error: %v", err)
-			}
 			return exercise, nil
 		}
 	}
 
 	exercise.SelectMode = false
 
-	if userSession.WorkoutSession.ProgressIndex == counter+1 { // Fetching current measurements right after leaving selection mode
-		for _, r := range userSession.WorkoutSession.RandomizedIndices.CoolDownMuscleGroups {
-			exercise.Exercise, err = getSelectedExercise(
-				0, // stretches don't require selection at the moment
-				userSession.WorkoutSession.RandomizedIndices.CoolDownExercises[r],
-				workoutExercises.CoolDownExercises[r],
-			)
-			if err != nil {
-				return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() when fetching completed measurements for cooldown exercises. Error: %v", err)
-			}
-			userSession.WorkoutSession.CurrentExerciseMeasurements[exercise.Exercise.Id] = ExerciseUserData{}
-		}
-		err = fetchExerciseMeasurements(
-			ctx,
-			ConnectionPool,
-			userSession.UserId,
-			userSession.WorkoutSession.CurrentExerciseMeasurements,
-		)
-		if err != nil {
-			return ExerciseDisplay{}, fmt.Errorf("error, when fetchExerciseMeasurements() for getNextExercise(). Error: %v", err)
-		}
-	}
+	// todo thinking of just batch grabbing all measurements for the current workout routine from a bucket and storing in redis to make interactions simple and cheap
+	// if userSession.WorkoutSession.ProgressIndex == counter+1 { // Fetching current measurements right after leaving selection mode
+	// 	for _, r := range userSession.WorkoutSession.RandomizedIndices.CoolDownMuscleGroups {
+	// 		exercise.Exercise, err = getSelectedExercise(
+	// 			0, // stretches don't require selection at the moment
+	// 			userSession.WorkoutSession.RandomizedIndices.CoolDownExercises[r],
+	// 			workoutExercises.CoolDownExercises[r],
+	// 		)
+	// 		if err != nil {
+	// 			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() when fetching completed measurements for cooldown exercises. Error: %v", err)
+	// 		}
+	// 		currentExerciseMeasurements[exercise.Exercise.Id] = ExerciseUserData{}
+	// 	}
+	// 	err = fetchExerciseMeasurements(
+	// 		ctx,
+	// 		ConnectionPool,
+	// 		userSession.UserId,
+	// 		currentExerciseMeasurements,
+	// 	)
+	// 	if err != nil {
+	// 		return ExerciseDisplay{}, fmt.Errorf("error, when fetchExerciseMeasurements() for getNextExercise(). Error: %v", err)
+	// 	}
+	// }
 
 	counter++
+	exercise.Exercise, err = getSelectedExercise(
+		userSession.WorkoutSession.CurrentOffsets.CardioExercise,
+		userSession.WorkoutSession.RandomizedIndices.CardioExercises,
+		workoutExercises.CardioExercises,
+	)
+	if err != nil {
+		return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during cardio workout mode. Error: %v", err)
+	}
 	if userSession.WorkoutSession.ProgressIndex == counter {
-		exercise.Exercise, err = getSelectedExercise(
-			userSession.WorkoutSession.CurrentOffsets.CardioExercise,
-			userSession.WorkoutSession.RandomizedIndices.CardioExercises,
-			workoutExercises.CardioExercises,
-		)
-		if err != nil {
-			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during cardio workout mode. Error: %v", err)
-		}
 		return exercise, nil
 	}
 
 	for i := 0; i < NumberOfSetsInSuperSet; i++ {
 		for j, r := range userSession.WorkoutSession.RandomizedIndices.MainMuscleGroups {
 			counter++
+			exercise.Exercise, err = getSelectedExercise(
+				userSession.WorkoutSession.CurrentOffsets.MainExercises[j],
+				userSession.WorkoutSession.RandomizedIndices.MainExercises[r],
+				workoutExercises.MainExercises[r],
+			)
+			if err != nil {
+				return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during main workout mode. Error: %v", err)
+			}
 			if userSession.WorkoutSession.ProgressIndex == counter {
-				exercise.Exercise, err = getSelectedExercise(
-					userSession.WorkoutSession.CurrentOffsets.MainExercises[j],
-					userSession.WorkoutSession.RandomizedIndices.MainExercises[r],
-					workoutExercises.MainExercises[r],
-				)
-				if err != nil {
-					return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during main workout mode. Error: %v", err)
-				}
 				return exercise, nil
 			}
 		}
@@ -431,15 +412,15 @@ func getNextExercise(
 
 	for _, r := range userSession.WorkoutSession.RandomizedIndices.CoolDownMuscleGroups {
 		counter++
+		exercise.Exercise, err = getSelectedExercise(
+			0, // stretches don't require selection
+			userSession.WorkoutSession.RandomizedIndices.CoolDownExercises[r],
+			workoutExercises.CoolDownExercises[r],
+		)
+		if err != nil {
+			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during stretching workout mode. Error: %v", err)
+		}
 		if userSession.WorkoutSession.ProgressIndex == counter {
-			exercise.Exercise, err = getSelectedExercise(
-				0, // stretches don't require selection
-				userSession.WorkoutSession.RandomizedIndices.CoolDownExercises[r],
-				workoutExercises.CoolDownExercises[r],
-			)
-			if err != nil {
-				return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during stretching workout mode. Error: %v", err)
-			}
 			return exercise, nil
 		}
 	}
@@ -473,20 +454,15 @@ func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {
 }
 
 // todo a session expiration will cause the workout to get restarted, need to fix this
-func redirectToExercisePage(
+func redirectExercisePage(
 	w http.ResponseWriter,
 	r *http.Request,
-	userSession *UserSession,
-	samePage bool,
 ) {
-	var err error
-	if userSession == nil {
-		userSession, err = FetchUserSession(r)
-		if err != nil {
-			err = fmt.Errorf("error, when FetchUserSession() for HandleExercisePage(). Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
-		}
+	userSession, err := FetchUserSession(r)
+	if err != nil {
+		err = fmt.Errorf("error, when FetchUserSession() for HandleExercisePage(). Error: %v", err)
+		HandleUnexpectedError(w, err)
+		return
 	}
 	var progressIndex int
 	if userSession.WorkoutSessionExists {
@@ -494,12 +470,12 @@ func redirectToExercisePage(
 	}
 
 	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
-	// http.Redirect(w, r, url, http.StatusSeeOther)
-	// if samePage {
-	// 	// using a regular redirect because hx-redirect doesn't seem to work if the url is the same but the query params are different
-	// w.Header().Set("HX-Redirect", url)
-	w.Header().Set("Hx-Refresh", url)
-	http.Redirect(w, r, url, http.StatusSeeOther)
-	// } else {
-	// }
+	w.Header().Set("HX-Redirect", url)
+}
+
+func alreadyAuthRedirect(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	http.Redirect(w, r, EndpointAlreadyAuthenticated, http.StatusSeeOther)
 }

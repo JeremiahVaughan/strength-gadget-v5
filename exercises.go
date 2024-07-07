@@ -5,14 +5,6 @@ import (
 	"strings"
 )
 
-// const (
-// 	Weightlifting = "6bdb3624-bed1-41a9-bf8c-7b1066411446"
-// 	Calisthenics  = "8ffe7196-4e3d-4439-ae19-3159ad5387bd"
-// 	Cardio        = "982d0b18-a67c-401a-95f2-ddb702ba80b5"
-// 	WarmUp        = "ce6133be-2bd8-48e9-adbb-05f03ad7b4f9"
-// 	CoolDown      = "db085937-cd84-406a-b9db-34f9e091816b"
-// )
-
 type SuperSet struct {
 	Exercises              []Exercise `json:"exercise"`
 	CurrentExercisePointer int        `json:"currentExercisePointer"`
@@ -26,18 +18,9 @@ type SuperSetProgress struct {
 
 type ExerciseUserData struct {
 	Measurement     int `json:"measurement"`
-	SelectionOffset int `json:"selectionOffset"`
 }
 
 type ExerciseType int
-
-// const (
-// 	ExerciseTypeWeightlifting ExerciseType = "6bdb3624-bed1-41a9-bf8c-7b1066411446"
-// 	ExerciseTypeCalisthenics  ExerciseType = "8ffe7196-4e3d-4439-ae19-3159ad5387bd"
-// 	ExerciseTypeCardio        ExerciseType = "982d0b18-a67c-401a-95f2-ddb702ba80b5"
-// 	ExerciseTypeWarmUp        ExerciseType = "ce6133be-2bd8-48e9-adbb-05f03ad7b4f9"
-// 	ExerciseTypeCoolDown      ExerciseType = "db085937-cd84-406a-b9db-34f9e091816b"
-// )
 
 const (
 	ExerciseTypeWeightlifting ExerciseType = iota
@@ -1005,6 +988,32 @@ var AllExercises []Exercise = []Exercise{
 
 type MeasurementType int
 
+type Exercises []Exercise
+
+func (a Exercises) Len() int           { return len(a) }
+func (a Exercises) Less(i, j int) bool { return a[i].Id < a[j].Id }
+func (a Exercises) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+type MuscleGroupExercises [][]Exercise
+
+func (a MuscleGroupExercises) Len() int { return len(a) }
+func (a MuscleGroupExercises) Less(i, j int) bool {
+	if len(a[i]) == len(a[j]) {
+		var iTotal int
+		for _, e := range a[i] {
+			iTotal += e.Id
+		}
+		var jTotal int
+		for _, e := range a[j] {
+			jTotal += e.Id
+		}
+		return iTotal > jTotal
+	}
+
+	return len(a[i]) > len(a[j])
+}
+func (a MuscleGroupExercises) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
 type Exercise struct {
 	Id                       int
 	Name                     string
@@ -1020,6 +1029,7 @@ type ExerciseDisplay struct {
 	Yes               Button
 	No                Button
 	Complete          Button
+	ProgressIndex     int
 	NextProgressIndex int
 	WorkoutCompleted  bool
 

@@ -467,10 +467,10 @@ func getNextAvailableExercise(
 	randomPool []int,
 	exercisePool []Exercise,
 	alreadySlottedExercises ExerciseUserDataMap,
-) (nextExercise Exercise, exerciseMap ExerciseUserDataMap, err error) {
+) (nextExercise Exercise, err error) {
 	exercisePoolSize := len(exercisePool)
 	if exercisePoolSize == 0 {
-		return Exercise{}, nil, fmt.Errorf("error, cannot have an empty exercise pool")
+		return Exercise{}, fmt.Errorf("error, cannot have an empty exercise pool")
 	}
 
 	counter := currentOffset
@@ -478,17 +478,15 @@ func getNextAvailableExercise(
 	var startingExercise Exercise
 	for i := 0; i <= len(exercisePool); i++ {
 		selectedExercise, err = getSelectedExercise(counter, randomPool, exercisePool)
-        if err != nil {
-            return Exercise{}, nil, fmt.Errorf("error, when getSelectedExercise() for getNextAvailableExercise(). Error: %v", err)
-        }
+		if err != nil {
+			return Exercise{}, fmt.Errorf("error, when getSelectedExercise() for getNextAvailableExercise(). Error: %v", err)
+		}
 		if i == 0 {
 			startingExercise = selectedExercise
 		}
-        // todo the user can fill up the alreadySlottedExercises map if they use the back button and keep selecting different exercises, not sure how to address this
 		if isNewExercise(selectedExercise.Id, alreadySlottedExercises) {
 			alreadySlottedExercises[selectedExercise.Id] = ExerciseUserData{
 				Measurement:     0, // init to zero because exercise measurements are updated later
-				SelectionOffset: counter,
 			}
 			if selectedExercise.Id != startingExercise.Id {
 				delete(alreadySlottedExercises, startingExercise.Id)
@@ -497,7 +495,7 @@ func getNextAvailableExercise(
 		}
 		counter++
 	}
-	return selectedExercise, alreadySlottedExercises, nil
+	return selectedExercise, nil
 }
 
 func getSelectedExercise(
@@ -505,14 +503,53 @@ func getSelectedExercise(
 	randomPool []int,
 	exercisePool []Exercise,
 ) (Exercise, error) {
-    if len(exercisePool) == 0 {
-        return Exercise{}, errors.New("error, exercisePool cannot be empty")
-    }
-    if len(randomPool) == 0 {
-        return Exercise{}, errors.New("error, randomPool cannot be empty")
-    }
-	selectedIndex := currentOffset % len(exercisePool)
+	exercisePoolLength := len(exercisePool)
+	if exercisePoolLength == 0 {
+		return Exercise{}, errors.New("error, exercisePool cannot be empty")
+	}
+	randomPoolLength := len(randomPool)
+	if randomPoolLength == 0 {
+		return Exercise{}, errors.New("error, randomPool cannot be empty")
+	}
+	if randomPoolLength != exercisePoolLength {
+		return Exercise{}, fmt.Errorf("error, randomPoolLength %d does not equal exercisePoolLength %d", randomPoolLength, exercisePoolLength)
+	}
+	selectedIndex := currentOffset % exercisePoolLength
+	if selectedIndex >= randomPoolLength {
+		return Exercise{}, fmt.Errorf(
+			`error, selectedIndex is out of bounds with the randomPool. 
+			selectedIndex: %d,
+			currentOffset: %d,
+			randomPoolLength: %d,
+			randomPool: %+v,
+			exercisePoolLength: %d,
+			exercisePool: %+v,`,
+			selectedIndex,
+			currentOffset,
+			randomPoolLength,
+			randomPool,
+			exercisePoolLength,
+			exercisePool,
+		)
+	}
 	actualIndex := randomPool[selectedIndex]
+	if actualIndex >= exercisePoolLength {
+		return Exercise{}, fmt.Errorf(
+			`error, actualIndex is out of bounds for given exercise pool. 
+			actualIndex: %d,
+			currentOffset: %d,
+			randomPoolLength: %d,
+			randomPool: %+v,
+			exercisePoolLength: %d,
+			exercisePool: %+v,`,
+			actualIndex,
+			currentOffset,
+			randomPoolLength,
+			randomPool,
+			exercisePoolLength,
+			exercisePool,
+		)
+	}
 	return exercisePool[actualIndex], nil
 }
 

@@ -15,7 +15,6 @@
       margin-top: 2rem;
       margin-left: 2rem;
       margin-right: 2rem;
-      width: 100%;
     }
 
     .lower-buttons {
@@ -35,10 +34,11 @@
 
     .exercise-measurement-time {
       height: 3.5rem;
-      width: 10rem;
+      width: 9rem;
       font-size: 2rem;
       border-radius: 1.5rem;
       border-width: .2rem;
+	  text-align: center;
     }
 
     .tool-bar {
@@ -108,6 +108,34 @@
         transform: translate(0, 0) rotate(0deg);
       }
     }
+
+	.gg-play-button-o {
+		box-sizing: border-box;
+		position: relative;
+		display: block;
+		transform: scale(var(--ggs,1));
+		width: 2.75rem;
+		height: 2.75rem;
+		border: 0.25rem solid;
+		border-radius: 2.5rem;
+		color: #42ff00;
+	}
+
+	.gg-play-button-o::before {
+		content: "";
+		display: block;
+		box-sizing: border-box;
+		position: absolute;
+		width: 0;
+		height: 1.25rem;
+		border-top: 0.625rem solid transparent;
+		border-bottom: 0.625rem solid transparent;
+		border-left: 0.75rem solid;
+		top: 0.5rem;
+		left: 0.875rem;
+		color: #42ff00;
+	}
+	
 </style>
 {{template "button-styles" .}}
 {{end}}
@@ -139,8 +167,8 @@
 
 {{ if .SelectMode }}
     <div class="lower-buttons">
-        <form hx-put="/exercise" hx-target="body"> 
-            <input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
+		<form hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
+			  hx-target="body"> 
             {{template "button-content" .No }}
         </form>
         <form id="{{.Yes.Id}}"
@@ -154,22 +182,22 @@
 {{ else }}
     <div class="upper-buttons">
         <div class="button-spacer"></div>
-        <select class="exercise-measurement-time"
+        <select id="measurement" class="exercise-measurement-time"
                name="lastCompletedMeasurement" 
                value="{{.Exercise.LastCompletedMeasurement}}">
             {{range .TimeOptions}}
             <option value="{{.Value}}">{{.Label}}</option>
             {{end}}
         </select>
+		<div class="gg-play-button-o"></div>
         <div class="button-spacer"></div>
     </div>
     <div class="lower-buttons">
         <div class="spacer"></div>
-        <form id="{{.Complete.Id}}"
-              hx-post="/exercise?progressIndex={{.NextProgressIndex}}" 
+        <form hx-post="/exercise?progressIndex={{.NextProgressIndex}}" 
               hx-push-url="true" 
+			  hx-include="#measurement"
               hx-target="body">
-            <input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
             {{template "button-content" .Complete }}
         </form>
     </div>
