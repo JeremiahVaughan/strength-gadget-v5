@@ -77,6 +77,7 @@ func serveAthletes(ctx context.Context) error {
 		EndpointHealth:   HandleHealth,
 		EndpointExercise: HandleExercisePage,
 		EndpointLogout:   HandleLogout,
+		EndpointAlreadyAuthenticated: HandleAlreadyAuthenticated,
 	}
 	for k, v := range endpoints {
 		// mux.Handle(k, IpFilterMiddleware(v)) // todo cloudflare IPs are not working, I think some are not whitelisted that should be.

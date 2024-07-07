@@ -68,12 +68,8 @@ type WorkoutSession struct {
 	RandomizedIndices     DailyWorkoutRandomIndices `json:"randomizedIndices"`
 	ProgressIndex         int                       `json:"progressIndex"`
 
-	// todo delete this if its not needed
 	// CurrentOffsets are determined during exercise selection
 	CurrentOffsets DailyWorkoutOffsets `json:"currentOffsets"`
-
-	// CurrentExerciseMeasurements are fetched once exercise selection has been completed
-	CurrentExerciseMeasurements ExerciseUserDataMap `json:"currentExerciseMeasurements"`
 }
 
 func (w *WorkoutSession) saveToRedis(ctx context.Context, userId int64) error {

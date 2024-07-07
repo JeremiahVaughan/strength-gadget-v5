@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"sort"
 	"time"
 )
 
@@ -65,12 +66,12 @@ func (d *DailyWorkoutRandomIndices) ShuffleMuscleCoverageMainExercises(
 		d.MainMuscleGroups[i] = i
 	}
 
-	// Shuffle the outer slice
+	// Shuffle Muscle Groups
 	r.Shuffle(len(d.MainMuscleGroups), func(i, j int) {
 		d.MainMuscleGroups[i], d.MainMuscleGroups[j] = d.MainMuscleGroups[j], d.MainMuscleGroups[i]
 	})
 
-	// Shuffle each inner slice
+	// Shuffle Exercises
 	d.MainExercises = make([][]int, len(dailyWorkout.MainExercises))
 	for i := range d.MainExercises {
 		d.MainExercises[i] = make([]int, len(dailyWorkout.MainExercises[i]))
@@ -124,6 +125,7 @@ func generateWorkoutExercises(exerciseMap map[RoutineType]map[ExerciseType]map[i
 		cardioExercises = append(cardioExercises, v...)
 	}
 	dailyWorkout.CardioExercises = cardioExercises
+	sort.Sort(Exercises(dailyWorkout.CardioExercises))
 
 	weightLiftingExercises := targetRoutine[ExerciseTypeWeightlifting]
 	calisthenicExercises := targetRoutine[ExerciseTypeCalisthenics]
@@ -139,13 +141,17 @@ func generateWorkoutExercises(exerciseMap map[RoutineType]map[ExerciseType]map[i
 	}
 
 	for _, exercises := range combinedExercises {
+		sort.Sort(Exercises(exercises))
 		dailyWorkout.MainExercises = append(dailyWorkout.MainExercises, exercises)
 	}
+	sort.Sort(MuscleGroupExercises(dailyWorkout.MainExercises))
 
 	coolDownExercises := targetRoutine[ExerciseTypeCoolDown]
 	for _, exercises := range coolDownExercises {
+		sort.Sort(Exercises(exercises))
 		dailyWorkout.CoolDownExercises = append(dailyWorkout.CoolDownExercises, exercises)
 	}
+	sort.Sort(MuscleGroupExercises(dailyWorkout.CoolDownExercises))
 
 	return dailyWorkout
 }

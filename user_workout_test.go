@@ -104,6 +104,13 @@ func TestGetNextAvailableExercise(t *testing.T) {
 			want:                    Exercise{Id: 2}, // As the first exercise is taken it will start from second
 		},
 		{
+			name:                    "last_exercise_taken",
+			startingOffset:          3,
+			randomPool:              []int{0, 1, 2, 3},
+			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}},
+			want:                    Exercise{Id: 4},
+		},
+		{
 			name:                    "first_and_second_exercise_taken",
 			startingOffset:          0,
 			randomPool:              []int{0, 1, 2, 3},
@@ -127,7 +134,7 @@ func TestGetNextAvailableExercise(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, _, _ := getNextAvailableExercise(
+			got, _ := getNextAvailableExercise(
 				tc.startingOffset,
 				tc.randomPool,
 				exercisePool,

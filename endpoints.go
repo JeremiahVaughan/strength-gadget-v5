@@ -22,4 +22,6 @@ const (
 	EndpointSwapExercise                 = "/swapExercise"
 	EndpointRecordIncrementedWorkoutStep = "/recordIncrementedWorkoutStep"
 	EndpointRunIntegrationTests          = "runIntegrationTests"
+
+	EndpointAlreadyAuthenticated = "/authSuccessful"
 )

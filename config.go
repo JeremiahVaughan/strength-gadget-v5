@@ -79,14 +79,14 @@ func generateDefaultTimeOptions() TimeOptions {
 	return generateTimeOptions(timeInterval, timeSelectionCap)
 }
 
-func InitConfig(ctx context.Context) error {
-
+func init() {
 	exerciseMap := generateExerciseMap()
-
 	lowerWorkout = generateWorkoutExercises(exerciseMap, LOWER)
 	coreWorkout = generateWorkoutExercises(exerciseMap, CORE)
 	upperWorkout = generateWorkoutExercises(exerciseMap, UPPER)
+}
 
+func InitConfig(ctx context.Context) error {
 	var err error
 	var errorMsgs []string
 	Environment = os.Getenv("TF_VAR_environment")

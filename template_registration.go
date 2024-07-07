@@ -186,7 +186,7 @@ func registerTemplates() error {
 		)...,
 	)
 	if err != nil {
-		return fmt.Errorf("error, when atempting to parse html forgotPasswordPageNewPasswordParsed. Error: %v", err)
+		return fmt.Errorf("error, when attempting to parse html forgotPasswordPageNewPasswordParsed. Error: %v", err)
 	}
 	templateMap["forgot-password-new-password-page.html"] = forgotPasswordPageNewPasswordParsed
 
@@ -198,8 +198,20 @@ func registerTemplates() error {
 		"templates/components/button.html",
 	)
 	if err != nil {
-		return fmt.Errorf("error, when atempting to parse html exercisePageParsed. Error: %v", err)
+		return fmt.Errorf("error, when attempting to parse html exercisePageParsed. Error: %v", err)
 	}
 	templateMap["exercise-page.html"] = exercisePageParsed
+
+	var alreadyAuthParsed *template.Template
+	alreadyAuthParsed, err = template.ParseFS(
+		templatesFiles,
+		"templates/base.html",
+		"templates/already_auth_page.html",
+	)
+	if err != nil {
+		return fmt.Errorf("error, when atempting to parse html alreadyAuthParsed. Error: %v", err)
+	}
+	templateMap["already_auth_page.html"] = alreadyAuthParsed
+
 	return nil
 }
