@@ -74,7 +74,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
     // this cookie holds the userId so the workout session can be retrieved
 	http.SetCookie(w, workoutCookie)
 
-    redirectExercisePage(w, r)
+    redirectExercisePage(w, r, nil)
 }
 
 func returnLoginForm(w http.ResponseWriter, fields *LoginFields) error {

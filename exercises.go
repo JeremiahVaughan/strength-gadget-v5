@@ -17,7 +17,7 @@ type SuperSetProgress struct {
 }
 
 type ExerciseUserData struct {
-	Measurement     int `json:"measurement"`
+	Measurement int `json:"measurement"`
 }
 
 type ExerciseType int
@@ -61,7 +61,6 @@ var (
 		Name:    "Calves",
 		Routine: LOWER,
 	}
-
 	MuscleGroupObliques = MuscleGroup{
 		Id:      6,
 		Name:    "Obliques",
@@ -92,7 +91,6 @@ var (
 		Name:    "Quadratus Lumborum",
 		Routine: CORE,
 	}
-
 	MuscleGroupForearmsAndGripStrength = MuscleGroup{
 		Id:      12,
 		Name:    "Forearms and Grip Strength",
@@ -132,6 +130,28 @@ var (
 		Id:      19,
 		Name:    "Cardio",
 		Routine: ALL,
+	}
+	AllMuscleGroups = []MuscleGroup{
+		MuscleGroupHipAdductors,
+		MuscleGroupGlutes,
+		MuscleGroupQuadriceps,
+		MuscleGroupAbductors,
+		MuscleGroupHamstrings,
+		MuscleGroupCalves,
+		MuscleGroupObliques,
+		MuscleGroupTransverseAbdominis,
+		MuscleGroupRectusAbdominis,
+		MuscleGroupMultifidus,
+		MuscleGroupHipFlexors,
+		MuscleGroupQuadratusLumborum,
+		MuscleGroupForearmsAndGripStrength,
+		MuscleGroupTriceps,
+		MuscleGroupBiceps,
+		MuscleGroupBack,
+		MuscleGroupChest,
+		MuscleGroupErectorSpinae,
+		MuscleGroupShoulders,
+		MuscleGroupCardio,
 	}
 )
 
@@ -1022,6 +1042,7 @@ type Exercise struct {
 	MeasurementType          MeasurementType
 	ExerciseType             ExerciseType
 	MuscleGroups             []MuscleGroup
+	FocusMuscleGroup         string
 }
 
 type ExerciseDisplay struct {
@@ -1032,6 +1053,7 @@ type ExerciseDisplay struct {
 	ProgressIndex     int
 	NextProgressIndex int
 	WorkoutCompleted  bool
+	CurrentSet        int
 
 	Exercise    Exercise
 	TimeOptions []TimeOption
@@ -1047,17 +1069,6 @@ func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, cou
 	return halfMuscleGroups <= count
 }
 
-// func markPreviousExerciseAsCompleted(currentSuperset *SuperSet, numberOfAvailableMuscleGroups int, numberOfExerciseInSuperset int) *SuperSet {
-// 	numberOfActiveExercises := len(currentSuperset.Exercises)
-// 	currentExerciseNumber := currentSuperset.CurrentExercisePointer + 1
-// 	if currentExerciseNumber == numberOfExerciseInSuperset || (numberOfAvailableMuscleGroups == 0 && numberOfActiveExercises == currentExerciseNumber) {
-// 		currentSuperset.CurrentExercisePointer = 0
-// 		currentSuperset.SetCompletionCount++
-// 	} else {
-// 		currentSuperset.CurrentExercisePointer++
-// 	}
-// 	return currentSuperset
-// }
 
 func getExerciseArgsAndInsertValues(exerciseIds []string) (string, []any) {
 	var exercisesArgsSlice []string
@@ -1068,15 +1079,6 @@ func getExerciseArgsAndInsertValues(exerciseIds []string) (string, []any) {
 	}
 	return strings.Join(exercisesArgsSlice, ", "), insertValues
 }
-
-// func selectRandomMuscleGroup(availableMuscleGroups []MuscleGroup) *MuscleGroup {
-// 	muscleGroupCount := len(availableMuscleGroups)
-// 	if muscleGroupCount == 0 {
-// 		return nil
-// 	}
-// 	result := availableMuscleGroups[rand.Intn(muscleGroupCount)]
-// 	return &result
-// }
 
 // generateExerciseMap return value third key is muscle group id, the value is the exercises that target the muscle group
 func generateExerciseMap() map[RoutineType]map[ExerciseType]map[int][]Exercise {

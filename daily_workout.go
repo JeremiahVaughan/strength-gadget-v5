@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -116,44 +117,67 @@ func getTomorrowsWeekday(today time.Weekday) time.Weekday {
 	return (today + 1) % 7
 }
 
-func generateWorkoutExercises(exerciseMap map[RoutineType]map[ExerciseType]map[int][]Exercise, rt RoutineType) AvailableWorkoutExercises {
+func generateWorkoutExercises(
+	exerciseMap map[RoutineType]map[ExerciseType]map[int][]Exercise,
+	muscleGroupMap map[int]MuscleGroup,
+	rt RoutineType,
+) (AvailableWorkoutExercises, error) {
+	var err error
 	dailyWorkout := AvailableWorkoutExercises{}
-	var cardioExercises []Exercise
-	cardioExercises = []Exercise{}
 	targetRoutine := exerciseMap[rt]
 	for _, v := range exerciseMap[ALL][ExerciseTypeCardio] {
-		cardioExercises = append(cardioExercises, v...)
+		dailyWorkout.CardioExercises = append(dailyWorkout.CardioExercises, v...)
 	}
-	dailyWorkout.CardioExercises = cardioExercises
+	dailyWorkout.CardioExercises, err = appendFocusMuscleGroups(dailyWorkout.CardioExercises, MuscleGroupCardio.Id, muscleGroupMap)
+	if err != nil {
+		return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for main exercises. Error: %v", err)
+	}
 	sort.Sort(Exercises(dailyWorkout.CardioExercises))
 
 	weightLiftingExercises := targetRoutine[ExerciseTypeWeightlifting]
 	calisthenicExercises := targetRoutine[ExerciseTypeCalisthenics]
-
 	combinedExercises := make(map[int][]Exercise)
 	// First, copy everything from weightLiftingExercises to combinedExercises
-	for key, exercises := range weightLiftingExercises {
-		combinedExercises[key] = append(combinedExercises[key], exercises...)
+	for muscleGroupId, exercises := range weightLiftingExercises {
+		combinedExercises[muscleGroupId] = append(combinedExercises[muscleGroupId], exercises...)
 	}
 	// Then, append exercises from calisthenicExercises to combinedExercises
-	for key, exercises := range calisthenicExercises {
-		combinedExercises[key] = append(combinedExercises[key], exercises...)
+	for muscleGroupId, exercises := range calisthenicExercises {
+		combinedExercises[muscleGroupId] = append(combinedExercises[muscleGroupId], exercises...)
 	}
-
-	for _, exercises := range combinedExercises {
+	for muscleGroupId, exercises := range combinedExercises {
+		exercises, err = appendFocusMuscleGroups(exercises, muscleGroupId, muscleGroupMap)
+		if err != nil {
+			return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for main exercises. Error: %v", err)
+		}
 		sort.Sort(Exercises(exercises))
 		dailyWorkout.MainExercises = append(dailyWorkout.MainExercises, exercises)
 	}
 	sort.Sort(MuscleGroupExercises(dailyWorkout.MainExercises))
 
 	coolDownExercises := targetRoutine[ExerciseTypeCoolDown]
-	for _, exercises := range coolDownExercises {
+	for muscleGroupId, exercises := range coolDownExercises {
+		exercises, err = appendFocusMuscleGroups(exercises, muscleGroupId, muscleGroupMap)
+		if err != nil {
+			return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for cool down exercises. Error: %v", err)
+		}
 		sort.Sort(Exercises(exercises))
 		dailyWorkout.CoolDownExercises = append(dailyWorkout.CoolDownExercises, exercises)
 	}
 	sort.Sort(MuscleGroupExercises(dailyWorkout.CoolDownExercises))
+	return dailyWorkout, nil
+}
 
-	return dailyWorkout
+func appendFocusMuscleGroups(exercises []Exercise, muscleGroupId int, muscleGroups map[int]MuscleGroup) ([]Exercise, error) {
+	for i, e := range exercises {
+		mg, ok := muscleGroups[muscleGroupId]
+		if !ok {
+			return nil, errors.New("error, expected muscle group to exist in map but it did not")
+		}
+		e.FocusMuscleGroup = mg.Name
+		exercises[i] = e
+	}
+	return exercises, nil
 }
 
 // GetDailyWorkoutKey is a function that takes a weekday as input and returns a string key for the daily workout.

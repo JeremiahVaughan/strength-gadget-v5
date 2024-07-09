@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const MockVerificationCode = "some"
+
 func CanRegisterAndLogin() error {
 	c := IntegrationTestClient{}
 

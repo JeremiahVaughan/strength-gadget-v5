@@ -15,6 +15,6 @@ func HandleAlreadyAuthenticated(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPost:
-		redirectExercisePage(w, r)
+		redirectExercisePage(w, r, nil)
 	}
 }

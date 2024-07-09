@@ -19,8 +19,8 @@
     }
 
     .button-primary {
-      background-color: purple;
       color: #e0e0e0;
+      background-color: purple;
     }
 
     .button-secondary {
@@ -55,12 +55,14 @@
 {{define "button-content"}}
 <button id="button-{{.Id}}"
         class="button-content button-{{ .Color }} no-select"
+		_="on click set { disabled: true, opacity: 0 } on #button-text-{{.Id}}"
         type="{{.Type}}">
         <div id="button-loading-{{.Id}}"
             class="htmx-indicator">
-            <div id="spinner" class="button-spinner"></div>
+			<div id="spinner" 
+				 class="button-spinner"></div>
         </div>
-        <div>
+		<div id="button-text-{{.Id}}">
             {{ .Label }}
         </div>
 </button>

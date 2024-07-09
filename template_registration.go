@@ -202,6 +202,19 @@ func registerTemplates() error {
 	}
 	templateMap["exercise-page.html"] = exercisePageParsed
 
+	var workoutCompletedParsed *template.Template
+	workoutCompletedParsed, err = template.ParseFS(
+		templatesFiles,
+		"templates/base.html",
+		"templates/workout-completed-page.html",
+		"templates/components/form-header.html",
+		"templates/components/button.html",
+	)
+	if err != nil {
+		return fmt.Errorf("error, when attempting to parse html workoutCompletedParsed. Error: %v", err)
+	}
+	templateMap["workout-completed-page.html"] = workoutCompletedParsed
+
 	var alreadyAuthParsed *template.Template
 	alreadyAuthParsed, err = template.ParseFS(
 		templatesFiles,

@@ -76,6 +76,7 @@ func serveAthletes(ctx context.Context) error {
 	endpoints := map[string]http.HandlerFunc{
 		EndpointHealth:   HandleHealth,
 		EndpointExercise: HandleExercisePage,
+		EndpointWorkoutComplete: HandleWorkoutComplete,
 		EndpointLogout:   HandleLogout,
 		EndpointAlreadyAuthenticated: HandleAlreadyAuthenticated,
 	}
