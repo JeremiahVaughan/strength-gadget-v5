@@ -75,8 +75,8 @@ var (
 )
 
 func generateDefaultTimeOptions() MeasurementOptions {
-	timeSelectionCap := 180
-	timeInterval := 5
+	timeSelectionCap := 1200
+	timeInterval := 15
 	return generateTimeOptions(timeInterval, timeSelectionCap)
 }
 

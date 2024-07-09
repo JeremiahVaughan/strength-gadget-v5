@@ -37,9 +37,9 @@
       text-align: center;
     }
 
-    .exercise-measurement-time {
+    .exercise-measurement {
       height: 3.5rem;
-      width: 9rem;
+      width: 11rem;
       font-size: 2rem;
       border-radius: 1.5rem;
       border-width: .1rem;
@@ -203,7 +203,7 @@
 					hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
 					hx-trigger="change"
 					hx-swap="none"
-					class="exercise-measurement-time"
+					class="exercise-measurement"
 					name="lastCompletedMeasurement" 
 					value="{{.Exercise.LastCompletedMeasurement}}">
 				{{range .Exercise.MeasurementOptions}}
