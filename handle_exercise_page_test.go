@@ -7,7 +7,7 @@ import (
 
 func Test_generateTimeOptions(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		expect := TimeOptions{
+		expect := MeasurementOptions{
 			{
 				Label: "0:05",
 				Value: 5,

@@ -93,6 +93,12 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 				HandleUnexpectedError(w, err)
 				return
 			}
+			exerciseId := r.FormValue("exerciseId")
+			if exerciseId == "" {
+				err = fmt.Errorf("error, must provide exerciseId for HandleExercisePage(). Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
 			var lcm int
 			lcm, err = strconv.Atoi(lastCompletedMeasurement)
 			if err != nil {
@@ -100,7 +106,14 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 				HandleUnexpectedError(w, err)
 				return
 			}
-			fmt.Printf("todo remove %v", lcm)
+			var eid int
+			eid, err = strconv.Atoi(exerciseId)
+			if err != nil {
+				err = fmt.Errorf("error, when converting exerciseId string to int. Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
+			userSession.WorkoutSession.WorkoutMeasurements[eid] = lcm
 		}
 	case http.MethodPost:
 		nextExercise, err = getExercise(
@@ -156,6 +169,8 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
+	case "measurement":
+		return
 	default:
 		err = templateMap["exercise-page.html"].ExecuteTemplate(w, "base", nextExercise)
 		if err != nil {
@@ -250,17 +265,34 @@ func getTimeLabel(time int) string {
 	return fmt.Sprintf("%d:%s", minute, s)
 }
 
-func generateTimeOptions(timeInterval, timeSelectionCap int) TimeOptions {
-	timeOptions := make(TimeOptions, timeSelectionCap/timeInterval)
+func getWeightLabel(weight int) string {
+	return fmt.Sprintf("%d lbs", weight)
+}
+
+func generateTimeOptions(timeInterval, timeSelectionCap int) MeasurementOptions {
+	timeOptions := make(MeasurementOptions, timeSelectionCap/timeInterval)
 	j := 0
 	for i := timeInterval; i <= timeSelectionCap; i += timeInterval {
-		timeOptions[j] = TimeOption{
+		timeOptions[j] = MeasurementOption{
 			Label: getTimeLabel(i),
 			Value: i,
 		}
 		j++
 	}
 	return timeOptions
+}
+
+func generateWeightOptions(weightInterval, timeSelectionCap int) MeasurementOptions {
+	weightOptions := make(MeasurementOptions, timeSelectionCap/weightInterval)
+	j := 0
+	for i := weightInterval; i <= timeSelectionCap; i += weightInterval {
+		weightOptions[j] = MeasurementOption{
+			Label: getWeightLabel(i),
+			Value: i,
+		}
+		j++
+	}
+	return weightOptions
 }
 
 func getExercise(
@@ -292,7 +324,6 @@ func getExercise(
 			Color: SecondaryButtonColor,
 			Type:  ButtonTypeSubmit,
 		},
-		TimeOptions: DefaultExerciseTimeOptions,
 	}
 
 	switch userSession.WorkoutSession.CurrentWorkoutRoutine {
@@ -372,7 +403,7 @@ func getExercise(
 	}
 	if userSession.WorkoutSession.ProgressIndex == counter {
 		exercise.CurrentSet = 1
-		exercise.Exercise.LastCompletedMeasurement, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
+		exercise.Exercise, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
 			ctx,
 			userSession.WorkoutSession.WorkoutMeasurements,
 			exercise.Exercise,
@@ -395,7 +426,7 @@ func getExercise(
 			}
 			if userSession.WorkoutSession.ProgressIndex == counter {
 				exercise.CurrentSet = i + 1
-				exercise.Exercise.LastCompletedMeasurement, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
+				exercise.Exercise, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
 					ctx,
 					userSession.WorkoutSession.WorkoutMeasurements,
 					exercise.Exercise,
@@ -419,7 +450,7 @@ func getExercise(
 		}
 		if userSession.WorkoutSession.ProgressIndex == counter {
 			exercise.CurrentSet = 1
-			exercise.Exercise.LastCompletedMeasurement, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
+			exercise.Exercise, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
 				ctx,
 				userSession.WorkoutSession.WorkoutMeasurements,
 				exercise.Exercise,
@@ -440,7 +471,7 @@ func getCurrentMeasurement(
 	exercise Exercise,
 	userId int64,
 	choosenExercises ChoosenExercisesMap,
-) (currentMeasurement int, wm ChoosenExercisesMap, err error) {
+) (e Exercise, wm ChoosenExercisesMap, err error) {
 	var ok bool
 	_, ok = workoutMeasurements[exercise.Id]
 	if !ok {
@@ -453,14 +484,20 @@ func getCurrentMeasurement(
 	}
 	exercise.LastCompletedMeasurement, ok = workoutMeasurements[exercise.Id]
 	if !ok {
-		return 0, nil, fmt.Errorf("error, when fetchExerciseMeasurements() for getCurrentMeasurement(). Expected measurement for exerciseId %d but did not get", exercise.Id)
+		return Exercise{}, nil, fmt.Errorf("error, when fetchExerciseMeasurements() for getCurrentMeasurement(). Expected measurement for exerciseId %d but did not get", exercise.Id)
 	}
 	exercise.LastCompletedMeasurement, err = getDefaultCompletedMeasurement(exercise)
 	if err != nil {
-		return 0, nil, fmt.Errorf("error, when getDefaultCompletedMeasurement() for getCurrentMeasurement(). Error: %v", err)
+		return Exercise{}, nil, fmt.Errorf("error, when getDefaultCompletedMeasurement() for getCurrentMeasurement(). Error: %v", err)
 	}
 	workoutMeasurements[exercise.Id] = exercise.LastCompletedMeasurement
-	return exercise.LastCompletedMeasurement, workoutMeasurements, nil
+	switch exercise.MeasurementType {
+	case MeasurementTypePounds:
+		exercise.MeasurementOptions = DefaultExerciseWeightOptions
+	default:
+		exercise.MeasurementOptions = DefaultExerciseTimeOptions
+	}
+	return exercise, workoutMeasurements, nil
 }
 
 func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {

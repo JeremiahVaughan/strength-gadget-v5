@@ -98,6 +98,11 @@
         margin-left: .5rem;
     }
 
+	.reps-text {
+	    color: #c2c2c2;
+		scale: 2;
+	}
+
     @keyframes tilt-n-move-shaking {
       0% {
         transform: translate(0, 0) rotate(0deg);
@@ -193,14 +198,25 @@
 {{ else }}
     <div class="upper-buttons">
         <div class="button-spacer"></div>
-        <select id="measurement" class="exercise-measurement-time"
-               name="lastCompletedMeasurement" 
-               value="{{.Exercise.LastCompletedMeasurement}}">
-            {{range .TimeOptions}}
-			<option value="{{.Value}}" {{ if eq $.Exercise.LastCompletedMeasurement .Value }}selected{{ end }}>{{.Label}}</option>
-            {{end}}
-        </select>
-		<div class="gg-play-button-o"></div>
+		<form>
+			<select id="measurement" 
+					hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
+					hx-trigger="change"
+					hx-swap="none"
+					class="exercise-measurement-time"
+					name="lastCompletedMeasurement" 
+					value="{{.Exercise.LastCompletedMeasurement}}">
+				{{range .Exercise.MeasurementOptions}}
+				<option value="{{.Value}}" {{ if eq $.Exercise.LastCompletedMeasurement .Value }}selected{{ end }}>{{.Label}}</option>
+				{{end}}
+			</select>
+			<input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
+		</form>
+		{{ if eq .Exercise.MeasurementType 0 }}
+			<div class="reps-text">15 reps</div>
+		{{ else }}
+			<div class="gg-play-button-o"></div>
+		{{ end }}
         <div class="button-spacer"></div>
     </div>
     <div class="lower-buttons">

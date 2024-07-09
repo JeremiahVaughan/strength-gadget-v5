@@ -23,8 +23,7 @@ type UserWorkoutDto struct {
 	CoolDownExercises []Exercise           `json:"coolDownExercises"`
 }
 
-
-// ChoosenExercisesMap is a type that represents which exercises have already been selected, and the value holds the current mesarument
+// ChoosenExercisesMap is a type that represents which exercises have already been selected, key is the exerciseId, and the value holds the current measurement
 type ChoosenExercisesMap map[int]int
 
 // ExerciseMeasurementsMap key is exerciseId, value is current measurement value
@@ -136,7 +135,6 @@ func deserializeUniqueMember(member string) (uint16, error) {
 	return uint16(exerciseIndex), nil
 }
 
-
 // getNextAvailableExercise finds the next available exercise from the exercise pool based on the starting exercise index and the already slotted exercises.
 // It returns the index of the next available exercise in the exercise pool.
 // If the exercise pool doesn't contain any available exercises, it returns the starting exercise.
@@ -242,7 +240,6 @@ func GetUserKey(userId int64, key string) string {
 	return uid + ":" + key
 }
 
-
 func fetchCurrentWorkoutRoutine(ctx context.Context, db *pgxpool.Pool, userId int64) (RoutineType, error) {
 	var result RoutineType
 	err := db.QueryRow(
@@ -308,7 +305,7 @@ func fetchExerciseMeasurements(
 
 	// add placeholders for measurements that haven't been persisted yet
 	for exerciseId := range choosenExercises {
-		_, ok := choosenExercises[exerciseId] 
+		_, ok := choosenExercises[exerciseId]
 		if !ok {
 			choosenExercises[exerciseId] = 0
 		}

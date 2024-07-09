@@ -23,6 +23,7 @@ import (
 
 var (
 	DefaultExerciseTimeOptions = generateDefaultTimeOptions()
+	DefaultExerciseWeightOptions = generateDefaultWeightOptions()
 
 	Environment string
 
@@ -73,11 +74,18 @@ var (
 	upperWorkout AvailableWorkoutExercises
 )
 
-func generateDefaultTimeOptions() TimeOptions {
+func generateDefaultTimeOptions() MeasurementOptions {
 	timeSelectionCap := 180
 	timeInterval := 5
 	return generateTimeOptions(timeInterval, timeSelectionCap)
 }
+
+func generateDefaultWeightOptions() MeasurementOptions {
+	weightSelectionCap := 600
+	weightInterval := 5
+	return generateWeightOptions(weightInterval, weightSelectionCap)
+}
+
 
 func init() {
 	var err error
