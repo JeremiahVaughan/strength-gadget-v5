@@ -59,6 +59,11 @@ type WorkoutSession struct {
 
 	// CurrentOffsets are determined during exercise selection
 	CurrentOffsets DailyWorkoutOffsets `json:"currentOffsets"`
+
+	// Sharing the same data structure as ChoosenExercisesMap, but unlike 
+	// choosen exercises where the source of truth is CurrentOffsets, the
+	// value of this map representing measurements are persisted in the session.
+	WorkoutMeasurements ChoosenExercisesMap `json:"workoutMeasurements"`
 }
 
 func (w *WorkoutSession) saveToRedis(ctx context.Context, userId int64) error {

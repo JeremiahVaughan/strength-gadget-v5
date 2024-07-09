@@ -16,10 +16,6 @@ type SuperSetProgress struct {
 	WorkoutComplete bool `json:"workoutComplete"`
 }
 
-type ExerciseUserData struct {
-	Measurement int `json:"measurement"`
-}
-
 type ExerciseType int
 
 const (
@@ -1043,6 +1039,7 @@ type Exercise struct {
 	ExerciseType             ExerciseType
 	MuscleGroups             []MuscleGroup
 	FocusMuscleGroup         string
+	MeasurementOptions       []MeasurementOption
 }
 
 type ExerciseDisplay struct {
@@ -1055,8 +1052,7 @@ type ExerciseDisplay struct {
 	WorkoutCompleted  bool
 	CurrentSet        int
 
-	Exercise    Exercise
-	TimeOptions []TimeOption
+	Exercise Exercise
 }
 
 func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, count int) bool {
@@ -1068,7 +1064,6 @@ func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, cou
 
 	return halfMuscleGroups <= count
 }
-
 
 func getExerciseArgsAndInsertValues(exerciseIds []string) (string, []any) {
 	var exercisesArgsSlice []string

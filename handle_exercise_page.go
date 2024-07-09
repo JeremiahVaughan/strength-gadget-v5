@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -57,6 +59,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		nextExercise, err = getExercise(
+			ctx,
 			userSession,
 			false,
 		)
@@ -68,6 +71,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPut:
 		if r.Header.Get("Hx-Trigger") == "no" {
 			nextExercise, err = getExercise(
+				ctx,
 				userSession,
 				true,
 			)
@@ -89,6 +93,12 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 				HandleUnexpectedError(w, err)
 				return
 			}
+			exerciseId := r.FormValue("exerciseId")
+			if exerciseId == "" {
+				err = fmt.Errorf("error, must provide exerciseId for HandleExercisePage(). Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
 			var lcm int
 			lcm, err = strconv.Atoi(lastCompletedMeasurement)
 			if err != nil {
@@ -96,10 +106,18 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 				HandleUnexpectedError(w, err)
 				return
 			}
-			fmt.Printf("todo remove %v", lcm)
+			var eid int
+			eid, err = strconv.Atoi(exerciseId)
+			if err != nil {
+				err = fmt.Errorf("error, when converting exerciseId string to int. Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
+			userSession.WorkoutSession.WorkoutMeasurements[eid] = lcm
 		}
 	case http.MethodPost:
 		nextExercise, err = getExercise(
+			ctx,
 			userSession,
 			false,
 		)
@@ -117,14 +135,27 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nextExercise.Exercise.LastCompletedMeasurement, err = getDefaultCompletedMeasurement(nextExercise.Exercise)
-	if err != nil {
-		err = fmt.Errorf("error, when applyDefaultStartingValues() for HandleExercisePage(). Error: %v", err)
-		HandleUnexpectedError(w, err)
-		return
-	}
-
 	if nextExercise.WorkoutCompleted {
+		if len(userSession.WorkoutSession.WorkoutMeasurements) == 0 {
+			err = errors.New("error, no workout measurements found but were expecting them")
+			HandleUnexpectedError(w, err)
+			return
+		}
+		emq, args := generateQueryForExerciseMeasurements(
+			userSession.WorkoutSession.WorkoutMeasurements,
+			userSession.UserId,
+		)
+		_, err := ConnectionPool.Exec(
+			ctx,
+			emq,
+			args...,
+		)
+		log.Printf("todo remove sql: %+v", args)
+		if err != nil {
+			err = fmt.Errorf("error, when persisting exercises measurements for HandleExercisePage(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
 		u := fmt.Sprintf("%s?currentWorkoutRoutine=%d", EndpointWorkoutComplete, userSession.WorkoutSession.CurrentWorkoutRoutine)
 		w.Header().Set("HX-Redirect", u)
 		return
@@ -138,6 +169,8 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
+	case "measurement":
+		return
 	default:
 		err = templateMap["exercise-page.html"].ExecuteTemplate(w, "base", nextExercise)
 		if err != nil {
@@ -199,42 +232,6 @@ func generateWorkoutSeed(userId int64) int64 {
 	return int64(year) + int64(month) + int64(day) + userId
 }
 
-// func incrementExerciseProgressIndex(ctx context.Context, req RecordIncrementedWorkoutStepRequest) (*Exercise, error) {
-// 	var err error
-// 	var currentWorkout *UserWorkoutDto
-// 	err = validateRecordIncrementedWorkoutStepRequest(&req)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when validateRecordIncrementedWorkoutStepRequest() for incrementExerciseProgressIndex(). Error: %v", err)
-// 	}
-
-// 	currentWorkout, err = GetCurrentWorkout(
-// 		ctx,
-// 		RedisConnectionPool,
-// 		ConnectionPool,
-// 		NumberOfSetsInSuperSet,
-// 		NumberOfExerciseInSuperset,
-// 		GetSuperSetExpiration(),
-// 	)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when GetCurrentWorkout() for incrementExerciseProgressIndex(). Error: %v", err)
-// 	}
-
-// 	currentWorkout.ProgressIndex = getIncrementedProgressIndex(currentWorkout)
-
-// 	err = RecordIncrementedWorkoutStep(ctx, req)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, RecordIncrementedWorkoutStep() for incrementExerciseProgressIndex(). Error: %v", err)
-// 	}
-
-// 	var nextExercise *Exercise
-// 	nextExercise, err = getNextExercise(currentWorkout)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when getNextExercise() for incrementExerciseProgressIndex(). Error: %v", err)
-// 	}
-
-// 	return nextExercise, nil
-// }
-
 func getIncrementedProgressIndex(currentWorkout *UserWorkoutDto) WorkoutProgressIndex {
 	progressIndex := currentWorkout.ProgressIndex
 	workoutPhase := WorkoutPhase(len(progressIndex) - 1)
@@ -268,11 +265,15 @@ func getTimeLabel(time int) string {
 	return fmt.Sprintf("%d:%s", minute, s)
 }
 
-func generateTimeOptions(timeInterval, timeSelectionCap int) TimeOptions {
-	timeOptions := make(TimeOptions, timeSelectionCap/timeInterval)
+func getWeightLabel(weight int) string {
+	return fmt.Sprintf("%d lbs", weight)
+}
+
+func generateTimeOptions(timeInterval, timeSelectionCap int) MeasurementOptions {
+	timeOptions := make(MeasurementOptions, timeSelectionCap/timeInterval)
 	j := 0
 	for i := timeInterval; i <= timeSelectionCap; i += timeInterval {
-		timeOptions[j] = TimeOption{
+		timeOptions[j] = MeasurementOption{
 			Label: getTimeLabel(i),
 			Value: i,
 		}
@@ -281,7 +282,21 @@ func generateTimeOptions(timeInterval, timeSelectionCap int) TimeOptions {
 	return timeOptions
 }
 
+func generateWeightOptions(weightInterval, timeSelectionCap int) MeasurementOptions {
+	weightOptions := make(MeasurementOptions, timeSelectionCap/weightInterval)
+	j := 0
+	for i := weightInterval; i <= timeSelectionCap; i += weightInterval {
+		weightOptions[j] = MeasurementOption{
+			Label: getWeightLabel(i),
+			Value: i,
+		}
+		j++
+	}
+	return weightOptions
+}
+
 func getExercise(
+	ctx context.Context,
 	userSession *UserSession,
 	shuffle bool,
 ) (ExerciseDisplay, error) {
@@ -309,7 +324,6 @@ func getExercise(
 			Color: SecondaryButtonColor,
 			Type:  ButtonTypeSubmit,
 		},
-		TimeOptions: DefaultExerciseTimeOptions,
 	}
 
 	switch userSession.WorkoutSession.CurrentWorkoutRoutine {
@@ -323,8 +337,8 @@ func getExercise(
 		return ExerciseDisplay{}, fmt.Errorf("error, unexpected workout routine type: %v", userSession.WorkoutSession.CurrentWorkoutRoutine)
 	}
 
-	// CurrentExerciseMeasurements are fetched once exercise selection has been completed
-	currentExerciseMeasurements := make(ExerciseUserDataMap)
+	// choosenExercises are fetched once exercise selection has been completed
+	choosenExercises := make(ChoosenExercisesMap)
 
 	counter := 0
 	if userSession.WorkoutSession.ProgressIndex == counter && shuffle {
@@ -334,7 +348,7 @@ func getExercise(
 		userSession.WorkoutSession.CurrentOffsets.CardioExercise,
 		userSession.WorkoutSession.RandomizedIndices.CardioExercises,
 		workoutExercises.CardioExercises,
-		currentExerciseMeasurements,
+		choosenExercises,
 	)
 	if err != nil {
 		return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during cardio selection mode. Error: %v", err)
@@ -353,7 +367,7 @@ func getExercise(
 			userSession.WorkoutSession.CurrentOffsets.MainExercises[i],
 			userSession.WorkoutSession.RandomizedIndices.MainExercises[r],
 			workoutExercises.MainExercises[r],
-			currentExerciseMeasurements,
+			choosenExercises,
 		)
 		if err != nil {
 			return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during main selection mode. Error: %v", err)
@@ -363,31 +377,20 @@ func getExercise(
 		}
 	}
 
-	exercise.SelectMode = false
+	// select all default stetches
+	for _, r := range userSession.WorkoutSession.RandomizedIndices.CoolDownMuscleGroups {
+		exercise.Exercise, err = getSelectedExercise(
+			0, // stretches don't require selection
+			userSession.WorkoutSession.RandomizedIndices.CoolDownExercises[r],
+			workoutExercises.CoolDownExercises[r],
+		)
+		if err != nil {
+			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during stretching workout mode. Error: %v", err)
+		}
+		choosenExercises[exercise.Exercise.Id] = 0
+	}
 
-	// todo thinking of just batch grabbing all measurements for the current workout routine from a bucket and storing in redis to make interactions simple and cheap
-	// if userSession.WorkoutSession.ProgressIndex == counter+1 { // Fetching current measurements right after leaving selection mode
-	// 	for _, r := range userSession.WorkoutSession.RandomizedIndices.CoolDownMuscleGroups {
-	// 		exercise.Exercise, err = getSelectedExercise(
-	// 			0, // stretches don't require selection at the moment
-	// 			userSession.WorkoutSession.RandomizedIndices.CoolDownExercises[r],
-	// 			workoutExercises.CoolDownExercises[r],
-	// 		)
-	// 		if err != nil {
-	// 			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() when fetching completed measurements for cooldown exercises. Error: %v", err)
-	// 		}
-	// 		currentExerciseMeasurements[exercise.Exercise.Id] = ExerciseUserData{}
-	// 	}
-	// 	err = fetchExerciseMeasurements(
-	// 		ctx,
-	// 		ConnectionPool,
-	// 		userSession.UserId,
-	// 		currentExerciseMeasurements,
-	// 	)
-	// 	if err != nil {
-	// 		return ExerciseDisplay{}, fmt.Errorf("error, when fetchExerciseMeasurements() for getNextExercise(). Error: %v", err)
-	// 	}
-	// }
+	exercise.SelectMode = false
 
 	counter++
 	exercise.Exercise, err = getSelectedExercise(
@@ -400,6 +403,13 @@ func getExercise(
 	}
 	if userSession.WorkoutSession.ProgressIndex == counter {
 		exercise.CurrentSet = 1
+		exercise.Exercise, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
+			ctx,
+			userSession.WorkoutSession.WorkoutMeasurements,
+			exercise.Exercise,
+			userSession.UserId,
+			choosenExercises,
+		)
 		return exercise, nil
 	}
 
@@ -416,6 +426,13 @@ func getExercise(
 			}
 			if userSession.WorkoutSession.ProgressIndex == counter {
 				exercise.CurrentSet = i + 1
+				exercise.Exercise, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
+					ctx,
+					userSession.WorkoutSession.WorkoutMeasurements,
+					exercise.Exercise,
+					userSession.UserId,
+					choosenExercises,
+				)
 				return exercise, nil
 			}
 		}
@@ -433,12 +450,54 @@ func getExercise(
 		}
 		if userSession.WorkoutSession.ProgressIndex == counter {
 			exercise.CurrentSet = 1
+			exercise.Exercise, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
+				ctx,
+				userSession.WorkoutSession.WorkoutMeasurements,
+				exercise.Exercise,
+				userSession.UserId,
+				choosenExercises,
+			)
 			return exercise, nil
 		}
 	}
 
 	exercise.WorkoutCompleted = true
 	return exercise, nil
+}
+
+func getCurrentMeasurement(
+	ctx context.Context,
+	workoutMeasurements ChoosenExercisesMap,
+	exercise Exercise,
+	userId int64,
+	choosenExercises ChoosenExercisesMap,
+) (e Exercise, wm ChoosenExercisesMap, err error) {
+	var ok bool
+	_, ok = workoutMeasurements[exercise.Id]
+	if !ok {
+		workoutMeasurements, err = fetchExerciseMeasurements(
+			ctx,
+			ConnectionPool,
+			userId,
+			choosenExercises,
+		)
+	}
+	exercise.LastCompletedMeasurement, ok = workoutMeasurements[exercise.Id]
+	if !ok {
+		return Exercise{}, nil, fmt.Errorf("error, when fetchExerciseMeasurements() for getCurrentMeasurement(). Expected measurement for exerciseId %d but did not get", exercise.Id)
+	}
+	exercise.LastCompletedMeasurement, err = getDefaultCompletedMeasurement(exercise)
+	if err != nil {
+		return Exercise{}, nil, fmt.Errorf("error, when getDefaultCompletedMeasurement() for getCurrentMeasurement(). Error: %v", err)
+	}
+	workoutMeasurements[exercise.Id] = exercise.LastCompletedMeasurement
+	switch exercise.MeasurementType {
+	case MeasurementTypePounds:
+		exercise.MeasurementOptions = DefaultExerciseWeightOptions
+	default:
+		exercise.MeasurementOptions = DefaultExerciseTimeOptions
+	}
+	return exercise, workoutMeasurements, nil
 }
 
 func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {

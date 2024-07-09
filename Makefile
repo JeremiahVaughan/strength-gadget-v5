@@ -14,5 +14,11 @@ b:
 logs:
 	ssh "piegarden@173.197.226.162" "sudo docker compose -p local logs app"
 
+logs-staging:
+	ssh "piegarden@173.197.226.162" "sudo docker compose -p staging logs app"
+
+logs-production:
+	ssh "piegarden@173.197.226.162" "sudo docker compose -p production logs app"
+
 redis-exec:
 	sudo docker compose -p local exec keydb keydb-cli
