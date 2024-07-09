@@ -10,6 +10,7 @@ const (
 	EndpointVerification       = "/verification"
 	EndpointResendVerification = "/resendVerification"
 	EndpointExercise           = "/exercise"
+	EndpointWorkoutComplete = "/workoutComplete"
 
 	EndpointForgotPasswordPrefix = "/forgotPassword"
 	EndpointEmail                = EndpointForgotPasswordPrefix + "/email"

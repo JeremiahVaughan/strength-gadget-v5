@@ -24,7 +24,14 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !userSession.WorkoutSessionExists { // todo also handle the case where the user clicks the button to start a new workout
-		userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId)
+		var currentWorkoutRoutine RoutineType
+		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, ConnectionPool, userSession.UserId)
+		if err != nil {
+			err = fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for createNewWorkout(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
+		userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId, currentWorkoutRoutine)
 		if err != nil {
 			err = fmt.Errorf("error, when createNewWorkout() for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
@@ -52,7 +59,6 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		nextExercise, err = getExercise(
 			userSession,
 			false,
-			0,
 		)
 		if err != nil {
 			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when get. Error: %v", err)
@@ -60,40 +66,42 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPut:
-		nextExercise, err = getExercise(
-			userSession,
-			true,
-			0,
-		)
-		if err != nil {
-			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when put. Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
+		if r.Header.Get("Hx-Trigger") == "no" {
+			nextExercise, err = getExercise(
+				userSession,
+				true,
+			)
+			if err != nil {
+				err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when put. Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
+		} else {
+			err = r.ParseForm()
+			if err != nil {
+				err = fmt.Errorf("error, when parsing form for post request for HandleExercisePage(). Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
+			lastCompletedMeasurement := r.FormValue("lastCompletedMeasurement")
+			if lastCompletedMeasurement == "" {
+				err = fmt.Errorf("error, must provide lastCompletedMeasurement for HandleExercisePage(). Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
+			var lcm int
+			lcm, err = strconv.Atoi(lastCompletedMeasurement)
+			if err != nil {
+				err = fmt.Errorf("error, when converting lastCompletedMeasurement string to int. Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
+			fmt.Printf("todo remove %v", lcm)
 		}
 	case http.MethodPost:
-		err = r.ParseForm()
-		if err != nil {
-			err = fmt.Errorf("error, when parsing form for post request for HandleExercisePage(). Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
-		}
-		lastCompletedMeasurement := r.FormValue("lastCompletedMeasurement")
-		if lastCompletedMeasurement == "" {
-			err = fmt.Errorf("error, must provide lastCompletedMeasurement for HandleExercisePage(). Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
-		}
-		var lcm int
-		lcm, err = strconv.Atoi(lastCompletedMeasurement)
-		if err != nil {
-			err = fmt.Errorf("error, when converting lastCompletedMeasurement string to int. Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
-		}
 		nextExercise, err = getExercise(
 			userSession,
 			false,
-			lcm,
 		)
 		if err != nil {
 			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when post. Error: %v", err)
@@ -116,6 +124,12 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if nextExercise.WorkoutCompleted {
+		u := fmt.Sprintf("%s?currentWorkoutRoutine=%d", EndpointWorkoutComplete, userSession.WorkoutSession.CurrentWorkoutRoutine)
+		w.Header().Set("HX-Redirect", u)
+		return
+	}
+
 	switch r.Header.Get("HX-Trigger") {
 	case nextExercise.Yes.Id, nextExercise.Complete.Id:
 		err = templateMap["exercise-page.html"].ExecuteTemplate(w, "content", nextExercise)
@@ -134,15 +148,11 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createNewWorkout(ctx context.Context, userId int64) (WorkoutSession, error) {
+func createNewWorkout(ctx context.Context, userId int64, currentWorkoutRoutine RoutineType) (WorkoutSession, error) {
 	var err error
 	newWorkout := WorkoutSession{
-		CurrentWorkoutSeed: generateWorkoutSeed(userId),
-	}
-
-	newWorkout.CurrentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, ConnectionPool, userId)
-	if err != nil {
-		return WorkoutSession{}, fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for createNewWorkout(). Error: %v", err)
+		CurrentWorkoutSeed:    generateWorkoutSeed(userId),
+		CurrentWorkoutRoutine: currentWorkoutRoutine,
 	}
 
 	dr := DailyWorkoutRandomIndices{}
@@ -274,7 +284,6 @@ func generateTimeOptions(timeInterval, timeSelectionCap int) TimeOptions {
 func getExercise(
 	userSession *UserSession,
 	shuffle bool,
-	lastCompletedMeasurement int,
 ) (ExerciseDisplay, error) {
 	var workoutExercises AvailableWorkoutExercises
 	var err error
@@ -321,7 +330,7 @@ func getExercise(
 	if userSession.WorkoutSession.ProgressIndex == counter && shuffle {
 		userSession.WorkoutSession.CurrentOffsets.CardioExercise++
 	}
-	exercise.Exercise, err = getNextAvailableExercise(
+	exercise.Exercise, userSession.WorkoutSession.CurrentOffsets.CardioExercise, err = getNextAvailableExercise(
 		userSession.WorkoutSession.CurrentOffsets.CardioExercise,
 		userSession.WorkoutSession.RandomizedIndices.CardioExercises,
 		workoutExercises.CardioExercises,
@@ -340,7 +349,7 @@ func getExercise(
 		if userSession.WorkoutSession.ProgressIndex == counter && shuffle {
 			userSession.WorkoutSession.CurrentOffsets.MainExercises[i]++
 		}
-		exercise.Exercise, err = getNextAvailableExercise(
+		exercise.Exercise, userSession.WorkoutSession.CurrentOffsets.MainExercises[i], err = getNextAvailableExercise(
 			userSession.WorkoutSession.CurrentOffsets.MainExercises[i],
 			userSession.WorkoutSession.RandomizedIndices.MainExercises[r],
 			workoutExercises.MainExercises[r],
@@ -390,6 +399,7 @@ func getExercise(
 		return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during cardio workout mode. Error: %v", err)
 	}
 	if userSession.WorkoutSession.ProgressIndex == counter {
+		exercise.CurrentSet = 1
 		return exercise, nil
 	}
 
@@ -405,6 +415,7 @@ func getExercise(
 				return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during main workout mode. Error: %v", err)
 			}
 			if userSession.WorkoutSession.ProgressIndex == counter {
+				exercise.CurrentSet = i + 1
 				return exercise, nil
 			}
 		}
@@ -421,6 +432,7 @@ func getExercise(
 			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during stretching workout mode. Error: %v", err)
 		}
 		if userSession.WorkoutSession.ProgressIndex == counter {
+			exercise.CurrentSet = 1
 			return exercise, nil
 		}
 	}
@@ -457,12 +469,16 @@ func getDefaultCompletedMeasurement(exercise Exercise) (int, error) {
 func redirectExercisePage(
 	w http.ResponseWriter,
 	r *http.Request,
+	userSession *UserSession,
 ) {
-	userSession, err := FetchUserSession(r)
-	if err != nil {
-		err = fmt.Errorf("error, when FetchUserSession() for HandleExercisePage(). Error: %v", err)
-		HandleUnexpectedError(w, err)
-		return
+	var err error
+	if userSession == nil {
+		userSession, err = FetchUserSession(r)
+		if err != nil {
+			err = fmt.Errorf("error, when FetchUserSession() for HandleExercisePage(). Error: %v", err)
+			HandleUnexpectedError(w, err)
+			return
+		}
 	}
 	var progressIndex int
 	if userSession.WorkoutSessionExists {

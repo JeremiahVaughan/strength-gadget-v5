@@ -1,6 +1,10 @@
 {{define "styles"}}
 <style>
 
+	.stats-text {
+		color: white;
+	}
+
     .gif {
       position: relative;
     }
@@ -20,6 +24,7 @@
     .lower-buttons {
       display: flex;
       justify-content: space-between;
+	  align-items: center;
       margin: 2rem;
     }
 
@@ -37,8 +42,10 @@
       width: 9rem;
       font-size: 2rem;
       border-radius: 1.5rem;
-      border-width: .2rem;
+      border-width: .1rem;
 	  text-align: center;
+	  color: #c2c2c2;
+	  background-color: #36393F;
     }
 
     .tool-bar {
@@ -167,10 +174,14 @@
 
 {{ if .SelectMode }}
     <div class="lower-buttons">
-		<form hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
+		<form id="{{.No.Id}}"
+		 	  hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
 			  hx-target="body"> 
             {{template "button-content" .No }}
         </form>
+		<div class="stats-text">
+			<p>Focus: {{.Exercise.FocusMuscleGroup}}</p>
+		</div>
         <form id="{{.Yes.Id}}"
               hx-get="/exercise" 
               hx-push-url="true" 
@@ -193,7 +204,10 @@
         <div class="button-spacer"></div>
     </div>
     <div class="lower-buttons">
-        <div class="spacer"></div>
+		<div class="stats-text">
+			<p>Focus: {{.Exercise.FocusMuscleGroup}}</p>
+			<p>Set: {{.CurrentSet}}
+		</div>
         <form hx-post="/exercise?progressIndex={{.NextProgressIndex}}" 
               hx-push-url="true" 
 			  hx-include="#measurement"

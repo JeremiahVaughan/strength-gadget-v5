@@ -467,35 +467,28 @@ func getNextAvailableExercise(
 	randomPool []int,
 	exercisePool []Exercise,
 	alreadySlottedExercises ExerciseUserDataMap,
-) (nextExercise Exercise, err error) {
+) (nextExercise Exercise, nextOffset int, err error) {
 	exercisePoolSize := len(exercisePool)
 	if exercisePoolSize == 0 {
-		return Exercise{}, fmt.Errorf("error, cannot have an empty exercise pool")
+		return Exercise{}, 0, fmt.Errorf("error, cannot have an empty exercise pool")
 	}
 
 	counter := currentOffset
 	var selectedExercise Exercise
-	var startingExercise Exercise
 	for i := 0; i <= len(exercisePool); i++ {
 		selectedExercise, err = getSelectedExercise(counter, randomPool, exercisePool)
 		if err != nil {
-			return Exercise{}, fmt.Errorf("error, when getSelectedExercise() for getNextAvailableExercise(). Error: %v", err)
-		}
-		if i == 0 {
-			startingExercise = selectedExercise
+			return Exercise{}, 0, fmt.Errorf("error, when getSelectedExercise() for getNextAvailableExercise(). Error: %v", err)
 		}
 		if isNewExercise(selectedExercise.Id, alreadySlottedExercises) {
 			alreadySlottedExercises[selectedExercise.Id] = ExerciseUserData{
 				Measurement:     0, // init to zero because exercise measurements are updated later
 			}
-			if selectedExercise.Id != startingExercise.Id {
-				delete(alreadySlottedExercises, startingExercise.Id)
-			}
 			break
 		}
 		counter++
 	}
-	return selectedExercise, nil
+	return selectedExercise, counter, nil
 }
 
 func getSelectedExercise(

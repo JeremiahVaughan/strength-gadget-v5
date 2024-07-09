@@ -80,10 +80,30 @@ func generateDefaultTimeOptions() TimeOptions {
 }
 
 func init() {
+	var err error
 	exerciseMap := generateExerciseMap()
-	lowerWorkout = generateWorkoutExercises(exerciseMap, LOWER)
-	coreWorkout = generateWorkoutExercises(exerciseMap, CORE)
-	upperWorkout = generateWorkoutExercises(exerciseMap, UPPER)
+	muscleGroupMap := generateMuscleGroupMap()
+	lowerWorkout, err = generateWorkoutExercises(exerciseMap, muscleGroupMap, LOWER)
+	if err != nil {
+		log.Fatalf("error, when generateWorkoutExercises() for lower body. Error: %v", err)
+	}
+	coreWorkout, err = generateWorkoutExercises(exerciseMap, muscleGroupMap, CORE)
+	if err != nil {
+		log.Fatalf("error, when generateWorkoutExercises() for core body. Error: %v", err)
+	}
+	upperWorkout, err = generateWorkoutExercises(exerciseMap, muscleGroupMap, UPPER)
+	if err != nil {
+		log.Fatalf("error, when generateWorkoutExercises() for upper body. Error: %v", err)
+	}
+}
+
+// generateMuscleGroupMap return value key is muscle group Id
+func generateMuscleGroupMap() map[int]MuscleGroup {
+	result := make(map[int]MuscleGroup, len(AllMuscleGroups))
+	for _, mg := range AllMuscleGroups {
+		result[mg.Id] = mg
+	}
+	return result
 }
 
 func InitConfig(ctx context.Context) error {
