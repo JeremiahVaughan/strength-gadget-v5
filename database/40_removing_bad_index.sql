@@ -1,0 +1,1 @@
+drop table last_completed_measurement;

@@ -16,9 +16,6 @@ type SuperSetProgress struct {
 	WorkoutComplete bool `json:"workoutComplete"`
 }
 
-type ExerciseUserData struct {
-	Measurement int `json:"measurement"`
-}
 
 type ExerciseType int
 

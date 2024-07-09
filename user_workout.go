@@ -23,92 +23,9 @@ type UserWorkoutDto struct {
 	CoolDownExercises []Exercise           `json:"coolDownExercises"`
 }
 
-// func (u *UserWorkoutDto) Fill(
-// 	userWorkout UserWorkout,
-// 	dailyWorkout AvailableWorkoutExercises,
-// 	numberOfSetsPerSuperset, numberOfExercisesPerSuperset int,
-// ) {
-// 	u.ProgressIndex = userWorkout.ProgressIndex
-// 	u.Weekday = userWorkout.Weekday
-// 	u.WorkoutId = userWorkout.WorkoutId
 
-// 	currentExerciseSlotReference := 0 // isn't referenced by anything, this is just helpful for debugging
-// 	for _, exerciseIndex := range userWorkout.SlottedWarmupExercises {
-// 		// selection slot
-// 		warmupExercise := dailyWorkout.CardioExercises[exerciseIndex]
-// 		warmupExercise.CurrentExerciseSlotIndex = currentExerciseSlotReference
-// 		warmupExercise.SourceExerciseSlotIndex = currentExerciseSlotReference
-// 		u.WarmupExercises = append(u.WarmupExercises, warmupExercise)
-// 		currentExerciseSlotReference++
-
-// 		// work slot
-// 		workingWarmupExercise := Exercise{
-// 			CurrentExerciseSlotIndex: currentExerciseSlotReference,
-// 			SourceExerciseSlotIndex:  currentExerciseSlotReference - 1,
-// 		}
-// 		u.WarmupExercises = append(u.WarmupExercises, workingWarmupExercise)
-// 		currentExerciseSlotReference++
-// 	}
-
-// 	numberOfMuscleGroupTargetMainExercises := len(dailyWorkout.MainExercises)
-// 	numberOfMainExercises := len(userWorkout.SlottedMainExercises)
-// 	totalSuperSets := numberOfMainExercises / numberOfExercisesPerSuperset
-// 	currentExerciseSlotReference = 0
-// 	for i := 0; i < totalSuperSets; i++ {
-// 		superSetSlottedExercisesOffset := i * numberOfExercisesPerSuperset
-// 		// main exercise selection
-// 		for j := 0; j < numberOfExercisesPerSuperset; j++ {
-// 			var exercise Exercise
-// 			exerciseSlotIndex := superSetSlottedExercisesOffset + j
-// 			exerciseIndex := userWorkout.SlottedMainExercises[exerciseSlotIndex]
-// 			if exerciseSlotIndex < numberOfMuscleGroupTargetMainExercises {
-// 				exercise = dailyWorkout.MainExercises[exerciseSlotIndex][exerciseIndex]
-// 			} else {
-// 				exercise = dailyWorkout.AllMainExercises[exerciseIndex]
-// 			}
-// 			exercise.LastCompletedMeasurement = userWorkout.UserExerciseDataMap[exercise.Id].Measurement
-// 			exercise.SourceExerciseSlotIndex = currentExerciseSlotReference
-// 			exercise.CurrentExerciseSlotIndex = currentExerciseSlotReference
-// 			u.MainExercises = append(u.MainExercises, exercise)
-// 			currentExerciseSlotReference++
-// 		}
-// 		// conduct main exercises
-// 		for m := 0; m < numberOfSetsPerSuperset; m++ {
-// 			for k := 0; k < numberOfExercisesPerSuperset; k++ {
-// 				mainExerciseSlotOffset := i * ((numberOfSetsPerSuperset + 1) * numberOfExercisesPerSuperset)
-// 				userWorkoutDtoSlottedExercisesOffset := mainExerciseSlotOffset + k
-// 				mainExercise := Exercise{
-// 					CurrentExerciseSlotIndex: currentExerciseSlotReference,
-// 					SourceExerciseSlotIndex:  userWorkoutDtoSlottedExercisesOffset,
-// 				}
-// 				u.MainExercises = append(u.MainExercises, mainExercise)
-// 				currentExerciseSlotReference++
-// 			}
-// 		}
-// 	}
-
-// 	currentExerciseSlotReference = 0
-// 	for i, exercises := range dailyWorkout.CoolDownExercises {
-// 		// selection slot
-// 		exerciseIndex := userWorkout.SlottedCoolDownExercises[i]
-// 		coolDownExercise := exercises[exerciseIndex]
-// 		coolDownExercise.CurrentExerciseSlotIndex = currentExerciseSlotReference
-// 		coolDownExercise.SourceExerciseSlotIndex = currentExerciseSlotReference
-// 		u.CoolDownExercises = append(u.CoolDownExercises, coolDownExercise)
-// 		currentExerciseSlotReference++
-
-// 		// work slot
-// 		workingCoolDownExercise := Exercise{
-// 			CurrentExerciseSlotIndex: currentExerciseSlotReference,
-// 			SourceExerciseSlotIndex:  currentExerciseSlotReference - 1,
-// 		}
-// 		u.CoolDownExercises = append(u.CoolDownExercises, workingCoolDownExercise)
-// 		currentExerciseSlotReference++
-// 	}
-// }
-
-// ExerciseUserDataMap is a type that represents a mapping between exercise ids and user exercise data.
-type ExerciseUserDataMap map[int]ExerciseUserData
+// ChoosenExercisesMap is a type that represents which exercises have already been selected, and the value holds the current mesarument
+type ChoosenExercisesMap map[int]int
 
 // ExerciseMeasurementsMap key is exerciseId, value is current measurement value
 type ExerciseMeasurementsMap map[int]int
@@ -122,7 +39,7 @@ type UserWorkout struct {
 	SlottedMainExercises     []uint16             `json:"-"`
 	SlottedCoolDownExercises []uint16             `json:"-"`
 	// UserExerciseDataMap also is used to tell if an exercise has already been selected or not
-	UserExerciseDataMap ExerciseUserDataMap `json:"-"`
+	UserExerciseDataMap ChoosenExercisesMap `json:"-"`
 	Exists              bool                `json:"-"`
 }
 
@@ -201,49 +118,6 @@ func (use *UserWorkout) ToRedis(ctx context.Context, userId int64, client *redis
 	return nil
 }
 
-// func (use *UserWorkout) ToRedisUpdateExerciseSwap(
-// 	ctx context.Context,
-// 	userId string,
-// 	client *redis.Client,
-// 	exerciseSlotIndex int,
-// 	oldExerciseIndex uint16,
-// 	newExerciseIndex uint16,
-// 	oldExerciseId string,
-// 	newExerciseId string,
-// 	exerciseUserData ExerciseUserData,
-// 	slottedExerciseKey string,
-// 	expiration int,
-// ) error {
-// 	// initialize pipeline
-// 	pipe := client.Pipeline()
-
-// 	// update selected exercise
-// 	oldMember := serializeUniqueMember(exerciseSlotIndex, oldExerciseIndex)
-// 	pipe.ZRem(ctx, slottedExerciseKey, oldMember)
-// 	newMember := serializeUniqueMember(exerciseSlotIndex, newExerciseIndex)
-// 	pipe.ZAdd(ctx, slottedExerciseKey, redis.Z{Score: float64(exerciseSlotIndex), Member: newMember})
-// 	// setting the expiration again is required due to the scenario when the last
-// 	// element in a sorted set gets removed the key for the sorted set also gets deleted
-// 	// thus also the expiration
-// 	pipe.Expire(ctx, slottedExerciseKey, time.Duration(expiration)*time.Hour)
-
-// 	// update exercise user data
-// 	exerciseMeasurementKey := GetUserKey(userId, UserExerciseUserDataKey)
-// 	pipe.HDel(ctx, exerciseMeasurementKey, oldExerciseId)
-// 	bytes, err := json.Marshal(exerciseUserData)
-// 	if err != nil {
-// 		return fmt.Errorf("error marshaling exerciseUserData: %v", err)
-// 	}
-// 	pipe.HSet(ctx, exerciseMeasurementKey, newExerciseId, bytes)
-
-// 	// execute pipeline
-// 	_, err = pipe.Exec(ctx)
-// 	if err != nil {
-// 		return fmt.Errorf("error, when executing redis query to ToRedisUpdateExerciseSwap(). Error: %v", err)
-// 	}
-// 	return nil
-// }
-
 func serializeUniqueMember(score int, exerciseIndex uint16) string {
 	return strconv.Itoa(score) + ":" + strconv.Itoa(int(exerciseIndex))
 }
@@ -262,202 +136,6 @@ func deserializeUniqueMember(member string) (uint16, error) {
 	return uint16(exerciseIndex), nil
 }
 
-// func (use *UserWorkout) FromRedis(ctx context.Context, userId string, client *redis.Client) error {
-// 	// Initialize pipeline
-// 	pipe := client.Pipeline()
-
-// 	// Get userWorkout from Redis
-// 	getWorkout := pipe.Get(ctx, GetUserKey(userId, userWorkoutKey))
-
-// 	getWorkoutProgressIndex := pipe.Get(ctx, GetUserKey(userId, WorkoutProgressIndexKey))
-
-// 	// Get sorted set of slottedWarmupExercises
-// 	getWarmupExercises := pipe.ZRange(ctx, GetUserKey(userId, slottedWarmupExercisesKey), 0, -1)
-
-// 	// Get sorted set of slottedMainExercises
-// 	getMainExercises := pipe.ZRange(ctx, GetUserKey(userId, slottedMainExercisesKey), 0, -1)
-
-// 	// Get sorted set of slottedCoolDownExercises
-// 	getCoolDownExercises := pipe.ZRange(ctx, GetUserKey(userId, slottedCoolDownExercisesKey), 0, -1)
-
-// 	// Get Hash of user exercise measurements
-// 	getMeasurements := pipe.HGetAll(ctx, GetUserKey(userId, UserExerciseUserDataKey))
-
-// 	// Execute the pipeline
-// 	_, err := pipe.Exec(ctx)
-// 	if err != nil {
-// 		if errors.Is(err, redis.Nil) {
-// 			// nothing to update as there is no UserWorkout currently stored for this user
-// 			use.Exists = false
-// 			return nil
-// 		}
-// 		return fmt.Errorf("error executing pipeline for FromRedis(). Error: %v", err)
-// 	}
-
-// 	// Unmarshal userWorkout
-// 	userWorkoutResult, err := getWorkout.Result()
-// 	if err != nil {
-// 		return fmt.Errorf("error, when getting user workout from redis. Error: %v", err)
-// 	}
-// 	use.Exists = true
-// 	err = json.Unmarshal([]byte(userWorkoutResult), use)
-// 	if err != nil {
-// 		return fmt.Errorf("error unmarshalling user workout. Error: %v", err)
-// 	}
-
-// 	// Unmarshal workout progress index
-// 	workoutProgressIndex, err := getWorkoutProgressIndex.Result()
-// 	if err != nil {
-// 		return fmt.Errorf("error, when getting user workout progress index from redis. Error: %v", err)
-// 	}
-// 	err = json.Unmarshal([]byte(workoutProgressIndex), &use.ProgressIndex)
-// 	if err != nil {
-// 		return fmt.Errorf("error unmarshalling user workout progress index. Error: %v", err)
-// 	}
-
-// 	// Get and convert SlottedWarmupExercises from []string to []uint16
-// 	slottedWarmupExercises, err := getWarmupExercises.Result()
-// 	if err != nil {
-// 		return fmt.Errorf("error, when retrieving slotted warmup exercises from redis. Error: %v", err)
-// 	}
-// 	for _, se := range slottedWarmupExercises {
-// 		var exercisePosition uint16
-// 		exercisePosition, err = deserializeUniqueMember(se)
-// 		if err != nil {
-// 			return fmt.Errorf("error, when deserializing unique member for warmup exercises. Error: %v", err)
-// 		}
-// 		use.SlottedWarmupExercises = append(use.SlottedWarmupExercises, exercisePosition)
-// 	}
-
-// 	// Get and convert SlottedMainExercises from []string to []uint16
-// 	slottedMainExercises, err := getMainExercises.Result()
-// 	if err != nil {
-// 		return fmt.Errorf("error, when retrieving slotted main exercises from redis. Error: %v", err)
-// 	}
-// 	for _, se := range slottedMainExercises {
-// 		var exercisePosition uint16
-// 		exercisePosition, err = deserializeUniqueMember(se)
-// 		if err != nil {
-// 			return fmt.Errorf("error, when deserializing unique member for main exercises. Error: %v", err)
-// 		}
-// 		use.SlottedMainExercises = append(use.SlottedMainExercises, exercisePosition)
-// 	}
-
-// 	// Get and convert SlottedCoolDownExercises from []string to []uint16
-// 	slottedCoolDownExercises, err := getCoolDownExercises.Result()
-// 	if err != nil {
-// 		return fmt.Errorf("error, when retrieving slotted cool down exercises from redis. Error: %v", err)
-// 	}
-// 	for _, se := range slottedCoolDownExercises {
-// 		var exercisePosition uint16
-// 		exercisePosition, err = deserializeUniqueMember(se)
-// 		if err != nil {
-// 			return fmt.Errorf("error, when deserializing unique member for cooldown exercises. Error: %v", err)
-// 		}
-// 		use.SlottedCoolDownExercises = append(use.SlottedCoolDownExercises, exercisePosition)
-// 	}
-
-// 	// Get and convert map[string]string to map[string]ExerciseUserData
-// 	userExerciseMeasurements, err := getMeasurements.Result()
-// 	if err != nil {
-// 		return fmt.Errorf("error, when retrieving updated user exercise user data from redis. Error: %v", err)
-// 	}
-
-// 	use.UserExerciseDataMap = make(ExerciseUserDataMap)
-// 	for k, v := range userExerciseMeasurements {
-// 		eud := ExerciseUserData{}
-// 		err = json.Unmarshal([]byte(v), &eud)
-// 		if err != nil {
-// 			return fmt.Errorf("error, when unmarshalling exercise user data from redis. Error: %v", err)
-// 		}
-// 		use.UserExerciseDataMap[k] = eud
-// 	}
-
-// 	return nil
-// }
-
-// func (use *UserWorkout) InitSlottedExercises(exercisesPerSuperSet int, dailyWorkout AvailableWorkoutExercises) ([]string, error) {
-// 	numberOfCardioExercisesPerWorkout := 1
-
-// 	use.UserExerciseDataMap = make(ExerciseUserDataMap)
-
-// 	for i := 0; i < numberOfCardioExercisesPerWorkout; i++ {
-// 		startingExercise := uint16(rand.Intn(len(dailyWorkout.CardioExercises)))
-// 		nextExercise, err := getNextAvailableExercise(
-// 			startingExercise,
-// 			dailyWorkout.CardioExercises,
-// 			use.UserExerciseDataMap,
-// 			len(use.SlottedWarmupExercises),
-// 			DailyWorkoutSlotPhaseWarmup,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when getNextAvailableExercise() for cardio exercises. Error: %v", err)
-// 		}
-// 		use.SlottedWarmupExercises = append(use.SlottedWarmupExercises, nextExercise)
-// 	}
-
-// 	numberOfMainExercises := len(dailyWorkout.MainExercises)
-// 	minimumMainExercisesForWorkout := numberOfMainExercises
-// 	for i := 0; i < minimumMainExercisesForWorkout; i++ {
-// 		exercises := dailyWorkout.MainExercises[i]
-// 		startingExercise := uint16(rand.Intn(len(exercises)))
-// 		nextExercise, err := getNextAvailableExercise(
-// 			startingExercise,
-// 			exercises,
-// 			use.UserExerciseDataMap,
-// 			len(use.SlottedMainExercises),
-// 			DailyWorkoutSlotPhaseMainFocused,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when getNextAvailableExercise() for main exercises. Error: %v", err)
-// 		}
-// 		use.SlottedMainExercises = append(use.SlottedMainExercises, nextExercise)
-// 	}
-
-// 	// The point of filler exercises is to make all sets even otherwise the last set may end up being a single exercise
-// 	numberOfSets := calculateNumberOfSets(dailyWorkout, exercisesPerSuperSet)
-// 	totalExercises := numberOfSets * exercisesPerSuperSet
-// 	requiredFillerExercises := totalExercises - numberOfMainExercises
-// 	for i := 0; i < requiredFillerExercises; i++ {
-// 		exercises := dailyWorkout.AllMainExercises
-// 		startingExercise := uint16(rand.Intn(len(exercises)))
-// 		nextExercise, err := getNextAvailableExercise(
-// 			startingExercise,
-// 			exercises,
-// 			use.UserExerciseDataMap,
-// 			len(use.SlottedMainExercises),
-// 			DailyWorkoutSlotPhaseMainFiller,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when getNextAvailableExercise() for main filler exercises. Error: %v", err)
-// 		}
-// 		use.SlottedMainExercises = append(use.SlottedMainExercises, nextExercise)
-// 	}
-
-// 	numberOfCoolDownExercises := len(dailyWorkout.CoolDownExercises)
-// 	for i := 0; i < numberOfCoolDownExercises; i++ {
-// 		exercises := dailyWorkout.CoolDownExercises[i]
-// 		startingExercise := uint16(rand.Intn(len(exercises)))
-// 		nextExercise, err := getNextAvailableExercise(
-// 			startingExercise,
-// 			exercises,
-// 			use.UserExerciseDataMap,
-// 			len(use.SlottedCoolDownExercises),
-// 			DailyWorkoutSlotPhaseCoolDown,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when getNextAvailableExercise() for cool down exercises. Error: %v", err)
-// 		}
-// 		use.SlottedCoolDownExercises = append(use.SlottedCoolDownExercises, nextExercise)
-// 	}
-
-// 	var exerciseIds []string
-// 	exerciseIds = []string{}
-// 	for k := range use.UserExerciseDataMap {
-// 		exerciseIds = append(exerciseIds, k)
-// 	}
-// 	return exerciseIds, nil
-// }
 
 // getNextAvailableExercise finds the next available exercise from the exercise pool based on the starting exercise index and the already slotted exercises.
 // It returns the index of the next available exercise in the exercise pool.
@@ -466,7 +144,7 @@ func getNextAvailableExercise(
 	currentOffset int,
 	randomPool []int,
 	exercisePool []Exercise,
-	alreadySlottedExercises ExerciseUserDataMap,
+	alreadySlottedExercises ChoosenExercisesMap,
 ) (nextExercise Exercise, nextOffset int, err error) {
 	exercisePoolSize := len(exercisePool)
 	if exercisePoolSize == 0 {
@@ -481,9 +159,7 @@ func getNextAvailableExercise(
 			return Exercise{}, 0, fmt.Errorf("error, when getSelectedExercise() for getNextAvailableExercise(). Error: %v", err)
 		}
 		if isNewExercise(selectedExercise.Id, alreadySlottedExercises) {
-			alreadySlottedExercises[selectedExercise.Id] = ExerciseUserData{
-				Measurement:     0, // init to zero because exercise measurements are updated later
-			}
+			alreadySlottedExercises[selectedExercise.Id] = 0 // init to zero because exercise measurements are updated later
 			break
 		}
 		counter++
@@ -546,7 +222,7 @@ func getSelectedExercise(
 	return exercisePool[actualIndex], nil
 }
 
-func isNewExercise(selectedExerciseId int, alreadySlottedExercises ExerciseUserDataMap) bool {
+func isNewExercise(selectedExerciseId int, alreadySlottedExercises ChoosenExercisesMap) bool {
 	_, alreadyExists := alreadySlottedExercises[selectedExerciseId]
 	return !alreadyExists
 }
@@ -566,105 +242,6 @@ func GetUserKey(userId int64, key string) string {
 	return uid + ":" + key
 }
 
-// func GetCurrentWorkout(
-// 	ctx context.Context,
-// 	redisDb *redis.Client,
-// 	db *pgxpool.Pool,
-// 	numberOfSetsInSuperSet,
-// 	numberOfExerciseInSuperset int,
-// 	superSetExpiration time.Duration,
-// ) (*UserWorkoutDto, error) {
-// 	var us UserService
-// 	user, err := us.FetchFromContext(ctx)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, could not UserService.FetchFromContext() for GetCurrentWorkout(). Error: %v", err)
-// 	}
-
-// 	// todo need to address the edge case where a user workout expires due to taking longer than 6 hours to complete
-// 	userWorkout := UserWorkout{}
-// 	err = userWorkout.FromRedis(ctx, user.Id, redisDb)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when fetching user workout from redis. Error: %v", err)
-// 	}
-
-// 	var dailyWorkout AvailableWorkoutExercises
-// 	today := time.Now().Weekday()
-// 	if !userWorkout.Exists {
-// 		userWorkout.ProgressIndex = []int{
-// 			0,
-// 		}
-// 		userWorkout.Weekday = time.Now().Weekday()
-// 		userWorkout.WorkoutId = uuid.New().String()
-// 		userWorkout.WorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, db, user.Id)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when fetchCurrentWorkoutRoutine() for GetCurrentWorkout(). Error: %v", err)
-// 		}
-
-// 		err = dailyWorkout.FromRedis(
-// 			ctx,
-// 			redisDb,
-// 			getDailyWorkoutHashKey(userWorkout.WorkoutRoutine),
-// 			today,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when fetching the daily workout from redis for new workout. Error: %v", err)
-// 		}
-
-// 		var slottedExercises []string
-// 		slottedExercises, err = userWorkout.InitSlottedExercises(numberOfExerciseInSuperset, dailyWorkout)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when InitSlottedExercises(). Error: %v", err)
-// 		}
-// 		var exerciseMeasurements map[string]int
-// 		exerciseMeasurements, err = fetchExerciseMeasurements(
-// 			ctx,
-// 			db,
-// 			user.Id,
-// 			slottedExercises,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when fetchExerciseMeasurements() for GetCurrentWorkout(). Error: %v", err)
-// 		}
-
-// 		for k, v := range exerciseMeasurements {
-// 			d, ok := userWorkout.UserExerciseDataMap[k]
-// 			if !ok {
-// 				return nil, fmt.Errorf("error, expected exercise to exist in exercise data but it did not")
-// 			}
-// 			d.Measurement = v
-// 			userWorkout.UserExerciseDataMap[k] = d
-// 		}
-
-// 		err = userWorkout.ToRedis(
-// 			ctx,
-// 			user.Id,
-// 			redisDb,
-// 			superSetExpiration,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when userWorkout.ToRedis() for GetCurrentWorkout(). Error: %v", err)
-// 		}
-// 	} else {
-// 		err = dailyWorkout.FromRedis(
-// 			ctx,
-// 			redisDb,
-// 			getDailyWorkoutHashKey(userWorkout.WorkoutRoutine),
-// 			userWorkout.Weekday,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when fetching the daily workout from redis for existing workout. Error: %v", err)
-// 		}
-// 	}
-
-// 	result := UserWorkoutDto{}
-// 	result.Fill(
-// 		userWorkout,
-// 		dailyWorkout,
-// 		numberOfSetsInSuperSet,
-// 		numberOfExerciseInSuperset,
-// 	)
-// 	return &result, nil
-// }
 
 func fetchCurrentWorkoutRoutine(ctx context.Context, db *pgxpool.Pool, userId int64) (RoutineType, error) {
 	var result RoutineType
@@ -687,15 +264,15 @@ func fetchExerciseMeasurements(
 	ctx context.Context,
 	db *pgxpool.Pool,
 	userId int64,
-	exerciseData ExerciseUserDataMap,
-) error {
-	placeholders := make([]string, len(exerciseData))
+	choosenExercises ChoosenExercisesMap,
+) (currentMeasurements ChoosenExercisesMap, err error) {
+	placeholders := make([]string, len(choosenExercises))
 	var args []interface{}
 	args = append(args, userId) // user id will be our first argument
 
-	exerciseIds := make([]any, len(exerciseData))
+	exerciseIds := make([]any, len(choosenExercises))
 	i := 0
-	for exerciseId := range exerciseData {
+	for exerciseId := range choosenExercises {
 		exerciseIds[i] = exerciseId
 		placeholders[i] = fmt.Sprintf("$%d", i+2)
 		i++
@@ -713,7 +290,7 @@ func fetchExerciseMeasurements(
 
 	rows, err := db.Query(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
+		return nil, fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
 	}
 
 	for rows.Next() {
@@ -724,21 +301,24 @@ func fetchExerciseMeasurements(
 			&measurement,
 		)
 		if err != nil {
-			return fmt.Errorf("error, when scanning database rows: %v", err)
+			return nil, fmt.Errorf("error, when scanning database rows: %v", err)
 		}
-		ed, ok := exerciseData[exerciseId]
+		choosenExercises[exerciseId] = measurement
+	}
+
+	// add placeholders for measurements that haven't been persisted yet
+	for exerciseId := range choosenExercises {
+		_, ok := choosenExercises[exerciseId] 
 		if !ok {
-			return fmt.Errorf("error, expected exercise ID to exist but it did not exist. exerciseId: %v", exerciseId)
+			choosenExercises[exerciseId] = 0
 		}
-		ed.Measurement = measurement
-		exerciseData[exerciseId] = ed
 	}
 
 	err = rows.Err()
 	if err != nil {
-		return fmt.Errorf("error, when iterating through database rows: %v", err)
+		return nil, fmt.Errorf("error, when iterating through database rows: %v", err)
 	}
-	return nil
+	return choosenExercises, nil
 }
 
 func fetchExerciseMeasurement(

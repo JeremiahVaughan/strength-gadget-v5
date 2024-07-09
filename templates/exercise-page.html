@@ -197,7 +197,7 @@
                name="lastCompletedMeasurement" 
                value="{{.Exercise.LastCompletedMeasurement}}">
             {{range .TimeOptions}}
-            <option value="{{.Value}}">{{.Label}}</option>
+			<option value="{{.Value}}" {{ if eq $.Exercise.LastCompletedMeasurement .Value }}selected{{ end }}>{{.Label}}</option>
             {{end}}
         </select>
 		<div class="gg-play-button-o"></div>

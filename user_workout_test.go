@@ -86,49 +86,49 @@ func TestGetNextAvailableExercise(t *testing.T) {
 		name                    string
 		startingOffset          int
 		randomPool              []int
-		alreadySlottedExercises ExerciseUserDataMap
+		alreadySlottedExercises ChoosenExercisesMap
 		want                    Exercise
 	}{
 		{
 			name:                    "no_exercise_taken",
 			startingOffset:          0,
 			randomPool:              []int{0, 1, 2, 3},
-			alreadySlottedExercises: ExerciseUserDataMap{},
+			alreadySlottedExercises: ChoosenExercisesMap{},
 			want:                    Exercise{Id: 1}, // As no exercise is taken it will start from first
 		},
 		{
 			name:                    "first_exercise_taken",
 			startingOffset:          0,
 			randomPool:              []int{0, 1, 2, 3},
-			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}},
+			alreadySlottedExercises: ChoosenExercisesMap{1: ExerciseUserData{}},
 			want:                    Exercise{Id: 2}, // As the first exercise is taken it will start from second
 		},
 		{
 			name:                    "last_exercise_taken",
 			startingOffset:          3,
 			randomPool:              []int{0, 1, 2, 3},
-			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}},
+			alreadySlottedExercises: ChoosenExercisesMap{1: ExerciseUserData{}},
 			want:                    Exercise{Id: 4},
 		},
 		{
 			name:                    "first_and_second_exercise_taken",
 			startingOffset:          0,
 			randomPool:              []int{0, 1, 2, 3},
-			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}, 2: ExerciseUserData{}},
+			alreadySlottedExercises: ChoosenExercisesMap{1: ExerciseUserData{}, 2: ExerciseUserData{}},
 			want:                    Exercise{Id: 3}, // As the first and second exercises are taken it will start from third
 		},
 		{
 			name:                    "all_exercises_taken",
 			startingOffset:          0,
 			randomPool:              []int{0, 1, 2, 3},
-			alreadySlottedExercises: ExerciseUserDataMap{1: ExerciseUserData{}, 2: ExerciseUserData{}, 3: ExerciseUserData{}, 4: ExerciseUserData{}},
+			alreadySlottedExercises: ChoosenExercisesMap{1: ExerciseUserData{}, 2: ExerciseUserData{}, 3: ExerciseUserData{}, 4: ExerciseUserData{}},
 			want:                    Exercise{Id: 1}, // As all exercise are taken so we will keep what we have
 		},
 		{
 			name:                    "available_exercise_is_before_starting_exercise",
 			startingOffset:          1,
 			randomPool:              []int{0, 1, 2, 3},
-			alreadySlottedExercises: ExerciseUserDataMap{2: ExerciseUserData{}, 3: ExerciseUserData{}, 4: ExerciseUserData{}},
+			alreadySlottedExercises: ChoosenExercisesMap{2: ExerciseUserData{}, 3: ExerciseUserData{}, 4: ExerciseUserData{}},
 			want:                    Exercise{Id: 1}, // As all exercise are taken it will start from first
 		},
 	}
