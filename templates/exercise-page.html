@@ -257,10 +257,12 @@
 				on click toggle .gg-play-button-o on me
 				on click toggle .gg-redo on me" class="gg-play-button-o">
 		</div>
-		<div _="repeat forever
-					wait 1s
-					increment :x then put into me
-				end"></div>
+		<button 
+			_="on click
+				repeat forever
+				   	wait 1s
+					increment :x then put it into me
+				end">0</button>
 		{{ end }}
         <div class="button-spacer"></div>
     </div>
