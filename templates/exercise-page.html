@@ -239,6 +239,7 @@
 					hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
 					hx-trigger="change"
 					hx-swap="none"
+					_="on change put (value of #measurement) into @value"
 					class="exercise-measurement"
 					name="lastCompletedMeasurement" 
 					value="{{.Exercise.LastCompletedMeasurement}}">
@@ -252,17 +253,37 @@
 			<div class="reps-text">15 reps</div>
 		{{ else }}
 		<div id="countdown" class="hidden countdown">0:00</div>
-		<div id="play" _="on click toggle .hidden on #countdown
-				on click toggle .hidden on #measurement
-				on click toggle .gg-play-button-o on me
-				on click toggle .gg-redo on me" class="gg-play-button-o">
+		<div id="play" _="
+				on click 
+					toggle .hidden on #countdown
+					toggle .hidden on #measurement
+					toggle .gg-play-button-o on me
+					toggle .gg-redo on me
+					set sec to (value of #measurement) 
+					get call Math.floor(sec / 60) then set min to it
+					set sec to sec mod 60
+					repeat forever
+						if sec < 10
+							set sec to `0${sec}`
+						end
+						set display to `${min}:${sec}`
+						put display into #countdown
+						wait 1s
+						if min is 0 and sec is 0
+							toggle .hidden on #measurement
+							toggle .hidden on #countdown
+							toggle .gg-play-button-o on me
+							toggle .gg-redo on me
+							break
+						end
+						if sec is 0
+							set sec to 60
+							decrement min
+						end
+						decrement sec
+					end" 
+			class="gg-play-button-o">
 		</div>
-		<button 
-			_="on click
-				repeat forever
-				   	wait 1s
-					increment :x then put it into me
-				end">0</button>
 		{{ end }}
         <div class="button-spacer"></div>
     </div>
