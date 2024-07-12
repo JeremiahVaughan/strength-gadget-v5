@@ -11,7 +11,8 @@
 
     .upper-buttons {
       display: flex;
-      justify-content: space-between;
+	  flex-direction: column;
+      justify-content: center;
       align-items: center;
       background-color: #0a2938;
       border-radius: 2rem;
@@ -46,6 +47,20 @@
 	  color: #c2c2c2;
 	  background-color: #36393F;
     }
+
+	.measurement-container {
+		display: flex;
+		width: 100%;
+		justify-content: space-around;
+		align-items: center;
+	}
+
+	.countdown-container {
+		display: flex;
+		width: 100%;
+		justify-content: space-around;
+		align-items: center;
+	}
 
     .tool-bar {
       display: flex;
@@ -233,59 +248,76 @@
     </div>
 {{ else }}
     <div class="upper-buttons">
-        <div class="button-spacer"></div>
-		<form>
-			<select id="measurement" 
-					hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
-					hx-trigger="change"
-					hx-swap="none"
-					_="on change put (value of #measurement) into @value"
-					class="exercise-measurement"
-					name="lastCompletedMeasurement" 
-					value="{{.Exercise.LastCompletedMeasurement}}">
-				{{range .Exercise.MeasurementOptions}}
-				<option value="{{.Value}}" {{ if eq $.Exercise.LastCompletedMeasurement .Value }}selected{{ end }}>{{.Label}}</option>
-				{{end}}
-			</select>
-			<input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
-		</form>
-		{{ if eq .Exercise.MeasurementType 0 }}
-			<div class="reps-text">15 reps</div>
-		{{ else }}
-		<div id="countdown" class="hidden countdown">0:00</div>
-		<div id="play" _="
-				on click 
-					toggle .hidden on #countdown
-					toggle .hidden on #measurement
-					toggle .gg-play-button-o on me
-					toggle .gg-redo on me
-					set sec to (value of #measurement) 
-					get call Math.floor(sec / 60) then set min to it
-					set sec to sec mod 60
-					repeat forever
-						if sec < 10
-							set sec to `0${sec}`
-						end
-						set display to `${min}:${sec}`
-						put display into #countdown
-						wait 1s
-						if min is 0 and sec is 0
-							toggle .hidden on #measurement
-							toggle .hidden on #countdown
+		<div id="measurement-container" class="measurement-container">
+			<div></div>
+			<form>
+				<select id="measurement" 
+						hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
+						hx-trigger="change"
+						hx-swap="none"
+						_="on change put (value of #measurement) into @value"
+						class="exercise-measurement"
+						name="lastCompletedMeasurement" 
+						value="{{.Exercise.LastCompletedMeasurement}}">
+					{{range .Exercise.MeasurementOptions}}
+					<option value="{{.Value}}" {{ if eq $.Exercise.LastCompletedMeasurement .Value }}selected{{ end }}>{{.Label}}</option>
+					{{end}}
+				</select>
+				<input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
+			</form>
+			{{ if eq .Exercise.MeasurementType 0 }}
+				<div class="reps-text">15 reps</div>
+			{{ else }}
+				<div id="play" _="
+						on click 
+							toggle .gg-redo on #redo
 							toggle .gg-play-button-o on me
-							toggle .gg-redo on me
-							break
-						end
-						if sec is 0
-							set sec to 60
-							decrement min
-						end
-						decrement sec
-					end" 
-			class="gg-play-button-o">
+							toggle .hidden on #countdown-container
+							toggle .hidden on #measurement-container
+							set sec to (value of #measurement) 
+							get call Math.floor(sec / 60) then set min to it
+							set sec to sec mod 60
+							repeat until event stop
+								if sec < 10
+									set sec to `0${sec}`
+								end
+								set display to `${min}:${sec}`
+								put display into #countdown
+								wait 1s
+								if min is 0 and sec is 0
+									toggle .hidden on #measurement-container
+									toggle .hidden on #countdown-container
+									toggle .gg-play-button-o on me
+									toggle .gg-redo on #redo
+									break
+								end
+								if sec is 0
+									set sec to 60
+									decrement min
+								end
+								decrement sec
+							end" 
+					class="gg-play-button-o">
+				</div>
+			{{ end }}
+			<div></div>
 		</div>
-		{{ end }}
-        <div class="button-spacer"></div>
+		<div id="countdown-container" class="countdown-container hidden">
+			<div></div>
+			<div></div>
+			<div id="countdown" class="countdown">0:00</div>
+			<div></div>
+			<div id="redo" 
+				 _="
+					on click
+						toggle .gg-play-button-o on #play
+						toggle .hidden on #countdown-container
+						toggle .hidden on #measurement-container
+						toggle .gg-redo on me
+						send stop to #play
+					"></div>
+			<div></div>
+		</div>
     </div>
     <div class="lower-buttons">
 		<div class="stats-text">
@@ -295,6 +327,7 @@
         <form hx-post="/exercise?progressIndex={{.NextProgressIndex}}" 
               hx-push-url="true" 
 			  hx-include="#measurement"
+			  _="on click if #play then send stop to #play"
               hx-target="body">
             {{template "button-content" .Complete }}
         </form>
