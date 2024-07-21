@@ -42,16 +42,30 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	progressIndexString := r.URL.Query().Get("progressIndex")
-	if progressIndexString == "" {
+	// pageFetchedAt keeps track of when the page was fetched. This supports the edge case where the user accidently restarts their
+	// workout because they come back to a different tab of app or their auth session expired.
+	pageFetchedAt := r.URL.Query().Get("pageFetchedAt")
+	if progressIndexString == "" || pageFetchedAt == "" {
 		// not having the progress index in the URL makes interactions too complex, so just always requiring it.
 		alreadyAuthRedirect(w, r)
 		return
 	} else {
-		userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
+		var pfa int64
+		pfa, err = strconv.ParseInt(pageFetchedAt, 10, 64)
 		if err != nil {
-			err = fmt.Errorf("error, when parsing progress index for HandleExercisePage(). Error: %v", err)
+			err = fmt.Errorf("error, when parsing pageFetchedAt for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
+		}
+		// twoHoursAgo := time.Now().Unix()-7200
+		twoHoursAgo := time.Now().Unix() - 30
+		if pfa < twoHoursAgo {
+			userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
+			if err != nil {
+				err = fmt.Errorf("error, when parsing progress index for HandleExercisePage(). Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
 		}
 	}
 
@@ -305,6 +319,7 @@ func getExercise(
 	exercise := ExerciseDisplay{
 		ProgressIndex:     userSession.WorkoutSession.ProgressIndex,
 		NextProgressIndex: userSession.WorkoutSession.ProgressIndex + 1,
+		PageFetchedAt:     time.Now().Unix(),
 		SelectMode:        true,
 		Yes: Button{
 			Id:    "yes",

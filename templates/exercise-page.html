@@ -231,7 +231,7 @@
 {{ if .SelectMode }}
     <div class="lower-buttons">
 		<form id="{{.No.Id}}"
-		 	  hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
+			  hx-put="/exercise?progressIndex={{.ProgressIndex}}&pageFetchedAt={{.PageFetchedAt}}" 
 			  hx-target="body"> 
             {{template "button-content" .No }}
         </form>
@@ -243,6 +243,7 @@
               hx-push-url="true" 
               hx-target="body">
             <input type="hidden" name="progressIndex" value="{{.NextProgressIndex}}">
+            <input type="hidden" name="pageFetchedAt" value="{{.PageFetchedAt}}">
             {{template "button-content" .Yes }}
         </form>
     </div>
@@ -252,7 +253,7 @@
 			<div></div>
 			<form>
 				<select id="measurement" 
-						hx-put="/exercise?progressIndex={{.ProgressIndex}}" 
+						hx-put="/exercise?progressIndex={{.ProgressIndex}}&pageFetchedAt={{.PageFetchedAt}}" 
 						hx-trigger="change"
 						hx-swap="none"
 						_="on change put (value of #measurement) into @value"
@@ -263,7 +264,6 @@
 					<option value="{{.Value}}" {{ if eq $.Exercise.LastCompletedMeasurement .Value }}selected{{ end }}>{{.Label}}</option>
 					{{end}}
 				</select>
-				<input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
 			</form>
 			{{ if eq .Exercise.MeasurementType 0 }}
 				<div class="reps-text">15 reps</div>
@@ -324,7 +324,7 @@
 			<p>Focus: {{.Exercise.FocusMuscleGroup}}</p>
 			<p>Set: {{.CurrentSet}}
 		</div>
-        <form hx-post="/exercise?progressIndex={{.NextProgressIndex}}" 
+		<form hx-post="/exercise?progressIndex={{.NextProgressIndex}}&pageFetchedAt={{.PageFetchedAt}}" 
               hx-push-url="true" 
 			  hx-include="#measurement"
 			  _="on click if #play then send stop to #play"
