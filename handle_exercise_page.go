@@ -60,8 +60,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
-		// twoHoursAgo := time.Now().Unix()-7200 // todo uncomment
-		twoHoursAgo := time.Now().Unix() - 30
+		twoHoursAgo := time.Now().Unix() - 7200
 		if pfa > twoHoursAgo {
 			userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
 			if err != nil {
