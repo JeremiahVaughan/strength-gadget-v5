@@ -1030,6 +1030,20 @@ func (a MuscleGroupExercises) Less(i, j int) bool {
 }
 func (a MuscleGroupExercises) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
+type ExerciseDisplay struct {
+	SelectMode        bool
+	Yes               Button
+	No                Button
+	Complete          Button
+	ProgressIndex     int
+	PageFetchedAt     int64
+	NextProgressIndex int
+	WorkoutCompleted  bool
+	CurrentSet        int
+
+	Exercise Exercise
+}
+
 type Exercise struct {
 	Id                       int
 	Name                     string
@@ -1040,19 +1054,6 @@ type Exercise struct {
 	MuscleGroups             []MuscleGroup
 	FocusMuscleGroup         string
 	MeasurementOptions       []MeasurementOption
-}
-
-type ExerciseDisplay struct {
-	SelectMode        bool
-	Yes               Button
-	No                Button
-	Complete          Button
-	ProgressIndex     int
-	NextProgressIndex int
-	WorkoutCompleted  bool
-	CurrentSet        int
-
-	Exercise Exercise
 }
 
 func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, count int) bool {

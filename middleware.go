@@ -38,6 +38,10 @@ func CheckForActiveSession(next http.Handler) http.Handler {
 		}
 
 		if userSession.Authenticated {
+			if DebugMode == "true" {
+				log.Printf("user session already exists, redirecting to exercise page")
+			}
+
 			alreadyAuthRedirect(w, r)
 			return
 		}

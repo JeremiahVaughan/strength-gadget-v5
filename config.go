@@ -72,6 +72,8 @@ var (
 	lowerWorkout AvailableWorkoutExercises
 	coreWorkout  AvailableWorkoutExercises
 	upperWorkout AvailableWorkoutExercises
+
+	DebugMode string
 )
 
 func generateDefaultTimeOptions() MeasurementOptions {
@@ -117,6 +119,10 @@ func generateMuscleGroupMap() map[int]MuscleGroup {
 func InitConfig(ctx context.Context) error {
 	var err error
 	var errorMsgs []string
+
+	// DebugMode a value of "true" will turn it on
+	DebugMode = os.Getenv("DEBUG_MODE")
+
 	Environment = os.Getenv("TF_VAR_environment")
 	if Environment == "" {
 		errorMsgs = append(errorMsgs, "TF_VAR_environment")
