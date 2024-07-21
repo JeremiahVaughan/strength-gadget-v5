@@ -62,7 +62,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		}
 		// twoHoursAgo := time.Now().Unix()-7200 // todo uncomment
 		twoHoursAgo := time.Now().Unix() - 30
-		if pfa < twoHoursAgo {
+		if pfa > twoHoursAgo {
 			userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
 			if err != nil {
 				err = fmt.Errorf("error, when parsing progress index for HandleExercisePage(). Error: %v", err)
