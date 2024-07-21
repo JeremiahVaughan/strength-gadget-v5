@@ -20,6 +20,9 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !userSession.Authenticated {
+		if DebugMode == "true" {
+			log.Printf("user session has expired, redirecting to login page")
+		}
 		// HX-Redirect only works if the page has already been loaded so we have to use full redirect instead
 		http.Redirect(w, r, EndpointLogin, http.StatusSeeOther)
 		return
@@ -57,7 +60,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			HandleUnexpectedError(w, err)
 			return
 		}
-		// twoHoursAgo := time.Now().Unix()-7200
+		// twoHoursAgo := time.Now().Unix()-7200 // todo uncomment
 		twoHoursAgo := time.Now().Unix() - 30
 		if pfa < twoHoursAgo {
 			userSession.WorkoutSession.ProgressIndex, err = strconv.Atoi(progressIndexString)
@@ -559,7 +562,7 @@ func redirectExercisePage(
 		progressIndex = userSession.WorkoutSession.ProgressIndex
 	}
 
-	url := fmt.Sprintf("%s?progressIndex=%d", EndpointExercise, progressIndex)
+	url := fmt.Sprintf("%s?progressIndex=%d&pageFetchedAt=%d", EndpointExercise, progressIndex, time.Now().Unix())
 	w.Header().Set("HX-Redirect", url)
 }
 
