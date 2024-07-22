@@ -264,6 +264,7 @@
 					<option value="{{.Value}}" {{ if eq $.Exercise.LastCompletedMeasurement .Value }}selected{{ end }}>{{.Label}}</option>
 					{{end}}
 				</select>
+				<input type="hidden" name="exerciseId" value="{{.Exercise.Id}}">
 			</form>
 			{{ if eq .Exercise.MeasurementType 0 }}
 				<div class="reps-text">15 reps</div>
@@ -326,7 +327,6 @@
 		</div>
 		<form hx-post="/exercise?progressIndex={{.NextProgressIndex}}&pageFetchedAt={{.PageFetchedAt}}" 
               hx-push-url="true" 
-			  hx-include="#measurement"
 			  _="on click if #play then send stop to #play"
               hx-target="body">
             {{template "button-content" .Complete }}
