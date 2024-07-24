@@ -166,7 +166,6 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			emq,
 			args...,
 		)
-		log.Printf("todo remove sql: %+v", args)
 		if err != nil {
 			err = fmt.Errorf("error, when persisting exercises measurements for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
