@@ -42,7 +42,7 @@ func CheckForActiveSession(next http.Handler) http.Handler {
 				log.Printf("user session already exists, redirecting to exercise page")
 			}
 
-			alreadyAuthRedirect(w, r)
+			redirectExercisePage(w, r, userSession)
 			return
 		}
 
