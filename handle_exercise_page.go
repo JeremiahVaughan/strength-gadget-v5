@@ -23,7 +23,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			log.Printf("user session has expired, redirecting to login page")
 		}
 		// HX-Redirect only works if the page has already been loaded so we have to use full redirect instead
-		http.Redirect(w, r, EndpointLogin, http.StatusSeeOther)
+		SmartRedirect(w, r, EndpointLogin)
 		return
 	}
 
@@ -49,7 +49,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	pageFetchedAt := r.URL.Query().Get("pageFetchedAt")
 	if progressIndexString == "" || pageFetchedAt == "" {
 		// not having the progress index in the URL makes interactions too complex, so just always requiring it.
-		alreadyAuthRedirect(w, r)
+		redirectExercisePage(w, r, userSession)
 		return
 	} else {
 		var pfa int64
@@ -169,12 +169,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		u := fmt.Sprintf("%s?currentWorkoutRoutine=%d", EndpointWorkoutComplete, userSession.WorkoutSession.CurrentWorkoutRoutine)
-		// todo use this technique during the login as well to avoid needing a temp redirect page
-		if r.Header.Get("HX-Request") == "true" { // exercise completion was triggered from button press
-			w.Header().Set("HX-Redirect", u)
-		} else { // exercies completion was triggered from page refresh
-			http.Redirect(w, r, u, http.StatusSeeOther)
-		}
+		SmartRedirect(w, r, u)
 		return
 	}
 
@@ -563,12 +558,5 @@ func redirectExercisePage(
 	}
 
 	url := fmt.Sprintf("%s?progressIndex=%d&pageFetchedAt=%d", EndpointExercise, progressIndex, time.Now().Unix())
-	w.Header().Set("HX-Redirect", url)
-}
-
-func alreadyAuthRedirect(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	http.Redirect(w, r, EndpointAlreadyAuthenticated, http.StatusSeeOther)
+	SmartRedirect(w, r, url)
 }
