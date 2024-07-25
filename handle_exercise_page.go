@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -151,28 +150,31 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf("la request %s\n", r.Header.Get("Hx-Request")) // todo remove
 	if nextExercise.WorkoutCompleted {
-		if len(userSession.WorkoutSession.WorkoutMeasurements) == 0 {
-			err = errors.New("error, no workout measurements found but were expecting them")
-			HandleUnexpectedError(w, err)
-			return
-		}
-		emq, args := generateQueryForExerciseMeasurements(
-			userSession.WorkoutSession.WorkoutMeasurements,
-			userSession.UserId,
-		)
-		_, err := ConnectionPool.Exec(
-			ctx,
-			emq,
-			args...,
-		)
-		if err != nil {
-			err = fmt.Errorf("error, when persisting exercises measurements for HandleExercisePage(). Error: %v", err)
-			HandleUnexpectedError(w, err)
-			return
+		if len(userSession.WorkoutSession.WorkoutMeasurements) != 0 {
+			emq, args := generateQueryForExerciseMeasurements(
+				userSession.WorkoutSession.WorkoutMeasurements,
+				userSession.UserId,
+			)
+			_, err := ConnectionPool.Exec(
+				ctx,
+				emq,
+				args...,
+			)
+			if err != nil {
+				err = fmt.Errorf("error, when persisting exercises measurements for HandleExercisePage(). Error: %v", err)
+				HandleUnexpectedError(w, err)
+				return
+			}
 		}
 		u := fmt.Sprintf("%s?currentWorkoutRoutine=%d", EndpointWorkoutComplete, userSession.WorkoutSession.CurrentWorkoutRoutine)
-		w.Header().Set("HX-Redirect", u)
+		// todo use this technique during the login as well to avoid needing a temp redirect page
+		if r.Header.Get("HX-Request") == "true" { // exercise completion was triggered from button press
+			w.Header().Set("HX-Redirect", u)
+		} else { // exercies completion was triggered from page refresh
+			http.Redirect(w, r, u, http.StatusSeeOther)
+		}
 		return
 	}
 

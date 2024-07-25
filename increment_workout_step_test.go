@@ -4,7 +4,6 @@ import (
 	"testing"
 )
 
-
 func TestGenerateQueryForExerciseUserData(t *testing.T) {
 	tests := []struct {
 		name                 string
@@ -51,7 +50,7 @@ func TestGenerateQueryForExerciseUserData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotSQL, gotArgs := generateQueryForExerciseMeasurements(tt.exerciseMeasurements, tt.user)
+			gotSQL, gotArgs := generateQueryForExerciseMeasurements(tt.exerciseMeasurements, tt.user.Id)
 			if gotSQL != tt.wantSQL {
 				t.Errorf("generateQueryForExerciseUserData() got SQL = %v, want %v", gotSQL, tt.wantSQL)
 			}
@@ -61,6 +60,3 @@ func TestGenerateQueryForExerciseUserData(t *testing.T) {
 		})
 	}
 }
-
-
-
