@@ -236,7 +236,8 @@
             {{template "button-content" .No }}
         </form>
 		<div class="stats-text">
-			<p>Focus: {{.Exercise.FocusMuscleGroup}}</p>
+			<p>Focus: {{ .Exercise.FocusMuscleGroup }}</p>
+			<p>Reason: {{ $.Exercise.Reason }}</p>
 		</div>
         <form id="{{.Yes.Id}}"
               hx-get="/exercise" 
@@ -323,6 +324,7 @@
     <div class="lower-buttons">
 		<div class="stats-text">
 			<p>Focus: {{.Exercise.FocusMuscleGroup}}</p>
+			<p>Reason: {{ $.Exercise.Reason }}</p>
 			<p>Set: {{.CurrentSet}}
 		</div>
 		<form hx-post="/exercise?progressIndex={{.NextProgressIndex}}&pageFetchedAt={{.PageFetchedAt}}" 

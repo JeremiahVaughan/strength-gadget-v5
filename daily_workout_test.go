@@ -65,46 +65,46 @@ func Test_ShuffleMuscleCoverageMainExercises(t *testing.T) {
 			MainMuscleGroups: []int{5, 0, 1, 2, 4, 3},
 			MainExercises: [][]int{
 				{
-					6,
+					0,
+					1,
+				},
+				{
+					8,
+					9,
+					3,
 					7,
+					6,
+					10,
+					5,
+					4,
+					2,
 					11,
-					5,
-					9,
-					4,
-					3,
-					2,
-					10,
 					1,
 					0,
-					8,
 				},
 				{
-					8,
-					4,
-					0,
-					10,
-					5,
 					9,
+					5,
+					0,
 					7,
+					4,
+					10,
+					2,
+					8,
 					1,
 					6,
-					2,
 					3,
 				},
 				{
+					1,
+					0,
+				},
+				{
+					3,
+					0,
+					1,
+					2,
 					4,
-					1,
-					2,
-					0,
-					3,
-				},
-				{
-					0,
-					1,
-				},
-				{
-					1,
-					0,
 				},
 				{
 					0,
@@ -116,7 +116,8 @@ func Test_ShuffleMuscleCoverageMainExercises(t *testing.T) {
 			CurrentWorkoutSeed: 1,
 		}
 		r := rand.New(rand.NewSource(u.CurrentWorkoutSeed))
-		d.ShuffleMuscleCoverageMainExercises(r, lowerWorkout, u)
+		d.ShuffleMuscleGroups(r, lowerWorkout)
+		d.ShuffleMuscleCoverageMainExercises(r, lowerWorkout)
 		if !reflect.DeepEqual(e.MainMuscleGroups, d.MainMuscleGroups) {
 			t.Errorf(`muscle groups are not in the correct order. 
 				Expected: %+v, 
