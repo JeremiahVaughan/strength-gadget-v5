@@ -1012,24 +1012,6 @@ func (a Exercises) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 type MuscleGroupExercises [][]Exercise
 
-func (a MuscleGroupExercises) Len() int { return len(a) }
-func (a MuscleGroupExercises) Less(i, j int) bool {
-	if len(a[i]) == len(a[j]) {
-		var iTotal int
-		for _, e := range a[i] {
-			iTotal += e.Id
-		}
-		var jTotal int
-		for _, e := range a[j] {
-			jTotal += e.Id
-		}
-		return iTotal > jTotal
-	}
-
-	return len(a[i]) > len(a[j])
-}
-func (a MuscleGroupExercises) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-
 type ExerciseDisplay struct {
 	SelectMode        bool
 	Yes               Button
@@ -1054,6 +1036,7 @@ type Exercise struct {
 	MuscleGroups             []MuscleGroup
 	FocusMuscleGroup         string
 	MeasurementOptions       []MeasurementOption
+	Reason                   string
 }
 
 func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, count int) bool {

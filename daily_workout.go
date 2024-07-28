@@ -17,6 +17,10 @@ type AvailableWorkoutExercises struct {
 
 	// outer slice is for each target muscle group, inner slice is for
 	// applicable exercises for the corresponding target muscle group
+	MainWarmupExercises [][]Exercise
+
+	// outer slice is for each target muscle group, inner slice is for
+	// applicable exercises for the corresponding target muscle group
 	MainExercises [][]Exercise
 
 	// CoolDownExercises is used for stretching
@@ -25,8 +29,9 @@ type AvailableWorkoutExercises struct {
 
 // DailyWorkoutOffsets used by the user to change exercises
 type DailyWorkoutOffsets struct {
-	CardioExercise int   `json:"cardioExercises"`
-	MainExercises  []int `json:"mainExercises"`
+	CardioExercise      int   `json:"cardioExercises"`
+	MainWarmupExercises []int `json:"mainWarmupExercises"`
+	MainExercises       []int `json:"mainExercises"`
 }
 
 // DailyWorkoutRandomIndices all exercises in a random order to help with variety
@@ -34,6 +39,8 @@ type DailyWorkoutRandomIndices struct {
 	CardioExercises []int `json:"cardioExercises"`
 	// MainMuscleGroups represents the randomness of MainExercises outer slice
 	MainMuscleGroups []int `json:"mainMuscleGroups"`
+	// MainWarmupExercises outerslice is not random, inner slices are
+	MainWarmupExercises [][]int `json:"mainWarmupExercises"`
 	// MainExercises outerslice is not random, inner slices are
 	MainExercises [][]int `json:"mainExercises"`
 	// CoolDownMuscleGroups represents the randomness of CoolDownExercises outer slice
@@ -45,7 +52,6 @@ type DailyWorkoutRandomIndices struct {
 func (d *DailyWorkoutRandomIndices) ShuffleCardioExercises(
 	r *rand.Rand,
 	dailyWorkout AvailableWorkoutExercises,
-	newWorkout WorkoutSession,
 ) {
 	d.CardioExercises = make([]int, len(dailyWorkout.CardioExercises))
 	for i := range d.CardioExercises {
@@ -57,10 +63,9 @@ func (d *DailyWorkoutRandomIndices) ShuffleCardioExercises(
 	})
 }
 
-func (d *DailyWorkoutRandomIndices) ShuffleMuscleCoverageMainExercises(
+func (d *DailyWorkoutRandomIndices) ShuffleMuscleGroups(
 	r *rand.Rand,
 	dailyWorkout AvailableWorkoutExercises,
-	newWorkout WorkoutSession,
 ) {
 	d.MainMuscleGroups = make([]int, len(dailyWorkout.MainExercises))
 	for i := range d.MainMuscleGroups {
@@ -71,7 +76,29 @@ func (d *DailyWorkoutRandomIndices) ShuffleMuscleCoverageMainExercises(
 	r.Shuffle(len(d.MainMuscleGroups), func(i, j int) {
 		d.MainMuscleGroups[i], d.MainMuscleGroups[j] = d.MainMuscleGroups[j], d.MainMuscleGroups[i]
 	})
+}
 
+func (d *DailyWorkoutRandomIndices) ShuffleMuscleCoverageMainWarmupExercises(
+	r *rand.Rand,
+	dailyWorkout AvailableWorkoutExercises,
+) {
+	// Shuffle Exercises
+	d.MainWarmupExercises = make([][]int, len(dailyWorkout.MainWarmupExercises))
+	for i := range d.MainWarmupExercises {
+		d.MainWarmupExercises[i] = make([]int, len(dailyWorkout.MainWarmupExercises[i]))
+		for j := range d.MainWarmupExercises[i] {
+			d.MainWarmupExercises[i][j] = j
+		}
+		r.Shuffle(len(d.MainWarmupExercises[i]), func(a, b int) {
+			d.MainWarmupExercises[i][b], d.MainWarmupExercises[i][a] = d.MainWarmupExercises[i][a], d.MainWarmupExercises[i][b]
+		})
+	}
+}
+
+func (d *DailyWorkoutRandomIndices) ShuffleMuscleCoverageMainExercises(
+	r *rand.Rand,
+	dailyWorkout AvailableWorkoutExercises,
+) {
 	// Shuffle Exercises
 	d.MainExercises = make([][]int, len(dailyWorkout.MainExercises))
 	for i := range d.MainExercises {
@@ -88,7 +115,6 @@ func (d *DailyWorkoutRandomIndices) ShuffleMuscleCoverageMainExercises(
 func (d *DailyWorkoutRandomIndices) ShuffleCoolDownExercises(
 	r *rand.Rand,
 	dailyWorkout AvailableWorkoutExercises,
-	newWorkout WorkoutSession,
 ) {
 	d.CoolDownMuscleGroups = make([]int, len(dailyWorkout.CoolDownExercises))
 	for i := range d.CoolDownMuscleGroups {
@@ -134,8 +160,10 @@ func generateWorkoutExercises(
 	}
 	sort.Sort(Exercises(dailyWorkout.CardioExercises))
 
-	weightLiftingExercises := targetRoutine[ExerciseTypeWeightlifting]
 	calisthenicExercises := targetRoutine[ExerciseTypeCalisthenics]
+	weightLiftingExercises := targetRoutine[ExerciseTypeWeightlifting]
+	coolDownExercises := targetRoutine[ExerciseTypeCoolDown]
+
 	combinedExercises := make(map[int][]Exercise)
 	// First, copy everything from weightLiftingExercises to combinedExercises
 	for muscleGroupId, exercises := range weightLiftingExercises {
@@ -145,26 +173,39 @@ func generateWorkoutExercises(
 	for muscleGroupId, exercises := range calisthenicExercises {
 		combinedExercises[muscleGroupId] = append(combinedExercises[muscleGroupId], exercises...)
 	}
-	for muscleGroupId, exercises := range combinedExercises {
-		exercises, err = appendFocusMuscleGroups(exercises, muscleGroupId, muscleGroupMap)
-		if err != nil {
-			return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for main exercises. Error: %v", err)
-		}
-		sort.Sort(Exercises(exercises))
-		dailyWorkout.MainExercises = append(dailyWorkout.MainExercises, exercises)
-	}
-	sort.Sort(MuscleGroupExercises(dailyWorkout.MainExercises))
 
-	coolDownExercises := targetRoutine[ExerciseTypeCoolDown]
-	for muscleGroupId, exercises := range coolDownExercises {
-		exercises, err = appendFocusMuscleGroups(exercises, muscleGroupId, muscleGroupMap)
-		if err != nil {
-			return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for cool down exercises. Error: %v", err)
+	for _, amg := range AllMuscleGroups {
+		if exercises, ok := combinedExercises[amg.Id]; ok {
+			exercises, err = appendFocusMuscleGroups(exercises, amg.Id, muscleGroupMap)
+			if err != nil {
+				return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for main exercises. Error: %v", err)
+			}
+			sort.Sort(Exercises(exercises))
+			dailyWorkout.MainExercises = append(dailyWorkout.MainExercises, exercises)
+
+			warmupExercises, ok := calisthenicExercises[amg.Id]
+			if !ok {
+				dailyWorkout.MainWarmupExercises = append(dailyWorkout.MainWarmupExercises, []Exercise{})
+			} else {
+				warmupExercises, err = appendFocusMuscleGroups(warmupExercises, amg.Id, muscleGroupMap)
+				if err != nil {
+					return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for main warmup exercises. Error: %v", err)
+				}
+				sort.Sort(Exercises(warmupExercises))
+				dailyWorkout.MainWarmupExercises = append(dailyWorkout.MainWarmupExercises, warmupExercises)
+			}
 		}
-		sort.Sort(Exercises(exercises))
-		dailyWorkout.CoolDownExercises = append(dailyWorkout.CoolDownExercises, exercises)
+
+		if exercises, ok := coolDownExercises[amg.Id]; ok {
+			exercises, err = appendFocusMuscleGroups(exercises, amg.Id, muscleGroupMap)
+			if err != nil {
+				return AvailableWorkoutExercises{}, fmt.Errorf("error, when appendFocusMuscleGroups() for generateWorkoutExercises() for cool down exercises. Error: %v", err)
+			}
+			sort.Sort(Exercises(exercises))
+			dailyWorkout.CoolDownExercises = append(dailyWorkout.CoolDownExercises, exercises)
+		}
 	}
-	sort.Sort(MuscleGroupExercises(dailyWorkout.CoolDownExercises))
+
 	return dailyWorkout, nil
 }
 

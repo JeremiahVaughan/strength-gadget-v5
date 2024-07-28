@@ -79,7 +79,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			false,
 		)
 		if err != nil {
-			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when get. Error: %v", err)
+			err = fmt.Errorf("error, when getExercise() for HandleExercisePage() when get. Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
@@ -91,7 +91,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 				true,
 			)
 			if err != nil {
-				err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when put. Error: %v", err)
+				err = fmt.Errorf("error, when getExercise() for HandleExercisePage() when put. Error: %v", err)
 				HandleUnexpectedError(w, err)
 				return
 			}
@@ -137,7 +137,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			false,
 		)
 		if err != nil {
-			err = fmt.Errorf("error, when getNextExercise() for HandleExercisePage() when post. Error: %v", err)
+			err = fmt.Errorf("error, when getExercise() for HandleExercisePage() when post. Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
@@ -150,14 +150,13 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("la request %s\n", r.Header.Get("Hx-Request")) // todo remove
 	if nextExercise.WorkoutCompleted {
 		if len(userSession.WorkoutSession.WorkoutMeasurements) != 0 {
 			emq, args := generateQueryForExerciseMeasurements(
 				userSession.WorkoutSession.WorkoutMeasurements,
 				userSession.UserId,
 			)
-			_, err := ConnectionPool.Exec(
+			_, err = ConnectionPool.Exec(
 				ctx,
 				emq,
 				args...,
@@ -225,15 +224,18 @@ func createNewWorkout(ctx context.Context, userId int64, currentWorkoutRoutine R
 
 func generateStartingOffsets(mainMuscleGroups []int) DailyWorkoutOffsets {
 	return DailyWorkoutOffsets{
-		MainExercises: make([]int, len(mainMuscleGroups)),
+		MainWarmupExercises: make([]int, len(mainMuscleGroups)),
+		MainExercises:       make([]int, len(mainMuscleGroups)),
 	}
 }
 
 func (d *DailyWorkoutRandomIndices) randomizeWorkoutIndices(dailyWorkout AvailableWorkoutExercises, newWorkout WorkoutSession) {
 	r := rand.New(rand.NewSource(newWorkout.CurrentWorkoutSeed))
-	d.ShuffleCardioExercises(r, dailyWorkout, newWorkout)
-	d.ShuffleMuscleCoverageMainExercises(r, dailyWorkout, newWorkout)
-	d.ShuffleCoolDownExercises(r, dailyWorkout, newWorkout)
+	d.ShuffleCardioExercises(r, dailyWorkout)
+	d.ShuffleMuscleGroups(r, dailyWorkout)
+	d.ShuffleMuscleCoverageMainWarmupExercises(r, dailyWorkout)
+	d.ShuffleMuscleCoverageMainExercises(r, dailyWorkout)
+	d.ShuffleCoolDownExercises(r, dailyWorkout)
 }
 
 func generateWorkoutSeed(userId int64) int64 {
@@ -364,10 +366,11 @@ func getExercise(
 		choosenExercises,
 	)
 	if err != nil {
-		return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during cardio selection mode. Error: %v", err)
+		return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getExercise() during cardio selection mode. Error: %v", err)
 	}
 
 	if userSession.WorkoutSession.ProgressIndex == counter {
+		exercise.Exercise.Reason = "exercise"
 		return exercise, nil
 	}
 
@@ -383,10 +386,32 @@ func getExercise(
 			choosenExercises,
 		)
 		if err != nil {
-			return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getNextExercise() during main selection mode. Error: %v", err)
+			return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getExercise() during main selection mode. Error: %v", err)
 		}
 		if userSession.WorkoutSession.ProgressIndex == counter {
+			exercise.Exercise.Reason = "exercise"
 			return exercise, nil
+		}
+
+		availableWarmupExercises := userSession.WorkoutSession.RandomizedIndices.MainWarmupExercises[r]
+		if exercise.Exercise.ExerciseType == ExerciseTypeWeightlifting && len(availableWarmupExercises) != 0 {
+			counter++
+			if userSession.WorkoutSession.ProgressIndex == counter && shuffle {
+				userSession.WorkoutSession.CurrentOffsets.MainWarmupExercises[i]++
+			}
+			exercise.Exercise, userSession.WorkoutSession.CurrentOffsets.MainWarmupExercises[i], err = getNextAvailableExercise(
+				userSession.WorkoutSession.CurrentOffsets.MainWarmupExercises[i],
+				availableWarmupExercises,
+				workoutExercises.MainWarmupExercises[r],
+				choosenExercises,
+			)
+			if err != nil {
+				return ExerciseDisplay{}, fmt.Errorf("error, when getNextAvailableExercise() for getExercise() during warmup selection mode. Error: %v", err)
+			}
+			if userSession.WorkoutSession.ProgressIndex == counter {
+				exercise.Exercise.Reason = "warmup"
+				return exercise, nil
+			}
 		}
 	}
 
@@ -398,7 +423,7 @@ func getExercise(
 			workoutExercises.CoolDownExercises[r],
 		)
 		if err != nil {
-			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during stretching workout mode. Error: %v", err)
+			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getExercise() during stretching workout mode. Error: %v", err)
 		}
 		choosenExercises[exercise.Exercise.Id] = 0
 	}
@@ -412,7 +437,7 @@ func getExercise(
 		workoutExercises.CardioExercises,
 	)
 	if err != nil {
-		return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during cardio workout mode. Error: %v", err)
+		return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getExercise() during cardio workout mode. Error: %v", err)
 	}
 	if userSession.WorkoutSession.ProgressIndex == counter {
 		exercise.CurrentSet = 1
@@ -423,20 +448,55 @@ func getExercise(
 			userSession.UserId,
 			choosenExercises,
 		)
+		if err != nil {
+			return ExerciseDisplay{}, fmt.Errorf("error, when getCurrentMeasurement() for getExercise() counter: %d. Error: %v", counter, err)
+		}
+		exercise.Exercise.Reason = "exercise"
 		return exercise, nil
 	}
 
+	// warmupCompletedMap key is exercies id, value is arbitrary
+	warmupCompletedMap := make(map[int]bool)
 	for i := 0; i < NumberOfSetsInSuperSet; i++ {
-		for j, r := range userSession.WorkoutSession.RandomizedIndices.MainMuscleGroups {
-			counter++
+		j := 0
+		muscleGroupRandomIndexes := userSession.WorkoutSession.RandomizedIndices.MainMuscleGroups
+		for j < len(muscleGroupRandomIndexes) {
+			r := muscleGroupRandomIndexes[j]
 			exercise.Exercise, err = getSelectedExercise(
 				userSession.WorkoutSession.CurrentOffsets.MainExercises[j],
 				userSession.WorkoutSession.RandomizedIndices.MainExercises[r],
 				workoutExercises.MainExercises[r],
 			)
 			if err != nil {
-				return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during main workout mode. Error: %v", err)
+				return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getExercise() during main workout mode. Error: %v", err)
 			}
+			exercise.Exercise.Reason = "exercise"
+			warmupRequired := i == 0 && exercise.Exercise.ExerciseType == ExerciseTypeWeightlifting
+			if warmupRequired {
+				_, ok := warmupCompletedMap[exercise.Exercise.Id]
+				if !ok {
+					warmupCompletedMap[exercise.Exercise.Id] = true
+					availableExercises := workoutExercises.MainWarmupExercises[r]
+					if len(availableExercises) != 0 {
+						exercise.Exercise, err = getSelectedExercise(
+							userSession.WorkoutSession.CurrentOffsets.MainWarmupExercises[j],
+							userSession.WorkoutSession.RandomizedIndices.MainWarmupExercises[r],
+							availableExercises,
+						)
+						if err != nil {
+							return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getExercise() during main workout mode during warmup step. Error: %v", err)
+						}
+						exercise.Exercise.Reason = "warmup"
+					} else {
+						continue // cannot do warmups unless there are warmup exercises available. Biceps for example don't have warmup exercises at the moment
+					}
+				} else {
+					j++
+				}
+			} else {
+				j++
+			}
+			counter++
 			if userSession.WorkoutSession.ProgressIndex == counter {
 				exercise.CurrentSet = i + 1
 				exercise.Exercise, userSession.WorkoutSession.WorkoutMeasurements, err = getCurrentMeasurement(
@@ -446,6 +506,9 @@ func getExercise(
 					userSession.UserId,
 					choosenExercises,
 				)
+				if err != nil {
+					return ExerciseDisplay{}, fmt.Errorf("error, when getCurrentMeasurement() for getExercise() counter: %d. Error: %v", counter, err)
+				}
 				return exercise, nil
 			}
 		}
@@ -459,7 +522,7 @@ func getExercise(
 			workoutExercises.CoolDownExercises[r],
 		)
 		if err != nil {
-			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getNextExercise() during stretching workout mode. Error: %v", err)
+			return ExerciseDisplay{}, fmt.Errorf("error, when getSelectedExercise() for getExercise() during stretching workout mode. Error: %v", err)
 		}
 		if userSession.WorkoutSession.ProgressIndex == counter {
 			exercise.CurrentSet = 1
@@ -470,6 +533,10 @@ func getExercise(
 				userSession.UserId,
 				choosenExercises,
 			)
+			if err != nil {
+				return ExerciseDisplay{}, fmt.Errorf("error, when getCurrentMeasurement() for getExercise() counter: %d. Error: %v", counter, err)
+			}
+			exercise.Exercise.Reason = "stretch"
 			return exercise, nil
 		}
 	}
@@ -494,6 +561,9 @@ func getCurrentMeasurement(
 			userId,
 			choosenExercises,
 		)
+		if err != nil {
+			return Exercise{}, nil, fmt.Errorf("error, when fetchExerciseMeasurements() for getCurrentMeasurement(). Error: %v", err)
+		}
 	}
 	exercise.LastCompletedMeasurement, ok = workoutMeasurements[exercise.Id]
 	if !ok {
