@@ -215,16 +215,5 @@ func registerTemplates() error {
 	}
 	templateMap["workout-completed-page.html"] = workoutCompletedParsed
 
-	var alreadyAuthParsed *template.Template
-	alreadyAuthParsed, err = template.ParseFS(
-		templatesFiles,
-		"templates/base.html",
-		"templates/already_auth_page.html",
-	)
-	if err != nil {
-		return fmt.Errorf("error, when atempting to parse html alreadyAuthParsed. Error: %v", err)
-	}
-	templateMap["already_auth_page.html"] = alreadyAuthParsed
-
 	return nil
 }
