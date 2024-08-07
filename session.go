@@ -26,11 +26,14 @@ func FetchUserSession(r *http.Request) (*UserSession, error) {
 
 	workoutCookie, err := r.Cookie(string(WorkoutSessionKey))
 	if err != nil {
-		// Missing workout session id means the user is not logged in
-		result.Authenticated = false
+		// Missing workout session id means the users workout session does not exist
+		result.WorkoutSessionExists = false
 		return &result, nil
 	}
 	result.UserId, err = strconv.ParseInt(workoutCookie.Value, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("error, when parsing workout session cookie. Error: %v", err)
+	}
 
 	rpl := RedisConnectionPool.Pipeline()
 
@@ -64,21 +67,13 @@ func FetchUserSession(r *http.Request) (*UserSession, error) {
 
 	if result.WorkoutSessionExists {
 		err = json.Unmarshal([]byte(workoutSession), &result.WorkoutSession)
+		if err != nil {
+			return nil, fmt.Errorf("error, when unmarshalling workout session. Error: %v", err)
+		}
 		return &result, nil
 	}
 
 	return &result, nil
-}
-
-func completeWorkout() error {
-	// todo save all exercise measurements (batch)
-	// todo increment workout routine
-	return nil
-}
-
-func startWorkout() error {
-	// todo refresh user session so key does not expire during workout
-	return nil
 }
 
 func GenerateSessionKey() string {

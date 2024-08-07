@@ -2,28 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
-type NewWorkoutRequest struct {
-	CurrentRoutine RoutineType
-}
-
-func validateNewWorkoutRequest(req *NewWorkoutRequest) error {
-	var errorFeedback []error
-	if req.CurrentRoutine != LOWER && req.CurrentRoutine != CORE && req.CurrentRoutine != UPPER {
-		errorFeedback = append(errorFeedback, errors.New("invalid routine type"))
-	}
-	if len(errorFeedback) > 0 {
-		return fmt.Errorf("errors, when validating request: %v", errorFeedback)
-	}
-	return nil
-}
-
 func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	userSession, err := FetchUserSession(r)
 	if err != nil {
 		err = fmt.Errorf("error, when FetchUserSession() for HandleWorkoutComplete(). Error: %v", err)
@@ -36,34 +20,10 @@ func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = r.ParseForm()
-	if err != nil {
-		err = fmt.Errorf("error, when parsing form for HandleWorkoutComplete(). Error: %v", err)
-		HandleUnexpectedError(w, err)
-		return
-	}
-	current := r.FormValue("currentWorkoutRoutine")
-	currentWorkoutRoutine, err := strconv.Atoi(current)
-	if err != nil {
-		err = fmt.Errorf("error, when attempting to convert currentWorkoutRoutine from a string to a number. Error: %v", err)
-		HandleUnexpectedError(w, err)
-		return
-	}
-	req := NewWorkoutRequest{
-		CurrentRoutine: RoutineType(currentWorkoutRoutine),
-	}
-	err = validateNewWorkoutRequest(&req)
-	if err != nil {
-		err = fmt.Errorf("error, when validateNewWorkoutRequest() for HandleWorkoutComplete(). Error: %v", err)
-		HandleUnexpectedError(w, err)
-		return
-	}
-
 	switch r.Method {
 	case http.MethodGet:
 		type Completed struct {
 			NewWorkout            Button
-			CurrentWorkoutRoutine RoutineType
 		}
 		completed := Completed{
 			NewWorkout: Button{
@@ -72,7 +32,6 @@ func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
 				Color: PrimaryButtonColor,
 				Type:  ButtonTypeSubmit,
 			},
-			CurrentWorkoutRoutine: req.CurrentRoutine,
 		}
 		err = templateMap["workout-completed-page.html"].ExecuteTemplate(w, "base", completed)
 		if err != nil {
@@ -81,14 +40,14 @@ func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPost:
-		nextRoutine := req.CurrentRoutine.GetNextRoutine()
-		err = persistWorkoutRoutine(r.Context(), userSession.UserId, nextRoutine)
+		var currentWorkoutRoutine RoutineType
+		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, ConnectionPool, userSession.UserId)
 		if err != nil {
-			err = fmt.Errorf("error, when persistWorkoutRoutine() for HandleWorkoutComplete(). Error: %v", err)
+			err = fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for HandleWorkoutComplete(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
-		userSession.WorkoutSession, err = createNewWorkout(r.Context(), userSession.UserId, nextRoutine)
+		userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId, currentWorkoutRoutine)
 		if err != nil {
 			err = fmt.Errorf("error, when createNewWorkout() for HandleWorkoutComplete(). Error: %v", err)
 			HandleUnexpectedError(w, err)
