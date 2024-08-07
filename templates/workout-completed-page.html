@@ -25,9 +25,6 @@
 	<form hx-post="/workoutComplete"
 		class="buttons">
 		{{template "button-content" .NewWorkout }}
-		<input name="currentWorkoutRoutine" 
-			   type="hidden" 
-			   value="{{.CurrentWorkoutRoutine}}"/>
 	</form>
 <div>
 {{end}}
