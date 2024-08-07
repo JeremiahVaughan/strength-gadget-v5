@@ -24,6 +24,7 @@ func validateNewWorkoutRequest(req *NewWorkoutRequest) error {
 }
 
 func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	userSession, err := FetchUserSession(r)
 	if err != nil {
 		err = fmt.Errorf("error, when FetchUserSession() for HandleWorkoutComplete(). Error: %v", err)
@@ -81,14 +82,14 @@ func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case http.MethodPost:
-		nextRoutine := req.CurrentRoutine.GetNextRoutine()
-		err = persistWorkoutRoutine(r.Context(), userSession.UserId, nextRoutine)
+		var currentWorkoutRoutine RoutineType
+		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, ConnectionPool, userSession.UserId)
 		if err != nil {
-			err = fmt.Errorf("error, when persistWorkoutRoutine() for HandleWorkoutComplete(). Error: %v", err)
+			err = fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for HandleWorkoutComplete(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
-		userSession.WorkoutSession, err = createNewWorkout(r.Context(), userSession.UserId, nextRoutine)
+		userSession.WorkoutSession, err = createNewWorkout(ctx, userSession.UserId, currentWorkoutRoutine)
 		if err != nil {
 			err = fmt.Errorf("error, when createNewWorkout() for HandleWorkoutComplete(). Error: %v", err)
 			HandleUnexpectedError(w, err)

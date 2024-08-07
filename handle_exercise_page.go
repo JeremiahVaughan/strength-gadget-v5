@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		var currentWorkoutRoutine RoutineType
 		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, ConnectionPool, userSession.UserId)
 		if err != nil {
-			err = fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for createNewWorkout(). Error: %v", err)
+			err = fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
 			return
 		}
@@ -151,22 +152,52 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if nextExercise.WorkoutCompleted {
-		if len(userSession.WorkoutSession.WorkoutMeasurements) != 0 {
-			emq, args := generateQueryForExerciseMeasurements(
-				userSession.WorkoutSession.WorkoutMeasurements,
-				userSession.UserId,
-			)
-			_, err = ConnectionPool.Exec(
-				ctx,
-				emq,
-				args...,
-			)
-			if err != nil {
-				err = fmt.Errorf("error, when persisting exercises measurements for HandleExercisePage(). Error: %v", err)
-				HandleUnexpectedError(w, err)
+		var wg sync.WaitGroup
+		errChan := make(chan error, 1)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var e error
+			if len(userSession.WorkoutSession.WorkoutMeasurements) != 0 {
+				emq, args := generateQueryForExerciseMeasurements(
+					userSession.WorkoutSession.WorkoutMeasurements,
+					userSession.UserId,
+				)
+				_, e = ConnectionPool.Exec(
+					ctx,
+					emq,
+					args...,
+				)
+				if e != nil {
+					errChan <- fmt.Errorf("error, when persisting exercises measurements for HandleExercisePage(). Error: %v", e)
+					return
+				}
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var e error
+			nextRoutine := userSession.WorkoutSession.CurrentWorkoutRoutine.GetNextRoutine()
+			e = persistWorkoutRoutine(r.Context(), userSession.UserId, nextRoutine)
+			if e != nil {
+				errChan <- fmt.Errorf("error, when persistWorkoutRoutine() for HandleWorkoutComplete(). Error: %v", e)
 				return
 			}
+		}()
+
+		go func() {
+			wg.Wait()
+			close(errChan)
+		}()
+
+		if errChanError := <-errChan; errChanError != nil {
+			HandleUnexpectedError(w, errChanError)
+			return
 		}
+
 		u := fmt.Sprintf("%s?currentWorkoutRoutine=%d", EndpointWorkoutComplete, userSession.WorkoutSession.CurrentWorkoutRoutine)
 		SmartRedirect(w, r, u)
 		return
