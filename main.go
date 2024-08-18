@@ -30,6 +30,7 @@ var about []byte
 //go:embed static/blog
 var blog []byte
 
+
 //go:embed templates/*
 var templatesFiles embed.FS
 
@@ -119,7 +120,7 @@ func serveAthletes(ctx context.Context) error {
 		EndpointPrivacy: ServePrivacyFile,
 		EndpointSiteMap: ServieSiteMapFile,
 		EndpointAbout:   ServieAboutFile,
-		EndpointBlog:    ServieBlogFile,
+		EndpointBlog:   ServieBlogFile,
 	}
 
 	for k, v := range staticEndpoints {
