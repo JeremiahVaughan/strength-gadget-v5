@@ -196,6 +196,7 @@ func registerTemplates() error {
 		"templates/base.html",
 		"templates/exercise-page.html",
 		"templates/components/button.html",
+		"templates/components/tool-bar.html",
 	)
 	if err != nil {
 		return fmt.Errorf("error, when attempting to parse html exercisePageParsed. Error: %v", err)
@@ -209,6 +210,7 @@ func registerTemplates() error {
 		"templates/workout-completed-page.html",
 		"templates/components/form-header.html",
 		"templates/components/button.html",
+		"templates/components/tool-bar.html",
 	)
 	if err != nil {
 		return fmt.Errorf("error, when attempting to parse html workoutCompletedParsed. Error: %v", err)

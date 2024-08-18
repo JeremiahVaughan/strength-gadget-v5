@@ -62,21 +62,6 @@
 		align-items: center;
 	}
 
-    .tool-bar {
-      display: flex;
-      background-color: black;
-      justify-content: end;
-      align-items: center;
-      height: 3rem;
-    }
-
-    .authenticate-button {
-      color: white;
-      font-weight: bold;
-      padding-right: 1rem;
-      cursor: pointer;
-    }
-
     .spacer {
       width: 1rem;
     }
@@ -198,19 +183,13 @@
 		scale: 3;
 	    color: #c2c2c2;
 	}
-	
 </style>
 {{template "button-styles" .}}
+{{template "tool-bar-styles"}}
 {{end}}
 
 {{define "content"}}
-<div class="tool-bar">
-  <div hx-trigger="click"
-       hx-post="/logout"
-       class="authenticate-button">
-    logout
-  </div>
-</div>
+{{template "tool-bar-content"}}
 <div class="gif">
     <iframe src="https://giphy.com/embed/{{ .Exercise.DemonstrationGiphyId }}"
             title="giphy-gif"

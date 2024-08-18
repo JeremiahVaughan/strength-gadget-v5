@@ -1,0 +1,27 @@
+{{define "tool-bar-styles"}}
+<style>
+    .tool-bar {
+      display: flex;
+      background-color: black;
+      justify-content: end;
+      align-items: center;
+      height: 3rem;
+    }
+    .tool-bar-authenticate-button {
+      color: white;
+      font-weight: bold;
+      padding-right: 1rem;
+      cursor: pointer;
+    }
+
+</style>
+{{end}}
+{{define "tool-bar-content"}}
+<div class="tool-bar">
+  <div hx-trigger="click"
+	   hx-post="/logout"
+	   class="tool-bar-authenticate-button">
+	logout
+  </div>
+</div>
+{{end}}

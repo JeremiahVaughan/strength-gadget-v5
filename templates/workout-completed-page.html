@@ -17,9 +17,11 @@
 </style>
 {{template "button-styles" .}}
 {{template "form-header-styles" .}}
+{{template "tool-bar-styles"}}
 {{end}}
 
 {{define "content"}}
+{{template "tool-bar-content"}}
 <div class="container">
 	<div class="header">{{template "form-header-content" "Workout Completed"}}<div>
 	<form hx-post="/workoutComplete"
