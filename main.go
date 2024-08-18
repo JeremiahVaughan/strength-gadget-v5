@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"io/fs"
 	"log"
 	"net/http"
 	"time"
@@ -13,8 +12,23 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-//go:embed static/*
-var staticFiles embed.FS
+//go:embed static/robots.txt
+var robotsTxt []byte
+
+//go:embed static/privacy
+var privacy []byte
+
+//go:embed static/terms
+var terms []byte
+
+//go:embed static/sitemap.xml
+var sitemap []byte
+
+//go:embed static/about
+var about []byte
+
+//go:embed static/blog
+var blog []byte
 
 //go:embed templates/*
 var templatesFiles embed.FS
@@ -99,16 +113,18 @@ func serveAthletes(ctx context.Context) error {
 		mux.Handle(k, CheckForActiveSession(v))
 	}
 
-	static, err := fs.Sub(staticFiles, "static")
-	if err != nil {
-		log.Fatalf("error, when attempting to create subdir from static files. Error: %v", err)
+	staticEndpoints := map[string]http.HandlerFunc{
+		EndpointRobots:  ServeRobotsFile,
+		EndpointTerms:   ServeTermsFile,
+		EndpointPrivacy: ServePrivacyFile,
+		EndpointSiteMap: ServieSiteMapFile,
+		EndpointAbout:   ServieAboutFile,
+		EndpointBlog:    ServieBlogFile,
 	}
 
-	fileSystem := http.FS(static)
-	fileServer := http.FileServer(fileSystem)
-	fileServerStripPrefix := http.StripPrefix("/static/", fileServer)
-	cachingAdded := setCacheControl(fileServerStripPrefix, 86400*7) // Cache for one week
-	mux.Handle("/static/", cachingAdded)
+	for k, v := range staticEndpoints {
+		mux.Handle(k, setCacheControl(v, 86400*7)) // Cache for one week
+	}
 
 	HttpServer.Handler = mux
 
@@ -119,4 +135,34 @@ func serveAthletes(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func ServeRobotsFile(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(robotsTxt)
+	HandleUnexpectedError(w, fmt.Errorf("error, when serving robots.txt file. Error: %v", err))
+}
+
+func ServeTermsFile(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(terms)
+	HandleUnexpectedError(w, fmt.Errorf("error, when serving terms file. Error: %v", err))
+}
+
+func ServePrivacyFile(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(privacy)
+	HandleUnexpectedError(w, fmt.Errorf("error, when serving privacy file. Error: %v", err))
+}
+
+func ServieSiteMapFile(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(sitemap)
+	HandleUnexpectedError(w, fmt.Errorf("error, when serving sitemap.xml file. Error: %v", err))
+}
+
+func ServieAboutFile(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(about)
+	HandleUnexpectedError(w, fmt.Errorf("error, when serving about file. Error: %v", err))
+}
+
+func ServieBlogFile(w http.ResponseWriter, r *http.Request) {
+	_, err := w.Write(blog)
+	HandleUnexpectedError(w, fmt.Errorf("error, when serving blog file. Error: %v", err))
 }

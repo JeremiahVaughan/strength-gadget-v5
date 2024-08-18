@@ -10,7 +10,7 @@ const (
 	EndpointVerification       = "/verification"
 	EndpointResendVerification = "/resendVerification"
 	EndpointExercise           = "/exercise"
-	EndpointWorkoutComplete = "/workoutComplete"
+	EndpointWorkoutComplete    = "/workoutComplete"
 
 	EndpointForgotPasswordPrefix = "/forgotPassword"
 	EndpointEmail                = EndpointForgotPasswordPrefix + "/email"
@@ -23,4 +23,11 @@ const (
 	EndpointSwapExercise                 = "/swapExercise"
 	EndpointRecordIncrementedWorkoutStep = "/recordIncrementedWorkoutStep"
 	EndpointRunIntegrationTests          = "runIntegrationTests"
+
+	EndpointRobots  = "/robots.txt"
+	EndpointTerms   = "/terms"
+	EndpointPrivacy = "/privacy"
+	EndpointSiteMap = "/sitemap.xml"
+	EndpointAbout   = "/about"
+	EndpointBlog    = "/blog"
 )
