@@ -79,8 +79,3 @@ Mtls, ratelimiting, and whitelisting would probably be a good start
 https://jeremiah.t.vaughan:akw7BDV1vft1nej*gyt@git.jetbrains.space/strengthgadget/strengthgadget/strength-gadget-v4.git
 
 
-[//]: # (todo setup proxy so I can encrypt traffic to the jenkins instance.)
-
-[//]: # (todo setup jenkins via script: http://localhost:8080/manage/cli/)
-
-
