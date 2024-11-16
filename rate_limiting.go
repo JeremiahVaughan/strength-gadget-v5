@@ -19,7 +19,8 @@ func IncrementRateLimitingCount(ctx context.Context, key string, windowLengthInS
 	if errors.Is(redka.ErrNotFound, err) {
 		newValue = "1"
 	} else {
-		parsedValue, err := strconv.Atoi(string(value))
+		var parsedValue int
+		parsedValue, err = strconv.Atoi(string(value))
 		if err != nil {
 			return fmt.Errorf("error, invalid rate limit value for IncrementRateLimitingCount(). Error: %v", err)
 		}
