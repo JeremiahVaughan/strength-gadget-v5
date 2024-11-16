@@ -61,20 +61,20 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authCookie, workoutCookie, err := startNewSession(r.Context(), user.Id)
+	authCookie, workoutCookie, err := startNewSession(user.Id)
 	if err != nil {
 		err = fmt.Errorf("error, when persisting session key upon login: %v", err)
 		HandleUnexpectedError(w, err)
 		return
 	}
 
-    // this cookie holds the auth session id use for authentication
+	// this cookie holds the auth session id use for authentication
 	http.SetCookie(w, authCookie)
 
-    // this cookie holds the userId so the workout session can be retrieved
+	// this cookie holds the userId so the workout session can be retrieved
 	http.SetCookie(w, workoutCookie)
 
-    redirectExercisePage(w, r, nil)
+	redirectExercisePage(w, r, nil)
 }
 
 func returnLoginForm(w http.ResponseWriter, fields *LoginFields) error {
