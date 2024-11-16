@@ -13,6 +13,8 @@ COPY . .
 #RUN CGO_ENABLED=0 GOOS=linux go build -o /app .
 RUN GOOS=linux go build -o app .
 
-FROM public.ecr.aws/docker/library/alpine:latest
+# having to use debian instead of alpine for the c libs that sqlite stuff requires
+#FROM public.ecr.aws/docker/library/alpine:latest
+FROM public.ecr.aws/docker/library/debian:bullseye-slim
 COPY --from=builder /workspace/app /app
 ENTRYPOINT ["/app"]
