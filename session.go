@@ -10,12 +10,10 @@ import (
 	"net/mail"
 	"strconv"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/nalgeon/redka"
 )
 
 func FetchUserSession(r *http.Request) (*UserSession, error) {
-	ctx := r.Context()
-
 	var result UserSession
 	authCookie, err := r.Cookie(string(AuthSessionKey))
 	if err != nil {
@@ -35,38 +33,26 @@ func FetchUserSession(r *http.Request) (*UserSession, error) {
 		return nil, fmt.Errorf("error, when parsing workout session cookie. Error: %v", err)
 	}
 
-	rpl := RedisConnectionPool.Pipeline()
-
 	// Prepare the pipeline commands
-	authGet := rpl.Get(ctx, authCookie.Value)
-	workoutGet := rpl.Get(ctx, string(workoutCookie.Value))
-
-	// Execute the pipeline
-	_, err = rpl.Exec(ctx)
-	if err != nil && !errors.Is(err, redis.Nil) {
-		return nil, fmt.Errorf("error, when executing Redis pipeline: %v", err)
-	}
-
-	err = authGet.Err()
+	_, err = RedisConnectionPool.Str().Get(authCookie.Value)
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
+		if errors.Is(err, redka.ErrNotFound) {
 			// Missing session id means the session has expired
 			result.Authenticated = false
 			return &result, nil
 		}
-		return nil, fmt.Errorf("error, redis call failed when fetching user id from session. Error: %v", err)
+		return nil, fmt.Errorf("error, redis call failed when fetching user id from session for FetchUserSession(). Error: %v", err)
 	}
 	result.Authenticated = true
 
-	var workoutSession string
-	workoutSession, err = workoutGet.Result()
-	result.WorkoutSessionExists = !errors.Is(err, redis.Nil)
+	workoutGet, err := RedisConnectionPool.Str().Get(workoutCookie.Value)
+	result.WorkoutSessionExists = !errors.Is(err, redka.ErrNotFound)
 	if err != nil && result.WorkoutSessionExists {
-		return nil, fmt.Errorf("error, when fetching workoutSession from redis. Error: %v", err)
+		return nil, fmt.Errorf("error, when fetching workout session for FetchUserSession(). Error: %v", err)
 	}
 
 	if result.WorkoutSessionExists {
-		err = json.Unmarshal([]byte(workoutSession), &result.WorkoutSession)
+		err = json.Unmarshal(workoutGet, &result.WorkoutSession)
 		if err != nil {
 			return nil, fmt.Errorf("error, when unmarshalling workout session. Error: %v", err)
 		}

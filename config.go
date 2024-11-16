@@ -18,11 +18,12 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/redis/go-redis/v9"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/nalgeon/redka"
 )
 
 var (
-	DefaultExerciseTimeOptions = generateDefaultTimeOptions()
+	DefaultExerciseTimeOptions   = generateDefaultTimeOptions()
 	DefaultExerciseWeightOptions = generateDefaultWeightOptions()
 
 	Environment string
@@ -63,7 +64,7 @@ var (
 
 	Version             string
 	ConnectionPool      *pgxpool.Pool
-	RedisConnectionPool *redis.Client
+	RedisConnectionPool *redka.DB
 
 	HttpServer *http.Server
 
@@ -87,7 +88,6 @@ func generateDefaultWeightOptions() MeasurementOptions {
 	weightInterval := 5
 	return generateWeightOptions(weightInterval, weightSelectionCap)
 }
-
 
 func init() {
 	var err error
@@ -216,11 +216,6 @@ func InitConfig(ctx context.Context) error {
 	RedisConnectionPool, err = connectToRedisDatabase()
 	if err != nil {
 		return fmt.Errorf("error, when connectToRedisDatabase() for InitConfig(). Error: %v", err)
-	}
-
-	_, err = RedisConnectionPool.Ping(ctx).Result()
-	if err != nil {
-		return fmt.Errorf("error, when attempting to ping the redis database after establishing the initial pooling connection: %v", err)
 	}
 
 	ConnectionPool, err = connectToDatabase(ctx, databaseConnectionString, databaseRootCa)
@@ -353,12 +348,8 @@ func initHttpServer() (*http.Server, error) {
 	return server, nil
 }
 
-func connectToRedisDatabase() (*redis.Client, error) {
-	options := redis.Options{
-		Addr: "keydb:6379",
-		DB:   0, // use default DB
-	}
-	return redis.NewClient(&options), nil
+func connectToRedisDatabase() (*redka.DB, error) {
+	return redka.Open("/session_data/redis.db", nil)
 }
 
 func connectToDatabase(ctx context.Context, connectionString, databaseRootCa string) (*pgxpool.Pool, error) {

@@ -2,8 +2,6 @@ services:
   app:
     image: "piegarden/strengthgadget:${CIRCLE_WORKFLOW_ID}"
     container_name: "${TF_VAR_environment}"
-    depends_on:
-      - keydb
     environment:
       TF_VAR_allowed_login_attempts_before_triggering_lockout: "${TF_VAR_allowed_login_attempts_before_triggering_lockout}"
       TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window: "${TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window}"
@@ -27,14 +25,8 @@ services:
     networks:
       - default
       - shared
-  keydb: 
-    image: "eqalpha/keydb"
     volumes:
-      - "./keydb.conf:/etc/keydb/keydb.conf"
-      - "./session_data:/data"
-    restart: always
-    networks:
-      - default
+      - "./session_data:/session_data"
 
 networks:
   default:

@@ -19,7 +19,6 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-
 type AccessAttemptType int
 
 const (
@@ -60,20 +59,20 @@ type WorkoutSession struct {
 	// CurrentOffsets are determined during exercise selection
 	CurrentOffsets DailyWorkoutOffsets `json:"currentOffsets"`
 
-	// Sharing the same data structure as ChoosenExercisesMap, but unlike 
+	// Sharing the same data structure as ChoosenExercisesMap, but unlike
 	// choosen exercises where the source of truth is CurrentOffsets, the
 	// value of this map representing measurements are persisted in the session.
 	WorkoutMeasurements ChoosenExercisesMap `json:"workoutMeasurements"`
 }
 
-func (w *WorkoutSession) saveToRedis(ctx context.Context, userId int64) error {
+func (w *WorkoutSession) saveToRedis(userId int64) error {
 	bytes, err := json.Marshal(w)
 	if err != nil {
 		return fmt.Errorf("error, when marshalling the new workout session to json. Error: %v", err)
 	}
 
 	key := strconv.FormatInt(userId, 10)
-	err = RedisConnectionPool.Set(ctx, key, string(bytes), WorkoutSessionExpiration).Err()
+	err = RedisConnectionPool.Str().SetExpires(key, string(bytes), WorkoutSessionExpiration)
 	if err != nil {
 		return fmt.Errorf("error, when attempting to persist the users workout session in redis. Error: %v", err)
 	}
@@ -174,7 +173,7 @@ func HandleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout(ctx context.Context, w http.ResponseWriter, sessionKey string) error {
-	err := RedisConnectionPool.Del(ctx, sessionKey).Err()
+	_, err := RedisConnectionPool.Key().Delete(sessionKey)
 	if err != nil {
 		return fmt.Errorf("unable to delete session. Error: %v", err)
 	}
@@ -199,7 +198,7 @@ func startNewSession(ctx context.Context, userId int64) (*http.Cookie, *http.Coo
 	authSessionLength := hoursInOneWeekPlusTwelve
 	authSessionKey := GenerateSessionKey()
 	// purposely using a string as the storage type for sessions because expiring the hash is done in a separate command. If the expiry command were to fail, then this would mean an immortal session was just created.
-	err := RedisConnectionPool.Set(ctx, authSessionKey, userId, authSessionLength).Err()
+	err := RedisConnectionPool.Str().SetExpires(authSessionKey, userId, authSessionLength)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error, when persisting the session when startNewSession(). Error: %v", err)
 	}
