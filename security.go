@@ -189,7 +189,7 @@ func logout(ctx context.Context, w http.ResponseWriter, sessionKey string) error
 
 // todo add if this account exists, you will get an email
 
-func startNewSession(ctx context.Context, userId int64) (*http.Cookie, *http.Cookie, error) {
+func startNewSession(userId int64) (*http.Cookie, *http.Cookie, error) {
 	// The extra twelve hours is to ensure the user isn't being prompted to, login will in the middle of using the app.
 	// For example without the extra twelve hours, if they were to log in to use the app at 0930 am on sunday, then
 	// started using the app immediately. The following week they would be logged off at 0930. This means the user is likely
@@ -198,7 +198,7 @@ func startNewSession(ctx context.Context, userId int64) (*http.Cookie, *http.Coo
 	authSessionLength := hoursInOneWeekPlusTwelve
 	authSessionKey := GenerateSessionKey()
 	// purposely using a string as the storage type for sessions because expiring the hash is done in a separate command. If the expiry command were to fail, then this would mean an immortal session was just created.
-	err := RedisConnectionPool.Str().SetExpires(authSessionKey, userId, authSessionLength)
+	err := RedisConnectionPool.Str().SetExpires(authSessionKey, strconv.FormatInt(userId, 10), authSessionLength)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error, when persisting the session when startNewSession(). Error: %v", err)
 	}

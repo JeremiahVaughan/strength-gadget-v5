@@ -71,7 +71,7 @@ func HandleForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authCookie, workoutCookie, err := startNewSession(r.Context(), user.Id)
+	authCookie, workoutCookie, err := startNewSession(user.Id)
 	if err != nil {
 		err = fmt.Errorf("error, when persisting session key upon login: %v", err)
 		HandleUnexpectedError(w, err)
@@ -80,7 +80,7 @@ func HandleForgotPasswordNewPassword(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, authCookie)
 	http.SetCookie(w, workoutCookie)
 
-    redirectExercisePage(w, r, nil)
+	redirectExercisePage(w, r, nil)
 }
 
 func returnForgotPasswordNewPasswordForm(w http.ResponseWriter, fields *ForgotPasswordFields) error {
