@@ -14,7 +14,8 @@ COPY . .
 RUN GOOS=linux go build -o app .
 
 # having to use debian instead of alpine for the c libs that sqlite stuff requires
-#FROM public.ecr.aws/docker/library/alpine:latest
-FROM public.ecr.aws/docker/library/debian:bullseye-slim
+#FROM public.ecr.aws/docker/library/debian:bullseye-slim
+FROM public.ecr.aws/docker/library/alpine:latest
+RUN apk add --no-cache libc6-compat
 COPY --from=builder /workspace/app /app
 ENTRYPOINT ["/app"]
