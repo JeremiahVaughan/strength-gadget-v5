@@ -18,8 +18,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/nalgeon/redka"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
 var (
