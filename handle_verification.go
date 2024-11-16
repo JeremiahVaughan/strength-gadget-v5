@@ -98,7 +98,7 @@ func HandleVerification(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	authCookie, workoutCookie, err := startNewSession(r.Context(), user.Id)
+	authCookie, workoutCookie, err := startNewSession(user.Id)
 	if err != nil {
 		err = fmt.Errorf("error, when persisting session key upon verification completion: %v", err)
 		HandleUnexpectedError(w, err)

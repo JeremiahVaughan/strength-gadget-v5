@@ -144,7 +144,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = userSession.WorkoutSession.saveToRedis(ctx, userSession.UserId)
+	err = userSession.WorkoutSession.saveToRedis(userSession.UserId)
 	if err != nil {
 		err = fmt.Errorf("error, when WorkoutSession.saveToRedis() for HandleExercisePage(). Error: %v", err)
 		HandleUnexpectedError(w, err)
@@ -245,7 +245,7 @@ func createNewWorkout(ctx context.Context, userId int64, currentWorkoutRoutine R
 
 	newWorkout.CurrentOffsets = generateStartingOffsets(newWorkout.RandomizedIndices.MainMuscleGroups)
 
-	err = newWorkout.saveToRedis(ctx, userId)
+	err = newWorkout.saveToRedis(userId)
 	if err != nil {
 		return WorkoutSession{}, fmt.Errorf("error, when WorkoutSession.saveToRedis() for createNewWorkout(). Error: %v", err)
 	}

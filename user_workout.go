@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
 type UserWorkoutDto struct {
@@ -51,71 +49,6 @@ const (
 	UserExerciseUserDataKey     = "userExerciseUserData"
 )
 
-func (use *UserWorkout) ToRedis(ctx context.Context, userId int64, client *redis.Client, exp time.Duration) (err error) {
-	// initialize pipeline
-	pipe := client.Pipeline()
-
-	// marshal CurrentStepPointer and WorkoutRoutine into JSON and store as a Redis string
-	// storing the progress index in a separate redis key, so it can be updated individually
-	temp := use.ProgressIndex
-	use.ProgressIndex = nil
-	userWorkout, err := json.Marshal(use)
-	if err != nil {
-		return fmt.Errorf("error, when marshalling user workout for redis. Error: %v", err)
-	}
-	use.ProgressIndex = temp
-	pipe.Set(ctx, GetUserKey(userId, userWorkoutKey), userWorkout, exp)
-
-	serializedProgressIndex, err := json.Marshal(use.ProgressIndex)
-	if err != nil {
-		return fmt.Errorf("error, when marshalling user workout progress index for redis. Error: %v", err)
-	}
-	pipe.Set(ctx, GetUserKey(userId, WorkoutProgressIndexKey), serializedProgressIndex, exp)
-
-	// store SlottedWarmupExercises in a sorted set
-	key := GetUserKey(userId, slottedWarmupExercisesKey)
-	for i, exerciseIndex := range use.SlottedWarmupExercises {
-		member := serializeUniqueMember(i, exerciseIndex)
-		pipe.ZAdd(ctx, key, redis.Z{Score: float64(i), Member: member})
-	}
-	pipe.Expire(ctx, key, exp)
-
-	// store SlottedMainExercises in a sorted set
-	key = GetUserKey(userId, slottedMainExercisesKey)
-	for i, exerciseIndex := range use.SlottedMainExercises {
-		member := serializeUniqueMember(i, exerciseIndex)
-		pipe.ZAdd(ctx, key, redis.Z{Score: float64(i), Member: member})
-	}
-	pipe.Expire(ctx, key, exp)
-
-	// store SlottedCoolDownExercises in a sorted set
-	key = GetUserKey(userId, slottedCoolDownExercisesKey)
-	for i, exerciseIndex := range use.SlottedCoolDownExercises {
-		member := serializeUniqueMember(i, exerciseIndex)
-		pipe.ZAdd(ctx, key, redis.Z{Score: float64(i), Member: member})
-	}
-	pipe.Expire(ctx, key, exp)
-
-	// UserExerciseDataMap and Daily Workout Slot Index stored as a Redis Hash
-	key = GetUserKey(userId, UserExerciseUserDataKey)
-	for hKey, hVal := range use.UserExerciseDataMap {
-		var bytes []byte
-		bytes, err = json.Marshal(hVal)
-		if err != nil {
-			return fmt.Errorf("error, when marshalling user exercise data for redis. Error: %v", err)
-		}
-		pipe.HSet(ctx, key, hKey, bytes)
-	}
-	pipe.Expire(ctx, key, exp)
-
-	// execute the commands in the pipeline
-	_, err = pipe.Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("error, when executing exec for ToRedis(). Error: %v", err)
-	}
-
-	return nil
-}
 
 func serializeUniqueMember(score int, exerciseIndex uint16) string {
 	return strconv.Itoa(score) + ":" + strconv.Itoa(int(exerciseIndex))
@@ -347,130 +280,3 @@ func fetchExerciseMeasurement(
 	}
 	return exerciseMeasurement, nil
 }
-
-// func SwapExercise(
-// 	ctx context.Context,
-// 	redisDb *redis.Client,
-// 	db *pgxpool.Pool,
-// 	exerciseId string,
-// 	workoutId string,
-// 	numberOfSetsInSuperSet int,
-// 	numberOfExerciseInSuperset int,
-// 	exp int,
-// ) (*UserWorkoutDto, error) {
-// 	var us UserService
-// 	user, err := us.FetchFromContext(ctx)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, could not userservice.fetchfromcontext() for swapexercise(). error: %v", err)
-// 	}
-
-// 	userWorkout := UserWorkout{}
-// 	err = userWorkout.FromRedis(ctx, user.Id, redisDb)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when fetching user workout from redis for swapping exercise. Error: %v", err)
-// 	}
-
-// 	if !userWorkout.Exists || userWorkout.WorkoutId != workoutId {
-// 		return nil, fmt.Errorf("error, user %s attempted to fetch an user workout that expired for SwapExercise()", user.Id)
-// 	}
-
-// 	dailyWorkout := AvailableWorkoutExercises{}
-// 	err = dailyWorkout.FromRedis(
-// 		ctx,
-// 		redisDb,
-// 		getDailyWorkoutHashKey(userWorkout.WorkoutRoutine),
-// 		userWorkout.Weekday,
-// 	)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when fetching the daily workout from redis for swapping an exercise. Error: %v", err)
-// 	}
-
-// 	// we are using the progress index passed directly from the client to avoid a race condition where the server side
-// 	// might not have been updated yet
-// 	exerciseUserData, ok := userWorkout.UserExerciseDataMap[exerciseId]
-// 	if !ok {
-// 		return nil, fmt.Errorf("error, expected exercise data to exist for exercise id %s but it did not", exerciseId)
-// 	}
-// 	workoutPhase := exerciseUserData.DailyWorkoutSlotPhase
-// 	dailyWorkoutSlotIndex := exerciseUserData.DailyWorkoutSlotIndex
-// 	var oldExercise Exercise
-// 	var newExercise Exercise
-// 	var currentExerciseIndex uint16
-// 	var nextExerciseIndex uint16
-// 	var exercisePool []Exercise
-// 	var key string
-// 	switch workoutPhase {
-// 	case DailyWorkoutSlotPhaseWarmup:
-// 		exercisePool = dailyWorkout.CardioExercises
-// 		currentExerciseIndex = userWorkout.SlottedWarmupExercises[dailyWorkoutSlotIndex]
-// 		key = GetUserKey(user.Id, slottedWarmupExercisesKey)
-// 	case DailyWorkoutSlotPhaseMainFocused:
-// 		exercisePool = dailyWorkout.MainExercises[dailyWorkoutSlotIndex]
-// 		currentExerciseIndex = userWorkout.SlottedMainExercises[dailyWorkoutSlotIndex]
-// 		key = GetUserKey(user.Id, slottedMainExercisesKey)
-// 	case DailyWorkoutSlotPhaseMainFiller:
-// 		exercisePool = dailyWorkout.AllMainExercises
-// 		currentExerciseIndex = userWorkout.SlottedMainExercises[dailyWorkoutSlotIndex]
-// 		key = GetUserKey(user.Id, slottedMainExercisesKey)
-// 	case DailyWorkoutSlotPhaseCoolDown:
-// 		exercisePool = dailyWorkout.CoolDownExercises[dailyWorkoutSlotIndex]
-// 		currentExerciseIndex = userWorkout.SlottedCoolDownExercises[dailyWorkoutSlotIndex]
-// 		key = GetUserKey(user.Id, slottedCoolDownExercisesKey)
-// 	default:
-// 		return nil, fmt.Errorf("error, unexpected daily workout slot phase provided: %d", workoutPhase)
-// 	}
-// 	nextExerciseIndex, err = getNextAvailableExercise(
-// 		currentExerciseIndex,
-// 		exercisePool,
-// 		userWorkout.UserExerciseDataMap,
-// 		dailyWorkoutSlotIndex,
-// 		workoutPhase,
-// 	)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when getNextAvailableExercise() for SwapExercise(). Error: %v", err)
-// 	}
-
-// 	oldExercise = exercisePool[currentExerciseIndex]
-// 	newExercise = exercisePool[nextExerciseIndex]
-
-// 	if newExercise.Id != oldExercise.Id { // edge case that can happen if we don't have enough exercises in a particular pool
-// 		var newMeasurement int
-// 		newMeasurement, err = fetchExerciseMeasurement(ctx, db, user.Id, newExercise.Id)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when fetching the next exercise newMeasurement for SwapExercise(). Error: %v", err)
-// 		}
-// 		exerciseUserData.Measurement = newMeasurement
-// 		err = userWorkout.ToRedisUpdateExerciseSwap(
-// 			ctx,
-// 			user.Id,
-// 			redisDb,
-// 			dailyWorkoutSlotIndex,
-// 			currentExerciseIndex,
-// 			nextExerciseIndex,
-// 			oldExercise.Id,
-// 			newExercise.Id,
-// 			exerciseUserData,
-// 			key,
-// 			exp,
-// 		)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("error, when attempting to save swapped exercise to redis. Error: %v", err)
-// 		}
-// 	}
-
-// 	var updatedUserWorkout UserWorkout
-// 	err = updatedUserWorkout.FromRedis(ctx, user.Id, redisDb)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("error, when fetching updatedUserWorkout from redis for swapping exercise for returning results to UI. Error: %v", err)
-// 	}
-
-// 	userWorkoutDto := UserWorkoutDto{}
-// 	userWorkoutDto.Fill(
-// 		updatedUserWorkout,
-// 		dailyWorkout,
-// 		numberOfSetsInSuperSet,
-// 		numberOfExerciseInSuperset,
-// 	)
-
-// 	return &userWorkoutDto, nil
-// }

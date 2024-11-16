@@ -4,51 +4,52 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/redis/go-redis/v9"
+	"github.com/nalgeon/redka"
 	"strconv"
 	"time"
 )
 
 func IncrementRateLimitingCount(ctx context.Context, key string, windowLengthInSecondsForTheNumberOfAllowedAttemptsBeforeLockout int) error {
-
-	// The count check has to come from outside the transaction otherwise it always returns 0 for some reason.
-	countExists, err := RedisConnectionPool.Exists(ctx, key).Result()
-	if err != nil {
+	// we are not using redis increment because we don't want to risk the required subsequent expiration call failing and creating an immortal session
+	value, err := RedisConnectionPool.Str().Get(key)
+	if err != nil && !errors.Is(redka.ErrNotFound, err) {
 		return fmt.Errorf("error, when getting current rate limit: %v", err)
 	}
-
-	// Must use a transaction to address the edge case where the current count is set to 1 and the expiration call fails. This would cause the user to have a counter that never expires.
-	pipe := RedisConnectionPool.TxPipeline()
-	err = pipe.Incr(ctx, key).Err()
-	if err != nil {
-		return fmt.Errorf("error, when incrementing rate limit: %v", err)
-	}
-	if countExists == 0 {
-		err = pipe.Expire(ctx, key, time.Duration(windowLengthInSecondsForTheNumberOfAllowedAttemptsBeforeLockout)*time.Second).Err()
+	var newValue string
+	if errors.Is(redka.ErrNotFound, err) {
+		newValue = "1"
+	} else {
+		var parsedValue int
+		parsedValue, err = strconv.Atoi(string(value))
 		if err != nil {
-			return fmt.Errorf("error, when expiring increment key for rate limit: %v", err)
+			return fmt.Errorf("error, invalid rate limit value for IncrementRateLimitingCount(). Error: %v", err)
 		}
+		parsedValue++
+		newValue = strconv.Itoa(parsedValue)
 	}
-
-	_, err = pipe.Exec(ctx)
+	err = RedisConnectionPool.Str().SetExpires(
+		key,
+		newValue,
+		time.Duration(windowLengthInSecondsForTheNumberOfAllowedAttemptsBeforeLockout)*time.Second,
+	)
 	if err != nil {
-		return fmt.Errorf("error, when executing redis transaction: %v", err)
+		return fmt.Errorf("error, when setting expiration time for IncrementRateLimitingCount(). Error: %v", err)
 	}
 	return nil
 }
 
 func HasRateLimitBeenReached(ctx context.Context, key string, attemptLimit int) (bool, error) {
-	result, err := RedisConnectionPool.Get(ctx, key).Result()
+	result, err := RedisConnectionPool.Str().Get(key)
 	switch {
 	// todo replace other places in this app where we are doing a separate call to test if the key exists. This pattern seen here is desired since its one call.
-	case errors.Is(err, redis.Nil):
+	case errors.Is(err, redka.ErrNotFound):
 		// The key does not exist
 		return false, nil
 	case err != nil:
 		return true, fmt.Errorf("error, when attempting to get key from redis. Error: %v", err)
 	default:
 		var parsedResult int
-		parsedResult, err = strconv.Atoi(result)
+		parsedResult, err = strconv.Atoi(string(result))
 		if err != nil {
 			return true, fmt.Errorf("error, when attempting to parse result from redis. Error: %v", err)
 		}
