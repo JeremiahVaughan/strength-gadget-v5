@@ -380,6 +380,7 @@ var AllExercises []Exercise = []Exercise{
 		ExerciseType:         ExerciseTypeCalisthenics,
 		MuscleGroups: []MuscleGroup{
 			MuscleGroupGlutes,
+			MuscleGroupHamstrings,
 		},
 	},
 	{
