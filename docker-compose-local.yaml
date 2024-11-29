@@ -3,10 +3,9 @@ services:
     image: "public.ecr.aws/docker/library/alpine:3.20.1"
     container_name: "local"
     entrypoint: ["/app"]
-    depends_on:
-      - keydb
     volumes:
       - "./app:/app"
+      - "./session_data:/session_data"
     environment:
       TF_VAR_allowed_login_attempts_before_triggering_lockout: "${TF_VAR_allowed_login_attempts_before_triggering_lockout}"
       TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window: "${TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window}"
@@ -30,14 +29,6 @@ services:
     networks:
       - default
       - shared
-  keydb: 
-    image: "eqalpha/keydb"
-    volumes:
-      - "./keydb.conf:/etc/keydb/keydb.conf"
-      - "./session_data:/data"
-    restart: always
-    networks:
-      - default
 
 networks:
   default:
