@@ -58,7 +58,7 @@ func main() {
 		Environment: Environment,
 	})
 	if err != nil {
-		log.Fatalf("error, sentry.Init(): %s", err)
+		log.Fatalf("error, sentry.Init(). Error: %v", err)
 	}
 
 	sentry.CaptureMessage(fmt.Sprintf("Strengthgadget backend has started in the %s environment", Environment))
