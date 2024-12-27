@@ -30,7 +30,6 @@ var about []byte
 //go:embed static/blog
 var blog []byte
 
-
 //go:embed templates/*
 var templatesFiles embed.FS
 
@@ -120,7 +119,7 @@ func serveAthletes(ctx context.Context) error {
 		EndpointPrivacy: ServePrivacyFile,
 		EndpointSiteMap: ServieSiteMapFile,
 		EndpointAbout:   ServieAboutFile,
-		EndpointBlog:   ServieBlogFile,
+		EndpointBlog:    ServieBlogFile,
 	}
 
 	for k, v := range staticEndpoints {
@@ -140,30 +139,42 @@ func serveAthletes(ctx context.Context) error {
 
 func ServeRobotsFile(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(robotsTxt)
-	HandleUnexpectedError(w, fmt.Errorf("error, when serving robots.txt file. Error: %v", err))
+	if err != nil {
+		HandleUnexpectedError(w, fmt.Errorf("error, when serving robots.txt file. Error: %v", err))
+	}
 }
 
 func ServeTermsFile(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(terms)
-	HandleUnexpectedError(w, fmt.Errorf("error, when serving terms file. Error: %v", err))
+	if err != nil {
+		HandleUnexpectedError(w, fmt.Errorf("error, when serving terms file. Error: %v", err))
+	}
 }
 
 func ServePrivacyFile(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(privacy)
-	HandleUnexpectedError(w, fmt.Errorf("error, when serving privacy file. Error: %v", err))
+	if err != nil {
+		HandleUnexpectedError(w, fmt.Errorf("error, when serving privacy file. Error: %v", err))
+	}
 }
 
 func ServieSiteMapFile(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(sitemap)
-	HandleUnexpectedError(w, fmt.Errorf("error, when serving sitemap.xml file. Error: %v", err))
+	if err != nil {
+		HandleUnexpectedError(w, fmt.Errorf("error, when serving sitemap.xml file. Error: %v", err))
+	}
 }
 
 func ServieAboutFile(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(about)
-	HandleUnexpectedError(w, fmt.Errorf("error, when serving about file. Error: %v", err))
+	if err != nil {
+		HandleUnexpectedError(w, fmt.Errorf("error, when serving about file. Error: %v", err))
+	}
 }
 
 func ServieBlogFile(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write(blog)
-	HandleUnexpectedError(w, fmt.Errorf("error, when serving blog file. Error: %v", err))
+	if err != nil {
+		HandleUnexpectedError(w, fmt.Errorf("error, when serving blog file. Error: %v", err))
+	}
 }
