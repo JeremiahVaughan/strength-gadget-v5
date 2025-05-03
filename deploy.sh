@@ -1,7 +1,24 @@
 #!/bin/bash
-echo "$TF_VAR_docker_token" | docker login -u "$TF_VAR_docker_user" --password-stdin
-docker buildx create --use
-docker buildx build --platform linux/arm64 --push \
-  -t "$TF_VAR_docker_user/strengthgadget:$CIRCLE_WORKFLOW_ID" \
-  -t "$TF_VAR_docker_user/strengthgadget:latest" \
-  .
+set -e
+
+export APP=strengthgadget
+FILES=("./deploy/" "./templates" "./database")
+
+DEST=$1
+DEPLOY_PATH="${HOME}/deploy/${APP}"
+if [ "$DEST" = "remote" ]; then            
+    GOOS=linux GOARCH=arm64 go build -o "./deploy/${APP}"
+    REMOTE_HOST="deploy.target"                                                     
+    REMOTE_PATH="${REMOTE_HOST}:${DEPLOY_PATH}"                     
+    rsync -avz --delete -e ssh "${FILES[@]}" "$REMOTE_PATH"          
+    ssh "${REMOTE_HOST}" "APP=${APP} ${DEPLOY_PATH}/remote-deploy.sh"
+else                                                                  
+    GOOS=linux GOARCH=amd64 go build -o "./deploy/${APP}"
+    LOCAL_PATH="${DEPLOY_PATH}"                               
+    rsync -avz --delete "${FILES[@]}" "$LOCAL_PATH"
+    "${DEPLOY_PATH}/remote-deploy.sh"
+fi                                                                    
+
+
+
+

@@ -1,0 +1,13 @@
+[Unit]
+Description=Best workout app ever
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/piegarden/deploy/strengthgadget/strengthgadget
+
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target
