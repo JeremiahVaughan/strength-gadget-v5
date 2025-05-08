@@ -2,22 +2,16 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/base64"
+    "database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
-	"os"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/nalgeon/redka"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
@@ -64,7 +58,7 @@ var (
 	DomainName string
 
 	Version             string
-	ConnectionPool      *pgxpool.Pool
+	ConnectionPool      *sql.DB
 	RedisConnectionPool *redka.DB
 
 	HttpServer *http.Server
@@ -77,6 +71,30 @@ var (
 
 	DebugMode string
 )
+
+type Config struct {
+    Database Database `json:"database"`
+}
+
+type Database struct {
+    DataDirectory string `json:"dataDirectory"`
+    MigrationDirectory string `json:"migrationDirectory"`
+}
+
+func NewConfig(ctx context.Context) (Config, error) {
+    bytes, err := fetchConfigFromS3(ctx, "strengthgadget")
+    if err != nil {
+        return Config{}, fmt.Errorf("error, when fetching config file. Error: %v", err)
+    }
+
+    var c Config
+    err = json.Unmarshal(bytes, &c)
+    if err != nil {
+        return Config{}, fmt.Errorf("error, when decoding config file. Error: %v", err)
+    }
+
+    return c, nil
+}
 
 func generateDefaultTimeOptions() MeasurementOptions {
 	timeSelectionCap := 1200
@@ -117,123 +135,28 @@ func generateMuscleGroupMap() map[int]MuscleGroup {
 	return result
 }
 
-func InitConfig(ctx context.Context) error {
+
+
+
+func InitConfig(ctx context.Context) (Config, error) {
 	var err error
-	var errorMsgs []string
 
-	// DebugMode a value of "true" will turn it on
-	DebugMode = os.Getenv("DEBUG_MODE")
-
-	Environment = os.Getenv("TF_VAR_environment")
-	if Environment == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_environment")
-	}
-
-	s := os.Getenv("TF_VAR_allowed_verification_resend_code_attempts_within_one_hour")
-	AllowedVerificationResendCodeAttemptsWithinOneHour, err = strconv.Atoi(s)
-	if err != nil {
-		return fmt.Errorf("error, ensure the env var TF_VAR_allowed_verification_resend_code_attempts_within_one_hour has a value and is a number")
-	}
-
-	SentryEndpoint = os.Getenv("TF_VAR_sentry_end_point")
-	if SentryEndpoint == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_sentry_end_point")
-	}
-
-	RegistrationEmailFrom = os.Getenv("TF_VAR_registration_email_from")
-	if RegistrationEmailFrom == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_registration_email_from")
-	}
-	RegistrationEmailFromPassword = os.Getenv("TF_VAR_registration_email_from_password")
-	if RegistrationEmailFromPassword == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_registration_email_from_password")
-	}
-	DomainName = os.Getenv("TF_VAR_domain_name")
-	if DomainName == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_domain_name")
-	}
-	databaseConnectionString := os.Getenv("TF_VAR_database_connection_string")
-	if databaseConnectionString == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_database_connection_string")
-	}
-	Version = os.Getenv("TF_VAR_version")
-	if Version == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_version")
-	}
-	databaseRootCa := os.Getenv("TF_VAR_database_root_ca")
-	if databaseRootCa == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_database_root_ca")
-	}
-	EmailRootCa = os.Getenv("TF_VAR_email_root_ca")
-	if EmailRootCa == "" {
-		errorMsgs = append(errorMsgs, "TF_VAR_email_root_ca")
-	}
-
-	toParse := os.Getenv("TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds")
-	VerificationExcessiveRetryAttemptLockoutDurationInSeconds, err = strconv.Atoi(toParse)
-	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "TF_VAR_verification_excessive_retry_attempt_lockout_duration_in_seconds")
-	}
-
-	toParse = os.Getenv("TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window")
-	AllowedVerificationAttemptsWithTheExcessiveRetryLockoutWindow, err = strconv.Atoi(toParse)
-	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "TF_VAR_allowed_verification_attempts_with_the_excessive_retry_lockout_window")
-	}
-
-	toParse = os.Getenv("TF_VAR_window_length_in_seconds_for_the_number_of_allowed_verification_emails_before_lockout")
-	WindowLengthInSecondsForTheNumberOfAllowedVerificationEmailsBeforeLockout, err = strconv.Atoi(toParse)
-	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "TF_VAR_window_length_in_seconds_for_the_number_of_allowed_verification_emails_before_lockout")
-	}
-
-	toParse = os.Getenv("TF_VAR_window_length_in_seconds_for_the_number_of_allowed_login_attempts_before_lockout")
-	WindowLengthInSecondsForTheNumberOfAllowedLoginAttemptsBeforeLockout, err = strconv.Atoi(toParse)
-	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "TF_VAR_window_length_in_seconds_for_the_number_of_allowed_login_attempts_before_lockout")
-	}
-
-	toParse = os.Getenv("TF_VAR_allowed_login_attempts_before_triggering_lockout")
-	AllowedLoginAttemptsBeforeTriggeringLockout, err = strconv.Atoi(toParse)
-	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "TF_VAR_allowed_login_attempts_before_triggering_lockout")
-	}
-
-	toParse = os.Getenv("TF_VAR_verification_code_validity_window_in_min")
-	VerificationCodeValidityWindowInMin, err = strconv.Atoi(toParse)
-	if toParse == "" || err != nil {
-		errorMsgs = append(errorMsgs, "TF_VAR_verification_code_validity_window_in_min")
-	}
-
-	if len(errorMsgs) != 0 {
-		return fmt.Errorf("error, missing env vars. Vars: %s", strings.Join(errorMsgs, ", "))
-	}
+    config, err := NewConfig(ctx)
+    if err != nil {
+        return Config{}, fmt.Errorf("error, when creating new config. Error: %v", err)
+    }
 
 	AllowedIpRanges, err = initAllowedIpRanges()
 	if err != nil {
-		return fmt.Errorf("error, when initAllowedIpRanges() for InitConfig(). Error: %v", err)
+        return Config{}, fmt.Errorf("error, when initAllowedIpRanges() for InitConfig(). Error: %v", err)
 	}
 
 	RedisConnectionPool, err = connectToRedisDatabase()
 	if err != nil {
-		return fmt.Errorf("error, when connectToRedisDatabase() for InitConfig(). Error: %v", err)
+		return Config{}, fmt.Errorf("error, when connectToRedisDatabase() for InitConfig(). Error: %v", err)
 	}
 
-	ConnectionPool, err = connectToDatabase(ctx, databaseConnectionString, databaseRootCa)
-	if err != nil {
-		return fmt.Errorf("error, when attempting to establish a connection pool with the database: %v", err)
-	}
-
-	err = ConnectionPool.Ping(ctx)
-	if err != nil {
-		return fmt.Errorf("error, when attempting to ping databse after establishing the initial pooling connection: %v", err)
-	}
-
-	HttpServer, err = initHttpServer()
-	if err != nil {
-		return fmt.Errorf("error, when attempting to setup http server for configuration init. Error: %v", err)
-	}
-	return nil
+	return config, nil
 }
 
 func initAllowedIpRanges() ([]*net.IPNet, error) {
@@ -311,126 +234,11 @@ func fetchAllowedIpRanges() ([]string, error) {
 	return result.Result.Ipv4Cidrs, nil
 }
 
-func initHttpServer() (*http.Server, error) {
-	certPem := os.Getenv("TF_VAR_cloudflare_origin_cert")
-	if certPem == "" {
-		return nil, errors.New("error, must provide TF_VAR_cloudflare_origin_cert env var")
-	}
-	certPemBytes, err := base64.StdEncoding.DecodeString(certPem)
-	if err != nil {
-		return nil, fmt.Errorf("error, when attempting to decode the webserver cert: %v", err)
-	}
-
-	keyPem := os.Getenv("TF_VAR_cloudflare_origin_cert_key")
-	if keyPem == "" {
-		return nil, errors.New("error, must provide TF_VAR_cloudflare_origin_cert_key env var")
-	}
-	keyPemBytes, err := base64.StdEncoding.DecodeString(keyPem)
-	if err != nil {
-		return nil, fmt.Errorf("error, when attempting to decode the webserver cert key: %v", err)
-	}
-
-	// Load the certificate and key
-	cert, err := tls.X509KeyPair(certPemBytes, keyPemBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load key pair: %v", err)
-	}
-
-	// Set up a TLS Config with the certificate
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
-
-	// Create a custom server with TLSConfig
-	server := &http.Server{
-		Addr:      ":443",
-		TLSConfig: tlsConfig,
-	}
-	return server, nil
-}
 
 func connectToRedisDatabase() (*redka.DB, error) {
 	return redka.Open("/session_data/redis.db", nil)
 }
 
-func connectToDatabase(ctx context.Context, connectionString, databaseRootCa string) (*pgxpool.Pool, error) {
-	config, err := pgxpool.ParseConfig(connectionString)
-	if err != nil {
-		return nil, fmt.Errorf("error, when parsing connection string: %v", err)
-	}
-
-	var tlsConfig *tls.Config
-	tlsConfig, err = generateTlsConfig(databaseRootCa, config)
-	if err != nil {
-		return nil, fmt.Errorf("error, when generating tls config: %v", err)
-	}
-	// Add the TLS configuration to the connection config
-	config.ConnConfig.TLSConfig = tlsConfig
-
-	// Customize connection pool settings (if desired)
-	config.MaxConns = 10
-	config.MinConns = 2
-	config.MaxConnLifetime = time.Minute * 30
-	config.MaxConnIdleTime = time.Minute * 5
-	config.HealthCheckPeriod = time.Minute
-
-	pool, err := pgxpool.ConnectConfig(context.Background(), config)
-	if err != nil {
-		return nil, fmt.Errorf("error, unable to create connection pool: %v", err)
-	}
-
-	err = attemptToPingDatabaseUntilSuccessful(ctx, pool)
-	if err != nil {
-		return nil, fmt.Errorf("error, exausted attempts to ping the database: %v", err)
-	}
-
-	return pool, nil
-}
-
-func attemptToPingDatabaseUntilSuccessful(ctx context.Context, pool *pgxpool.Pool) error {
-	timeOutInSeconds := 45
-	retryInterval := 3
-	var err error
-	for i := 0; i < (timeOutInSeconds / retryInterval); i++ {
-		err = pool.Ping(ctx)
-		if err != nil {
-			log.Printf("Database ping failed, will attempt again in: %d seconds...", retryInterval)
-			time.Sleep(time.Duration(retryInterval) * time.Second)
-		} else {
-			break
-		}
-	}
-	return err
-}
-
-func generateTlsConfig(databaseRootCa string, config *pgxpool.Config) (*tls.Config, error) {
-	rootCAs, err := loadRootCA(databaseRootCa)
-	if err != nil {
-		return nil, fmt.Errorf("error, failed to load root CA for generateTlsConfig(): %v", err)
-	}
-	tlsConfig := &tls.Config{
-		RootCAs:    rootCAs,
-		ServerName: config.ConnConfig.Host,
-	}
-	return tlsConfig, nil
-}
-
-func loadRootCA(databaseRootCa string) (*x509.CertPool, error) {
-	var err error
-	var decodedCert []byte
-
-	// The cert is encoded when deployed because I need to pass it around with terraform
-	decodedCert, err = base64.StdEncoding.DecodeString(databaseRootCa)
-	if err != nil {
-		return nil, fmt.Errorf("error, when base64 decoding database CA cert: %v", err)
-	}
-
-	rootCAs := x509.NewCertPool()
-	if ok := rootCAs.AppendCertsFromPEM(decodedCert); !ok {
-		return nil, fmt.Errorf("error, failed to append CA certificate to the certificate pool")
-	}
-	return rootCAs, nil
-}
 
 func GetSuperSetExpiration() time.Duration {
 	return time.Duration(CurrentSupersetExpirationTimeInHours) * time.Hour

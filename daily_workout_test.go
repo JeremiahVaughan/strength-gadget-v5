@@ -100,11 +100,12 @@ func Test_ShuffleMuscleCoverageMainExercises(t *testing.T) {
 					0,
 				},
 				{
-					3,
-					0,
 					1,
-					2,
 					4,
+					0,
+					2,
+                    3,
+					5,
 				},
 				{
 					0,

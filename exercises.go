@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -1053,8 +1052,8 @@ func hasMuscleGroupWorkedSessionLimitBeenReached(totalMuscleGroupsCount int, cou
 func getExerciseArgsAndInsertValues(exerciseIds []string) (string, []any) {
 	var exercisesArgsSlice []string
 	var insertValues []any
-	for i, exerciseId := range exerciseIds {
-		exercisesArgsSlice = append(exercisesArgsSlice, fmt.Sprintf("$%d", i+1))
+	for _, exerciseId := range exerciseIds {
+		exercisesArgsSlice = append(exercisesArgsSlice, "?")
 		insertValues = append(insertValues, exerciseId)
 	}
 	return strings.Join(exercisesArgsSlice, ", "), insertValues

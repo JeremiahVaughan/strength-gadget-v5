@@ -90,7 +90,7 @@ func Test_getExerciseArgsAndInsertValues(t *testing.T) {
 			args: args{
 				exerciseIds: []string{"1", "2"},
 			},
-			want:  "$1, $2",
+			want:  "?, ?",
 			want1: []any{"1", "2"},
 		},
 		{
@@ -98,7 +98,7 @@ func Test_getExerciseArgsAndInsertValues(t *testing.T) {
 			args: args{
 				exerciseIds: []string{"1"},
 			},
-			want:  "$1",
+			want:  "?",
 			want1: []any{"1"},
 		},
 	}

@@ -30,22 +30,22 @@ var about []byte
 //go:embed static/blog
 var blog []byte
 
-//go:embed templates/*
-var templatesFiles embed.FS
-
-//go:embed database/*
-var databaseFiles embed.FS
-
 var templateMap map[string]*template.Template
 
 func main() {
 	log.Printf("starting strengthgadget...")
 
 	ctx := context.Background()
-	err := InitConfig(ctx)
+	config, err := InitConfig(ctx)
 	if err != nil {
 		log.Fatalf("error, attempting to initialize configuration: %v", err)
 	}
+
+    dbClient, err := NewDatabaseClient(config.Database)
+    if err != nil {
+        log.Fatalf("error, when NewDatabaseClient() for main(). Error: %v", err)
+    }
+    ConnectionPool = dbClient.conn
 
 	defer ConnectionPool.Close()
 	err = sentry.Init(sentry.ClientOptions{
@@ -71,17 +71,27 @@ func main() {
 		log.Fatalf("error, when registerTemplates() for main(). Error: %v", err)
 	}
 
-	err = serveAthletes(ctx)
+	err = serveAthletes(ctx, config)
 	if err != nil {
 		log.Fatalf("error, when serveAthletes() for main(). Error: %v", err)
 	}
 }
 
-func serveAthletes(ctx context.Context) error {
-	err := ProcessSchemaChanges(ctx, databaseFiles)
+func serveAthletes(ctx context.Context, config Config) error {
+    config, err := NewConfig(ctx)
+    if err != nil {
+        log.Fatalf("error, when creating new config for main(). Error: %v", err)
+    }
+
+    db, err := NewDatabaseClient(config.Database)
+    if err != nil {
+        return fmt.Errorf("error, when NewConfig() for serveAthletes(). Error: %v", err)
+    }
+	err = db.migrate()
 	if err != nil {
 		return fmt.Errorf("error, when attempting to process schema changes: %v", err)
 	}
+    ConnectionPool = db.conn
 
 	// todo add a 404 not found page for invalid addresses
 	mux := http.NewServeMux()
@@ -91,7 +101,6 @@ func serveAthletes(ctx context.Context) error {
 		EndpointHealth:          HandleHealth,
 		EndpointExercise:        HandleExercisePage,
 		EndpointWorkoutComplete: HandleWorkoutComplete,
-		EndpointLogout:          HandleLogout,
 	}
 	for k, v := range endpoints {
 		// mux.Handle(k, IpFilterMiddleware(v)) // todo cloudflare IPs are not working, I think some are not whitelisted that should be.
@@ -100,12 +109,6 @@ func serveAthletes(ctx context.Context) error {
 
 	authEndPoints := map[string]http.HandlerFunc{
 		LandingPage:          HandleLandingPage,
-		EndpontSignUp:        HandleSignUp,
-		EndpointLogin:        HandleLogin,
-		EndpointVerification: HandleVerification,
-		EndpointEmail:        HandleForgotPasswordEmail,
-		EndpointResetCode:    HandleForgotPasswordResetCode,
-		EndpointNewPassword:  HandleForgotPasswordNewPassword,
 	}
 
 	for k, v := range authEndPoints {
@@ -129,7 +132,7 @@ func serveAthletes(ctx context.Context) error {
 	HttpServer.Handler = mux
 
 	log.Printf("initialization complete")
-	err = HttpServer.ListenAndServeTLS("", "") // certs are already present in the tls config
+    err = http.ListenAndServe(":9000", mux) // certs are already present in the tls config
 	if err != nil {
 		return fmt.Errorf("error, when attempting to start server: %v", err)
 	}

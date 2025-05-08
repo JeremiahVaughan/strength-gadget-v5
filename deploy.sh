@@ -2,7 +2,7 @@
 set -e
 
 export APP=strengthgadget
-FILES=("./deploy/" "./templates" "./database")
+FILES=("./deploy/" "./templates" "./migrate")
 
 DEST=$1
 DEPLOY_PATH="${HOME}/deploy/${APP}"

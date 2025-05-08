@@ -21,7 +21,7 @@ func TestGenerateQueryForExerciseUserData(t *testing.T) {
 			wantSQL: `
 		INSERT INTO last_completed_measurement (user_id, exercise_id, measurement)
 		VALUES 
-			($1, $2, $3)
+			(?, ?, ?)
 		ON CONFLICT (user_id, exercise_id) DO UPDATE 
 		SET 
 			measurement = excluded.measurement`,
@@ -38,9 +38,9 @@ func TestGenerateQueryForExerciseUserData(t *testing.T) {
 			wantSQL: `
 		INSERT INTO last_completed_measurement (user_id, exercise_id, measurement)
 		VALUES 
-			($1, $2, $3),
-($4, $5, $6),
-($7, $8, $9)
+			(?, ?, ?),
+(?, ?, ?),
+(?, ?, ?)
 		ON CONFLICT (user_id, exercise_id) DO UPDATE 
 		SET 
 			measurement = excluded.measurement`,

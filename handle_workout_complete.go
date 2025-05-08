@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 )
@@ -41,7 +40,7 @@ func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
 		}
 	case http.MethodPost:
 		var currentWorkoutRoutine RoutineType
-		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, ConnectionPool, userSession.UserId)
+		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, userSession.UserId)
 		if err != nil {
 			err = fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for HandleWorkoutComplete(). Error: %v", err)
 			HandleUnexpectedError(w, err)
@@ -58,12 +57,11 @@ func HandleWorkoutComplete(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func persistWorkoutRoutine(ctx context.Context, userId int64, routineType RoutineType) error {
+func persistWorkoutRoutine(userId int64, routineType RoutineType) error {
 	_, err := ConnectionPool.Exec(
-		ctx,
 		`UPDATE athlete 
-		SET current_routine = $1
-		WHERE id = $2`,
+		SET current_routine = ?
+		WHERE id = ?`,
 		routineType,
 		userId,
 	)

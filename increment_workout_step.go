@@ -16,7 +16,7 @@ func generateQueryForExerciseMeasurements(
 		ph = []string{}
 		for i := 0; i < 3; i++ {
 			placeHolderCounter++
-			ph = append(ph, fmt.Sprintf("$%d", placeHolderCounter))
+			ph = append(ph, "?")
 		}
 
 		queryPart := strings.Join(ph, ", ")

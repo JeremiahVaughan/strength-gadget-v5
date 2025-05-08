@@ -30,7 +30,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 
 	if !userSession.WorkoutSessionExists { // todo also handle the case where the user clicks the button to start a new workout
 		var currentWorkoutRoutine RoutineType
-		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, ConnectionPool, userSession.UserId)
+		currentWorkoutRoutine, err = fetchCurrentWorkoutRoutine(ctx, userSession.UserId)
 		if err != nil {
 			err = fmt.Errorf("error, when attempting to fetchCurrentWorkoutRoutine() for HandleExercisePage(). Error: %v", err)
 			HandleUnexpectedError(w, err)
@@ -165,7 +165,6 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 					userSession.UserId,
 				)
 				_, e = ConnectionPool.Exec(
-					ctx,
 					emq,
 					args...,
 				)
@@ -181,7 +180,7 @@ func HandleExercisePage(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 			var e error
 			nextRoutine := userSession.WorkoutSession.CurrentWorkoutRoutine.GetNextRoutine()
-			e = persistWorkoutRoutine(r.Context(), userSession.UserId, nextRoutine)
+			e = persistWorkoutRoutine(userSession.UserId, nextRoutine)
 			if e != nil {
 				errChan <- fmt.Errorf("error, when persistWorkoutRoutine() for HandleWorkoutComplete(). Error: %v", e)
 				return
@@ -587,7 +586,6 @@ func getCurrentMeasurement(
 	_, ok = workoutMeasurements[exercise.Id]
 	if !ok {
 		workoutMeasurements, err = fetchExerciseMeasurements(
-			ctx,
 			ConnectionPool,
 			userId,
 			choosenExercises,

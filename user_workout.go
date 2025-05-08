@@ -8,8 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+    "database/sql"
 )
 
 type UserWorkoutDto struct {
@@ -173,13 +172,12 @@ func GetUserKey(userId int64, key string) string {
 	return uid + ":" + key
 }
 
-func fetchCurrentWorkoutRoutine(ctx context.Context, db *pgxpool.Pool, userId int64) (RoutineType, error) {
+func fetchCurrentWorkoutRoutine(ctx context.Context, userId int64) (RoutineType, error) {
 	var result RoutineType
-	err := db.QueryRow(
-		ctx,
+	err := ConnectionPool.QueryRow(
 		`SELECT current_routine
-        FROM public.athlete
-        WHERE id = $1`,
+        FROM athlete
+        WHERE id = ?`,
 		userId,
 	).Scan(
 		&result,
@@ -191,8 +189,7 @@ func fetchCurrentWorkoutRoutine(ctx context.Context, db *pgxpool.Pool, userId in
 }
 
 func fetchExerciseMeasurements(
-	ctx context.Context,
-	db *pgxpool.Pool,
+	db *sql.DB,
 	userId int64,
 	choosenExercises ChoosenExercisesMap,
 ) (currentMeasurements ChoosenExercisesMap, err error) {
@@ -213,12 +210,12 @@ func fetchExerciseMeasurements(
 	query := fmt.Sprintf(
 		`SELECT exercise_id, measurement 
         FROM last_completed_measurement 
-        WHERE user_id = $1 
+        WHERE user_id = ?
             AND exercise_id IN (%s)`,
 		strings.Join(placeholders, ","),
 	)
 
-	rows, err := db.Query(ctx, query, args...)
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error, when attempting to retrieve records. Error: %v", err)
 	}
@@ -253,24 +250,23 @@ func fetchExerciseMeasurements(
 
 func fetchExerciseMeasurement(
 	ctx context.Context,
-	db *pgxpool.Pool,
+	db *sql.DB,
 	userId string,
 	exerciseId string,
 ) (int, error) {
 	var exerciseMeasurement int
 	err := db.QueryRow(
-		ctx,
 		`SELECT measurement 
 		 FROM last_completed_measurement
-		 WHERE user_id = $1
-		   AND exercise_id = $2`,
+		 WHERE user_id = ?
+		   AND exercise_id = ?`,
 		userId,
 		exerciseId,
 	).Scan(
 		&exerciseMeasurement,
 	)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			// means the user hasn't done this exercise before for a measurement to be
 			// recorded
 			return 0, nil
